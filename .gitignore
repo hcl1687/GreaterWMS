@@ -9,3 +9,6 @@ delete.py
 *.xlsx
 logs/
 bfg.jar
+*_initial.py
+greaterwms_server_access.log
+templates/web_start.sh
