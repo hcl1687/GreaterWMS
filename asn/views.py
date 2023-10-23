@@ -157,6 +157,7 @@ class AsnDetailViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, OrderingFilter, ]
     ordering_fields = ['id', "create_time", "update_time", ]
     filter_class = AsnDetailFilter
+    permission_classes = (permissions.DjangoModelPermissions,)
 
     def get_project(self):
         try:
@@ -439,6 +440,7 @@ class AsnViewPrintViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, OrderingFilter, ]
     ordering_fields = ['id', "create_time", "update_time", ]
     filter_class = AsnListFilter
+    permission_classes = (permissions.DjangoModelPermissions,)
 
     def get_project(self):
         try:
@@ -500,6 +502,7 @@ class AsnPreLoadViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, OrderingFilter, ]
     ordering_fields = ['id', "create_time", "update_time", ]
     filter_class = AsnListFilter
+    permission_classes = (permissions.DjangoModelPermissions,)
 
     def get_project(self):
         try:
@@ -562,6 +565,7 @@ class AsnPreSortViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, OrderingFilter, ]
     ordering_fields = ['id', "create_time", "update_time", ]
     filter_class = AsnListFilter
+    permission_classes = (permissions.DjangoModelPermissions,)
 
     def get_project(self):
         try:
@@ -623,6 +627,7 @@ class AsnSortedViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, OrderingFilter, ]
     ordering_fields = ['id', "create_time", "update_time", ]
     filter_class = AsnListFilter
+    permission_classes = (permissions.DjangoModelPermissions,)
 
     def get_project(self):
         try:
@@ -789,6 +794,7 @@ class MoveToBinViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, OrderingFilter, ]
     ordering_fields = ['id', "create_time", "update_time", ]
     filter_class = AsnDetailFilter
+    permission_classes = (permissions.DjangoModelPermissions,)
 
     def get_project(self):
         try:
@@ -1138,6 +1144,7 @@ class FileListDownloadView(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, OrderingFilter, ]
     ordering_fields = ['id', "create_time", "update_time", ]
     filter_class = AsnListFilter
+    permission_classes = (permissions.DjangoModelPermissions,)
 
     def get_project(self):
         try:
@@ -1203,6 +1210,7 @@ class FileDetailDownloadView(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, OrderingFilter, ]
     ordering_fields = ['id', "create_time", "update_time", ]
     filter_class = AsnDetailFilter
+    permission_classes = (permissions.DjangoModelPermissions,)
 
     def get_project(self):
         try:
