@@ -48,9 +48,9 @@ class SannerGoodsTagView(viewsets.ModelViewSet):
         bar_code = self.get_project()
         if self.request.user:
             if bar_code is None:
-                return ListModel.objects.filter(openid=self.request.auth.openid, is_delete=False)
+                return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), is_delete=False)
             else:
-                return ListModel.objects.filter(openid=self.request.auth.openid, bar_code=bar_code, is_delete=False)
+                return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), bar_code=bar_code, is_delete=False)
         else:
             return ListModel.objects.filter().none()
 
@@ -117,18 +117,18 @@ class APIViewSet(viewsets.ModelViewSet):
             search_word = self.request.GET.get('search', '')
             if search_word:
                 if id is None:
-                    data_list = ListModel.objects.filter(openid=self.request.auth.openid, is_delete=False)
+                    data_list = ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), is_delete=False)
                     search_list = data_list.filter(Q(goods_shape=search_word) | Q(goods_specs=search_word))
                     return search_list
                 else:
-                    data_list = ListModel.objects.filter(openid=self.request.auth.openid, id=id, is_delete=False)
+                    data_list = ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=id, is_delete=False)
                     search_list = data_list.filter(Q(goods_shape=search_word) | Q(goods_specs=search_word))
                     return search_list
             else:
                 if id is None:
-                    return ListModel.objects.filter(openid=self.request.auth.openid, is_delete=False)
+                    return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), is_delete=False)
                 else:
-                    return ListModel.objects.filter(openid=self.request.auth.openid, id=id, is_delete=False)
+                    return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=id, is_delete=False)
         else:
             return ListModel.objects.filter().none()
 
@@ -146,7 +146,7 @@ class APIViewSet(viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         data = self.request.data
-        data['openid'] = self.request.auth.openid
+        data['openid'] = self.request.META.get('HTTP_TOKEN')
         data['unit_volume'] = round(
             (float(data['goods_w']) * float(data['goods_d']) * float(data['goods_h'])) / 1000000000, 4)
         if ListModel.objects.filter(openid=data['openid'], goods_code=data['goods_code'], is_delete=False).exists():
@@ -174,7 +174,7 @@ class APIViewSet(viewsets.ModelViewSet):
                                             serializer = self.get_serializer(data=data)
                                             serializer.is_valid(raise_exception=True)
                                             serializer.save()
-                                            scanner.objects.create(openid=self.request.auth.openid, mode="GOODS",
+                                            scanner.objects.create(openid=self.request.META.get('HTTP_TOKEN'), mode="GOODS",
                                                                    code=data['goods_code'],
                                                                    bar_code=data['bar_code'])
                                             headers = self.get_success_headers(serializer.data)
@@ -200,31 +200,31 @@ class APIViewSet(viewsets.ModelViewSet):
 
     def update(self, request, pk):
         qs = self.get_object()
-        if qs.openid != self.request.auth.openid:
+        if qs.openid != self.request.META.get('HTTP_TOKEN'):
             raise APIException({"detail": "Cannot update data which not yours"})
         else:
             data = self.request.data
             data['unit_volume'] = round(
                 (float(data['goods_w']) * float(data['goods_d']) * float(data['goods_h'])) / 1000000000, 4)
-            if supplier.objects.filter(openid=self.request.auth.openid, supplier_name=data['goods_supplier'],
+            if supplier.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), supplier_name=data['goods_supplier'],
                                         is_delete=False).exists():
-                if goods_unit.objects.filter(openid=self.request.auth.openid, goods_unit=data['goods_unit'],
+                if goods_unit.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), goods_unit=data['goods_unit'],
                                                is_delete=False).exists():
-                    if goods_class.objects.filter(openid=self.request.auth.openid, goods_class=data['goods_class'],
+                    if goods_class.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), goods_class=data['goods_class'],
                                                   is_delete=False).exists():
-                        if goods_brand.objects.filter(openid=self.request.auth.openid, goods_brand=data['goods_brand'],
+                        if goods_brand.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), goods_brand=data['goods_brand'],
                                                       is_delete=False).exists():
-                            if goods_color.objects.filter(openid=self.request.auth.openid, goods_color=data['goods_color'],
+                            if goods_color.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), goods_color=data['goods_color'],
                                                             is_delete=False).exists():
-                                if goods_shape.objects.filter(openid=self.request.auth.openid, goods_shape=data['goods_shape'],
+                                if goods_shape.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), goods_shape=data['goods_shape'],
                                                                 is_delete=False).exists():
-                                    if goods_specs.objects.filter(openid=self.request.auth.openid,
+                                    if goods_specs.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                                   goods_specs=data['goods_specs'],
                                                                   is_delete=False).exists():
-                                        if goods_origin.objects.filter(openid=self.request.auth.openid,
+                                        if goods_origin.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                                        goods_origin=data['goods_origin'],
                                                                        is_delete=False).exists():
-                                            scanner.objects.filter(openid=self.request.auth.openid,
+                                            scanner.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                                    mode='GOODS',
                                                                    code=qs.goods_code).update(code=str(data['goods_code']))
                                             serializer = self.get_serializer(qs, data=data)
@@ -253,29 +253,29 @@ class APIViewSet(viewsets.ModelViewSet):
 
     def partial_update(self, request, pk):
         qs = self.get_object()
-        if qs.openid != self.request.auth.openid:
+        if qs.openid != self.request.META.get('HTTP_TOKEN'):
             raise APIException({"detail": "Cannot partial_update data which not yours"})
         else:
             data = self.request.data
-            if supplier.objects.filter(openid=self.request.auth.openid, supplier_name=data['goods_supplier'],
+            if supplier.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), supplier_name=data['goods_supplier'],
                                         is_delete=False).exists():
-                if goods_unit.objects.filter(openid=self.request.auth.openid, goods_unit=data['goods_unit'],
+                if goods_unit.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), goods_unit=data['goods_unit'],
                                                is_delete=False).exists():
-                    if goods_class.objects.filter(openid=self.request.auth.openid, goods_class=data['goods_class'],
+                    if goods_class.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), goods_class=data['goods_class'],
                                                   is_delete=False).exists():
-                        if goods_brand.objects.filter(openid=self.request.auth.openid, goods_brand=data['goods_brand'],
+                        if goods_brand.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), goods_brand=data['goods_brand'],
                                                       is_delete=False).exists():
-                            if goods_color.objects.filter(openid=self.request.auth.openid, goods_color=data['goods_color'],
+                            if goods_color.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), goods_color=data['goods_color'],
                                                             is_delete=False).exists():
-                                if goods_shape.objects.filter(openid=self.request.auth.openid, goods_shape=data['goods_shape'],
+                                if goods_shape.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), goods_shape=data['goods_shape'],
                                                                 is_delete=False).exists():
-                                    if goods_specs.objects.filter(openid=self.request.auth.openid,
+                                    if goods_specs.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                                   goods_specs=data['goods_specs'],
                                                                   is_delete=False).exists():
-                                        if goods_origin.objects.filter(openid=self.request.auth.openid,
+                                        if goods_origin.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                                        goods_origin=data['goods_origin'],
                                                                        is_delete=False).exists():
-                                            scanner.objects.filter(openid=self.request.auth.openid,
+                                            scanner.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                                    mode='GOODS',
                                                                    code=qs.goods_code).update(
                                                 code=str(data['goods_code']))
@@ -305,7 +305,7 @@ class APIViewSet(viewsets.ModelViewSet):
 
     def destroy(self, request, pk):
         qs = self.get_object()
-        if qs.openid != self.request.auth.openid:
+        if qs.openid != self.request.META.get('HTTP_TOKEN'):
             raise APIException({"detail": "Cannot delete data which not yours"})
         else:
             qs.is_delete = True
@@ -331,9 +331,9 @@ class FileDownloadView(viewsets.ModelViewSet):
         id = self.get_project()
         if self.request.user:
             if id is None:
-                return ListModel.objects.filter(openid=self.request.auth.openid, is_delete=False)
+                return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), is_delete=False)
             else:
-                return ListModel.objects.filter(openid=self.request.auth.openid, id=id, is_delete=False)
+                return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=id, is_delete=False)
         else:
             return ListModel.objects.none()
 

@@ -35,7 +35,7 @@ class QTYRecorderViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         if self.request.user:
-            return QTYRecorder.objects.filter(openid=self.request.auth.openid)
+            return QTYRecorder.objects.filter(openid=self.request.META.get('HTTP_TOKEN'))
         else:
             return QTYRecorder.objects.none()
 
@@ -83,11 +83,11 @@ class CyclecountModeDayViewSet(viewsets.ModelViewSet):
             cur_date = timezone.now()
             delt_date = relativedelta(days=1)
             if id is None:
-                return CyclecountModeDayModel.objects.filter(openid=self.request.auth.openid, cyclecount_status=0,
+                return CyclecountModeDayModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), cyclecount_status=0,
                                                              update_time__gte=str((cur_date -delt_date).date()) + ' 00:00:00',
                                                              update_time__lte=str((cur_date + delt_date).date()) + ' 00:00:00')
             else:
-                return CyclecountModeDayModel.objects.filter(openid=self.request.auth.openid, cyclecount_status=0,
+                return CyclecountModeDayModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), cyclecount_status=0,
                                                              update_time__gte=str((cur_date - delt_date).date()) + ' 00:00:00',
                                                              update_time__lte=str((cur_date + delt_date).date()) + ' 00:00:00', id=id)
         else:
@@ -106,7 +106,7 @@ class CyclecountModeDayViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         data = self.request.data
         for i in range(len(data)):
-            CyclecountModeDayModel.objects.filter(openid=self.request.auth.openid,
+            CyclecountModeDayModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                   t_code=data[i]['t_code']).update(
                 physical_inventory=data[i]['physical_inventory'], cyclecount_status=1,
                 difference=data[i]['physical_inventory'] - data[i]['goods_qty'])
@@ -115,7 +115,7 @@ class CyclecountModeDayViewSet(viewsets.ModelViewSet):
     def update(self, request, *args, **kwargs):
         data = self.request.data
         for i in range(len(data)):
-            scan_count_data = self.get_queryset().filter(openid=self.request.auth.openid,
+            scan_count_data = self.get_queryset().filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                   t_code=data[i]['t_code']).first()
             scan_count_data.physical_inventory = scan_count_data.physical_inventory + data[i]['physical_inventory']
             scan_count_data.difference = data[i]['physical_inventory'] - data[i]['goods_qty']
@@ -147,21 +147,21 @@ class CyclecountModeAllViewSet(viewsets.ModelViewSet):
             cur_time = timezone.now().date()
             if date_choice:
                 if id is None:
-                    return CyclecountModeDayModel.objects.filter(openid=self.request.auth.openid, cyclecount_status=1,
+                    return CyclecountModeDayModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), cyclecount_status=1,
                                                                  update_time__gte=str(date_choice) + ' 00:00:00',
                                                                  update_time__lte=str(date_choice) + ' 23:59:59')
                 else:
-                    return CyclecountModeDayModel.objects.filter(openid=self.request.auth.openid, cyclecount_status=1,
+                    return CyclecountModeDayModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), cyclecount_status=1,
                                                                  update_time__gte=str(date_choice) + ' 00:00:00',
                                                                  update_time__lte=str(date_choice) + ' 23:59:59',
                                                                  id=id)
             else:
                 if id is None:
-                    return CyclecountModeDayModel.objects.filter(openid=self.request.auth.openid, cyclecount_status=1,
+                    return CyclecountModeDayModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), cyclecount_status=1,
                                                                  update_time__gte=str(cur_time) + ' 00:00:00',
                                                                  update_time__lte=str(cur_time) + ' 23:59:59')
                 else:
-                    return CyclecountModeDayModel.objects.filter(openid=self.request.auth.openid, cyclecount_status=1,
+                    return CyclecountModeDayModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), cyclecount_status=1,
                                                                  update_time__gte=str(cur_time) + ' 00:00:00',
                                                                  update_time__lte=str(cur_time) + ' 23:59:59',
                                                                  id=id)
@@ -194,10 +194,10 @@ class FileDownloadView(viewsets.ModelViewSet):
             cur_date = timezone.now()
             delt_date = relativedelta(days=1)
             if id is None:
-                return CyclecountModeDayModel.objects.filter(openid=self.request.auth.openid, cyclecount_status=0,
+                return CyclecountModeDayModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), cyclecount_status=0,
                                                              update_time__gte=str((cur_date -delt_date).date()) + ' 00:00:00')
             else:
-                return CyclecountModeDayModel.objects.filter(openid=self.request.auth.openid, cyclecount_status=0,
+                return CyclecountModeDayModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), cyclecount_status=0,
                                                              update_time__gte=str((cur_date -delt_date).date()) + ' 00:00:00', id=id)
         else:
             return CyclecountModeDayModel.objects.none()
@@ -252,11 +252,11 @@ class FileDownloadAllView(viewsets.ModelViewSet):
                 cur_date = timezone.now()
                 delt_date = relativedelta(days=1)
                 if id is None:
-                    return CyclecountModeDayModel.objects.filter(openid=self.request.auth.openid, cyclecount_status=1,
+                    return CyclecountModeDayModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), cyclecount_status=1,
                                                                  update_time__gte=str((cur_date -delt_date).date()) + ' 00:00:00',
                                                                  update_time__lte=str((cur_date + delt_date).date()) + ' 23:59:59')
                 else:
-                    return CyclecountModeDayModel.objects.filter(openid=self.request.auth.openid, cyclecount_status=1,
+                    return CyclecountModeDayModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), cyclecount_status=1,
                                                                  update_time__gte=str((cur_date - delt_date).date()) + ' 00:00:00',
                                                                  update_time__lte=str((cur_date + delt_date).date()) + ' 23:59:59', id=id)
             else:
@@ -301,14 +301,14 @@ class GetGoodsCyclecountViewSet(StockBinViewSet):
     pagination_class = None
 
     def list(self, request, *args, **kwargs):
-        staff_name = staff.objects.filter(openid=self.request.auth.openid, id=self.request.META.get('HTTP_OPERATOR')).first().staff_name
+        staff_name = staff.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=self.request.META.get('HTTP_OPERATOR')).first().staff_name
         queryset = self.filter_queryset(self.get_queryset())
         goods_code = self.request.GET.get('goods_code', '')
         for i in queryset:
             if (d:=ManualCyclecountModeModel.objects.filter(cyclecount_status=0, bin_name=i.bin_name, goods_code=goods_code)).exists():
                 d.delete()
             data = {
-                'openid': self.request.auth.openid,
+                'openid': self.request.META.get('HTTP_TOKEN'),
                 'creater': staff_name,
                 'cyclecount_status': 0,
                 'bin_name': i.bin_name,
@@ -376,8 +376,8 @@ class ManualCyclecountViewSet(viewsets.ModelViewSet):
                 'update_time__gte': str((cur_date - delt_date).date()) + ' 00:00:00',
                 'update_time__lte': str((cur_date + delt_date).date()) + ' 00:00:00'
             }
-            if self.request.auth.openid != superopenid:
-                query_dict['openid'] = self.request.auth.openid
+            if self.request.META.get('HTTP_TOKEN') != superopenid:
+                query_dict['openid'] = self.request.META.get('HTTP_TOKEN')
             if id is not None:
                 query_dict['id'] = id
             return ManualCyclecountModeModel.objects.filter(**query_dict)
@@ -397,7 +397,7 @@ class ManualCyclecountViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         data = self.request.data
         for i in range(len(data)):
-            ManualCyclecountModeModel.objects.filter(openid=self.request.auth.openid, t_code=data[i]['t_code']).update(
+            ManualCyclecountModeModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), t_code=data[i]['t_code']).update(
                 physical_inventory=data[i]['physical_inventory'],
                 cyclecount_status=1,
                 difference=data[i]['physical_inventory'] - data[i]['goods_qty']
@@ -407,7 +407,7 @@ class ManualCyclecountViewSet(viewsets.ModelViewSet):
     def update(self, request, *args, **kwargs):
         data = self.request.data
         for i in range(len(data)):
-            scan_count_data = self.get_queryset().filter(openid=self.request.auth.openid,
+            scan_count_data = self.get_queryset().filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                   t_code=data[i]['t_code']).first()
             scan_count_data.physical_inventory = scan_count_data.physical_inventory + data[i]['physical_inventory']
             scan_count_data.difference = data[i]['physical_inventory'] - data[i]['goods_qty']
@@ -445,8 +445,8 @@ class ManualCyclecountRecorderViewSet(viewsets.ModelViewSet):
             query_dict = {
                 'cyclecount_status': 1
             }
-            if self.request.auth.openid != superopenid:
-                query_dict['openid'] = self.request.auth.openid
+            if self.request.META.get('HTTP_TOKEN') != superopenid:
+                query_dict['openid'] = self.request.META.get('HTTP_TOKEN')
             if date_choice:
                 query_dict['update_time__gte'] = str(date_choice) + ' 00:00:00'
                 query_dict['update_time__lte'] = str(date_choice) + ' 23:59:59'
@@ -492,8 +492,8 @@ class ManualFileDownloadView(viewsets.ModelViewSet):
                 'cyclecount_status': 0,
                 'update_time__gte': str((cur_date - delt_date).date()) + ' 00:00:00'
             }
-            if self.request.auth.openid != superopenid:
-                query_dict['openid'] = self.request.auth.openid
+            if self.request.META.get('HTTP_TOKEN') != superopenid:
+                query_dict['openid'] = self.request.META.get('HTTP_TOKEN')
             if id is not None:
                 query_dict['id'] = id
             return ManualCyclecountModeModel.objects.filter(**query_dict)

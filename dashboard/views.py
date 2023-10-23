@@ -44,11 +44,11 @@ class ReceiptsViewSet(viewsets.ModelViewSet):
         id = self.get_project()
         if self.request.user:
             if id is None:
-                return AsnDetailModel.objects.filter(openid=self.request.auth.openid, asn_status__gte=4,
+                return AsnDetailModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), asn_status__gte=4,
                                                      create_time__gte=timezone.now().date() - relativedelta(days=14),
                                                      is_delete=False)
             else:
-                return AsnDetailModel.objects.filter(openid=self.request.auth.openid, asn_status__gte=4,
+                return AsnDetailModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), asn_status__gte=4,
                                                      create_time__gte=timezone.now().date() - relativedelta(days=14),
                                                      id=id, is_delete=False)
         else:
@@ -133,11 +133,11 @@ class SalesViewSet(viewsets.ModelViewSet):
         id = self.get_project()
         if self.request.user:
             if id is None:
-                return DnDetailModel.objects.filter(openid=self.request.auth.openid, dn_status__gte=4,
+                return DnDetailModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), dn_status__gte=4,
                                                     create_time__gte=timezone.now().date() - relativedelta(days=14),
                                                     is_delete=False)
             else:
-                return DnDetailModel.objects.filter(openid=self.request.auth.openid, dn_status__gte=4,
+                return DnDetailModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), dn_status__gte=4,
                                                     create_time__gte=timezone.now().date() - relativedelta(days=14),
                                                     id=id, is_delete=False)
         else:

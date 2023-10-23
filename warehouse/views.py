@@ -45,9 +45,9 @@ class APIViewSet(viewsets.ModelViewSet):
         id = self.get_project()
         if self.request.user:
             if id is None:
-                return ListModel.objects.filter(openid=self.request.auth.openid, is_delete=False)
+                return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), is_delete=False)
             else:
-                return ListModel.objects.filter(openid=self.request.auth.openid, id=id, is_delete=False)
+                return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=id, is_delete=False)
         else:
             return ListModel.objects.none()
 
@@ -65,7 +65,7 @@ class APIViewSet(viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         data = self.request.data
-        data['openid'] = self.request.auth.openid
+        data['openid'] = self.request.META.get('HTTP_TOKEN')
         if len(data['warehouse_name']) > 45:
             raise APIException({"detail": "The warehouse name is set to more than 45 characters"})
         if ListModel.objects.filter(openid=data['openid'], warehouse_name=data['warehouse_name'],
@@ -83,7 +83,7 @@ class APIViewSet(viewsets.ModelViewSet):
 
     def update(self, request, pk):
         qs = self.get_object()
-        if qs.openid != self.request.auth.openid:
+        if qs.openid != self.request.META.get('HTTP_TOKEN'):
             raise APIException({"detail": "Cannot update data which not yours"})
         else:
             data = self.request.data
@@ -97,7 +97,7 @@ class APIViewSet(viewsets.ModelViewSet):
 
     def partial_update(self, request, pk):
         qs = self.get_object()
-        if qs.openid != self.request.auth.openid:
+        if qs.openid != self.request.META.get('HTTP_TOKEN'):
             raise APIException({"detail": "Cannot partial_update data which not yours"})
         else:
             data = self.request.data
@@ -111,7 +111,7 @@ class APIViewSet(viewsets.ModelViewSet):
 
     def destroy(self, request, pk):
         qs = self.get_object()
-        if qs.openid != self.request.auth.openid:
+        if qs.openid != self.request.META.get('HTTP_TOKEN'):
             raise APIException({"detail": "Cannot delete data which not yours"})
         else:
             qs.is_delete = True

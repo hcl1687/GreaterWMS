@@ -39,9 +39,9 @@ class SannerDnDetailPickingListView(viewsets.ModelViewSet):
         id = self.get_project()
         if self.request.user:
             if id is None:
-                return DnDetailModel.objects.filter(openid=self.request.auth.openid, is_delete=False)
+                return DnDetailModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), is_delete=False)
             else:
-                return DnDetailModel.objects.filter(openid=self.request.auth.openid, id=id, is_delete=False)
+                return DnDetailModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=id, is_delete=False)
         else:
             return DnDetailModel.objects.none()
 
@@ -72,9 +72,9 @@ class ListViewSet(viewsets.ModelViewSet):
         id = self.get_project()
         if self.request.user:
             if id is None:
-                return ListModel.objects.filter(openid=self.request.auth.openid)
+                return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'))
             else:
-                return ListModel.objects.filter(openid=self.request.auth.openid, id=id)
+                return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=id)
         else:
             return ListModel.objects.none()
 
@@ -107,9 +107,9 @@ class SannerView(viewsets.ModelViewSet):
         bar_code = self.get_project()
         if self.request.user:
             if id is None:
-                return ListModel.objects.filter(openid=self.request.auth.openid)
+                return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'))
             else:
-                return ListModel.objects.filter(openid=self.request.auth.openid, bar_code=bar_code)
+                return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), bar_code=bar_code)
         else:
             return ListModel.objects.none()
 

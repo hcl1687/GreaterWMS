@@ -46,7 +46,7 @@ class APIViewSet(viewsets.ModelViewSet):
         elif staff_name != None and check_code == None:
             return super().list(request, *args, **kwargs)
         else:
-            staff_name_obj = ListModel.objects.filter(openid=self.request.auth.openid, staff_name=staff_name,
+            staff_name_obj = ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), staff_name=staff_name,
                                                       is_delete=False).first()
             if staff_name_obj is None:
                 raise APIException({"detail": "The user name does not exist"})
@@ -84,9 +84,9 @@ class APIViewSet(viewsets.ModelViewSet):
         id = self.get_project()
         if self.request.user:
             if id is None:
-                return ListModel.objects.filter(openid=self.request.auth.openid, is_delete=False)
+                return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), is_delete=False)
             else:
-                return ListModel.objects.filter(openid=self.request.auth.openid, id=id, is_delete=False)
+                return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=id, is_delete=False)
         else:
             return ListModel.objects.none()
 
@@ -104,7 +104,7 @@ class APIViewSet(viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         data = self.request.data
-        data['openid'] = self.request.auth.openid
+        data['openid'] = self.request.META.get('HTTP_TOKEN')
         if ListModel.objects.filter(openid=data['openid'], staff_name=data['staff_name'], is_delete=False).exists():
             raise APIException({"detail": "Data exists"})
         else:
@@ -116,7 +116,7 @@ class APIViewSet(viewsets.ModelViewSet):
 
     def update(self, request, pk):
         qs = self.get_object()
-        if qs.openid != self.request.auth.openid:
+        if qs.openid != self.request.META.get('HTTP_TOKEN'):
             raise APIException({"detail": "Cannot Update Data Which Not Yours"})
         else:
             data = self.request.data
@@ -128,7 +128,7 @@ class APIViewSet(viewsets.ModelViewSet):
 
     def partial_update(self, request, pk):
         qs = self.get_object()
-        if qs.openid != self.request.auth.openid:
+        if qs.openid != self.request.META.get('HTTP_TOKEN'):
             raise APIException({"detail": "Cannot Partial Update Data Which Not Yours"})
         else:
             data = self.request.data
@@ -140,7 +140,7 @@ class APIViewSet(viewsets.ModelViewSet):
 
     def destroy(self, request, pk):
         qs = self.get_object()
-        if qs.openid != self.request.auth.openid:
+        if qs.openid != self.request.META.get('HTTP_TOKEN'):
             raise APIException({"detail": "Cannot Delete Data Which Not Yours"})
         else:
             qs.is_delete = True
@@ -190,9 +190,9 @@ class FileDownloadView(viewsets.ModelViewSet):
         id = self.get_project()
         if self.request.user:
             if id is None:
-                return ListModel.objects.filter(openid=self.request.auth.openid, is_delete=False)
+                return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), is_delete=False)
             else:
-                return ListModel.objects.filter(openid=self.request.auth.openid, id=id, is_delete=False)
+                return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=id, is_delete=False)
         else:
             return ListModel.objects.none()
 

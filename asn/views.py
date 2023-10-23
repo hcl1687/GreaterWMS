@@ -59,7 +59,7 @@ class AsnListViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         id = self.get_project()
         if self.request.user:
-            empty_qs = AsnListModel.objects.filter(Q(openid=self.request.auth.openid, asn_status=1, is_delete=False) & Q(supplier=''))
+            empty_qs = AsnListModel.objects.filter(Q(openid=self.request.META.get('HTTP_TOKEN'), asn_status=1, is_delete=False) & Q(supplier=''))
             cur_date = timezone.now()
             date_check = relativedelta(day=1)
             if len(empty_qs) > 0:
@@ -67,9 +67,9 @@ class AsnListViewSet(viewsets.ModelViewSet):
                     if empty_qs[i].create_time <= cur_date - date_check:
                         empty_qs[i].delete()
             if id is None:
-                return AsnListModel.objects.filter(Q(openid=self.request.auth.openid, is_delete=False) & ~Q(supplier=''))
+                return AsnListModel.objects.filter(Q(openid=self.request.META.get('HTTP_TOKEN'), is_delete=False) & ~Q(supplier=''))
             else:
-                return AsnListModel.objects.filter(Q(openid=self.request.auth.openid, id=id, is_delete=False) & ~Q(supplier=''))
+                return AsnListModel.objects.filter(Q(openid=self.request.META.get('HTTP_TOKEN'), id=id, is_delete=False) & ~Q(supplier=''))
         else:
             return AsnListModel.objects.none()
 
@@ -90,12 +90,12 @@ class AsnListViewSet(viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         data = self.request.data
-        data['openid'] = self.request.auth.openid
+        data['openid'] = self.request.META.get('HTTP_TOKEN')
         custom_asn = self.request.GET.get('custom_asn', '')
         if custom_asn:
             data['asn_code'] = custom_asn
         else:
-            qs_set = AsnListModel.objects.filter(openid=self.request.auth.openid)
+            qs_set = AsnListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'))
             order_day =str(timezone.now().strftime('%Y%m%d'))
             if len(qs_set) > 0:
                 asn_last_code = qs_set.order_by('-id').first().asn_code
@@ -110,21 +110,21 @@ class AsnListViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
-        scanner.objects.create(openid=self.request.auth.openid, mode="ASN", code=data['asn_code'], bar_code=data['bar_code'])
+        scanner.objects.create(openid=self.request.META.get('HTTP_TOKEN'), mode="ASN", code=data['asn_code'], bar_code=data['bar_code'])
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.data, status=200, headers=headers)
 
     def destroy(self, request, pk):
         qs = self.get_object()
-        if qs.openid != self.request.auth.openid:
+        if qs.openid != self.request.META.get('HTTP_TOKEN'):
             raise APIException({"detail": "Cannot delete data which not yours"})
         else:
             if qs.asn_status == 1:
                 qs.is_delete = True
-                asn_detail_list = AsnDetailModel.objects.filter(openid=self.request.auth.openid, asn_code=qs.asn_code,
+                asn_detail_list = AsnDetailModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), asn_code=qs.asn_code,
                                               asn_status=1, is_delete=False)
                 for i in range(len(asn_detail_list)):
-                    goods_qty_change = stocklist.objects.filter(openid=self.request.auth.openid,
+                    goods_qty_change = stocklist.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                                 goods_code=str(asn_detail_list[i].goods_code)).first()
                     goods_qty_change.goods_qty = goods_qty_change.goods_qty - int(asn_detail_list[i].goods_qty)
                     goods_qty_change.asn_stock = goods_qty_change.asn_stock - int(asn_detail_list[i].goods_qty)
@@ -167,9 +167,9 @@ class AsnDetailViewSet(viewsets.ModelViewSet):
         id = self.get_project()
         if self.request.user:
             if id is None:
-                return AsnDetailModel.objects.filter(openid=self.request.auth.openid, is_delete=False)
+                return AsnDetailModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), is_delete=False)
             else:
-                return AsnDetailModel.objects.filter(openid=self.request.auth.openid, id=id, is_delete=False)
+                return AsnDetailModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=id, is_delete=False)
         else:
             return AsnDetailModel.objects.none()
 
@@ -185,12 +185,12 @@ class AsnDetailViewSet(viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         data = self.request.data
-        if AsnListModel.objects.filter(openid=self.request.auth.openid, asn_code=str(data['asn_code']), is_delete=False).exists():
-            if supplier.objects.filter(openid=self.request.auth.openid, supplier_name=str(data['supplier']), is_delete=False).exists():
-                staff_name = staff.objects.filter(openid=self.request.auth.openid, id=self.request.META.get('HTTP_OPERATOR')).first().staff_name
+        if AsnListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), asn_code=str(data['asn_code']), is_delete=False).exists():
+            if supplier.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), supplier_name=str(data['supplier']), is_delete=False).exists():
+                staff_name = staff.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=self.request.META.get('HTTP_OPERATOR')).first().staff_name
                 for i in range(len(data['goods_code'])):
                     check_data = {
-                        'openid': self.request.auth.openid,
+                        'openid': self.request.META.get('HTTP_TOKEN'),
                         'asn_code': str(data['asn_code']),
                         'supplier': str(data['supplier']),
                         'goods_code': str(data['goods_code'][i]),
@@ -204,25 +204,25 @@ class AsnDetailViewSet(viewsets.ModelViewSet):
                 volume_list = []
                 cost_list = []
                 for j in range(len(data['goods_code'])):
-                    goods_detail = goods.objects.filter(openid=self.request.auth.openid,
+                    goods_detail = goods.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                         goods_code=str(data['goods_code'][j]),
                                                         is_delete=False).first()
                     goods_weight = round(goods_detail.goods_weight * int(data['goods_qty'][j]) / 1000, 4)
                     goods_volume = round(goods_detail.unit_volume * int(data['goods_qty'][j]), 4)
                     goods_cost = round(goods_detail.goods_cost * int(data['goods_qty'][j]), 2)
-                    if stocklist.objects.filter(openid=self.request.auth.openid, goods_code=str(data['goods_code'][j])).exists():
-                        goods_qty_change = stocklist.objects.filter(openid=self.request.auth.openid,
+                    if stocklist.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), goods_code=str(data['goods_code'][j])).exists():
+                        goods_qty_change = stocklist.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                  goods_code=str(data['goods_code'][j])).first()
                         goods_qty_change.goods_qty = goods_qty_change.goods_qty + int(data['goods_qty'][j])
                         goods_qty_change.asn_stock = goods_qty_change.asn_stock + int(data['goods_qty'][j])
                         goods_qty_change.save()
                     else:
-                        stocklist.objects.create(openid=self.request.auth.openid,
+                        stocklist.objects.create(openid=self.request.META.get('HTTP_TOKEN'),
                                                  goods_code=str(data['goods_code'][j]),
                                                  goods_desc=goods_detail.goods_desc,
                                                  goods_qty=int(data['goods_qty'][j]),
                                                  asn_stock=int(data['goods_qty'][j]))
-                    post_data = AsnDetailModel(openid=self.request.auth.openid,
+                    post_data = AsnDetailModel(openid=self.request.META.get('HTTP_TOKEN'),
                                                asn_code=str(data['asn_code']),
                                                supplier=str(data['supplier']),
                                                goods_code=str(data['goods_code'][j]),
@@ -239,12 +239,12 @@ class AsnDetailViewSet(viewsets.ModelViewSet):
                 total_weight = sumOfList(weight_list, len(weight_list))
                 total_volume = sumOfList(volume_list, len(volume_list))
                 total_cost = sumOfList(cost_list, len(cost_list))
-                supplier_city = supplier.objects.filter(openid=self.request.auth.openid,
+                supplier_city = supplier.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                         supplier_name=str(data['supplier']),
                                                         is_delete=False).first().supplier_city
-                warehouse_city = warehouse.objects.filter(openid=self.request.auth.openid).first().warehouse_city
+                warehouse_city = warehouse.objects.filter(openid=self.request.META.get('HTTP_TOKEN')).first().warehouse_city
                 transportation_fee = transportation.objects.filter(
-                    Q(openid=self.request.auth.openid, send_city__icontains=supplier_city, receiver_city__icontains=warehouse_city,
+                    Q(openid=self.request.META.get('HTTP_TOKEN'), send_city__icontains=supplier_city, receiver_city__icontains=warehouse_city,
                       is_delete=False) | Q(openid='init_data', send_city__icontains=supplier_city, receiver_city__icontains=warehouse_city,
                                            is_delete=False))
                 transportation_res = {
@@ -265,7 +265,7 @@ class AsnDetailViewSet(viewsets.ModelViewSet):
                         transportation_list.append(transportation_detail)
                     transportation_res['detail'] = transportation_list
                 AsnDetailModel.objects.bulk_create(post_data_list, batch_size=100)
-                check_data = AsnDetailModel.objects.filter(openid=self.request.auth.openid, asn_code=data['asn_code'], is_delete=False)
+                check_data = AsnDetailModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), asn_code=data['asn_code'], is_delete=False)
                 for k in range(len(check_data)):
                     res_check_data = check_data.filter(goods_code=check_data[k].goods_code)
                     if res_check_data.count() > 1:
@@ -279,7 +279,7 @@ class AsnDetailViewSet(viewsets.ModelViewSet):
                             conbine_volume.append(res_check_data[z].goods_volume)
                             conbine_cost.append(res_check_data[z].goods_cost)
                             res_check_data[z].delete()
-                        AsnDetailModel.objects.create(openid=self.request.auth.openid,
+                        AsnDetailModel.objects.create(openid=self.request.META.get('HTTP_TOKEN'),
                                                       asn_code=str(data['asn_code']),
                                                       supplier=str(data['supplier']),
                                                       goods_code=str(check_data[k].goods_code),
@@ -289,7 +289,7 @@ class AsnDetailViewSet(viewsets.ModelViewSet):
                                                       goods_volume=sumOfList(conbine_volume, len(conbine_volume)),
                                                       goods_cost=sumOfList(conbine_cost, len(conbine_cost)),
                                                       creater=str(staff_name))
-                AsnListModel.objects.filter(openid=self.request.auth.openid, asn_code=str(data['asn_code'])).update(
+                AsnListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), asn_code=str(data['asn_code'])).update(
                     supplier=str(data['supplier']), total_weight=total_weight, total_volume=total_volume,
                     total_cost=total_cost, transportation_fee=transportation_res)
                 return Response({"detail": "success"}, status=200)
@@ -300,15 +300,15 @@ class AsnDetailViewSet(viewsets.ModelViewSet):
 
     def update(self, request, *args, **kwargs):
         data = self.request.data
-        if AsnListModel.objects.filter(openid=self.request.auth.openid, asn_code=str(data['asn_code']),
+        if AsnListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), asn_code=str(data['asn_code']),
                                        asn_status=1, is_delete=False).exists():
-            if supplier.objects.filter(openid=self.request.auth.openid, supplier_name=str(data['supplier']),
+            if supplier.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), supplier_name=str(data['supplier']),
                                        is_delete=False).exists():
-                staff_name = staff.objects.filter(openid=self.request.auth.openid,
+                staff_name = staff.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                   id=self.request.META.get('HTTP_OPERATOR')).first().staff_name
                 for i in range(len(data['goods_code'])):
                     check_data = {
-                        'openid': self.request.auth.openid,
+                        'openid': self.request.META.get('HTTP_TOKEN'),
                         'asn_code': str(data['asn_code']),
                         'supplier': str(data['supplier']),
                         'goods_code': str(data['goods_code'][i]),
@@ -317,10 +317,10 @@ class AsnDetailViewSet(viewsets.ModelViewSet):
                     }
                     serializer = self.get_serializer(data=check_data)
                     serializer.is_valid(raise_exception=True)
-                asn_detail_list = AsnDetailModel.objects.filter(openid=self.request.auth.openid,
+                asn_detail_list = AsnDetailModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                                 asn_code=str(data['asn_code']), is_delete=False)
                 for v in range(len(asn_detail_list)):
-                    goods_qty_change = stocklist.objects.filter(openid=self.request.auth.openid,
+                    goods_qty_change = stocklist.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                                 goods_code=str(asn_detail_list[v].goods_code)).first()
                     goods_qty_change.goods_qty = goods_qty_change.goods_qty - asn_detail_list[v].goods_qty
                     if goods_qty_change.goods_qty < 0:
@@ -335,25 +335,25 @@ class AsnDetailViewSet(viewsets.ModelViewSet):
                 weight_list = []
                 volume_list = []
                 for j in range(len(data['goods_code'])):
-                    goods_detail = goods.objects.filter(openid=self.request.auth.openid,
+                    goods_detail = goods.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                         goods_code=str(data['goods_code'][j]),
                                                         is_delete=False).first()
                     goods_weight = round(goods_detail.goods_weight * int(data['goods_qty'][j]) / 1000, 4)
                     goods_volume = round(goods_detail.unit_volume * int(data['goods_qty'][j]), 4)
                     goods_cost = round(goods_detail.goods_cost * int(data['goods_qty'][j]), 2)
-                    if stocklist.objects.filter(openid=self.request.auth.openid, goods_code=str(data['goods_code'][j])).exists():
-                        goods_qty_change = stocklist.objects.filter(openid=self.request.auth.openid,
+                    if stocklist.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), goods_code=str(data['goods_code'][j])).exists():
+                        goods_qty_change = stocklist.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                  goods_code=str(data['goods_code'][j])).first()
                         goods_qty_change.goods_qty = goods_qty_change.goods_qty + int(data['goods_qty'][j])
                         goods_qty_change.asn_stock = goods_qty_change.asn_stock + int(data['goods_qty'][j])
                         goods_qty_change.save()
                     else:
-                        stocklist.objects.create(openid=self.request.auth.openid,
+                        stocklist.objects.create(openid=self.request.META.get('HTTP_TOKEN'),
                                                  goods_code=str(data['goods_code'][j]),
                                                  goods_desc=goods_detail.goods_desc,
                                                  goods_qty=int(data['goods_qty'][j]),
                                                  asn_stock=int(data['goods_qty'][j]))
-                    post_data = AsnDetailModel(openid=self.request.auth.openid,
+                    post_data = AsnDetailModel(openid=self.request.META.get('HTTP_TOKEN'),
                                                asn_code=str(data['asn_code']),
                                                supplier=str(data['supplier']),
                                                goods_code=str(data['goods_code'][j]),
@@ -367,12 +367,12 @@ class AsnDetailViewSet(viewsets.ModelViewSet):
                     volume_list.append(goods_volume)
                 total_weight = sumOfList(weight_list, len(weight_list))
                 total_volume = sumOfList(volume_list, len(volume_list))
-                supplier_city = supplier.objects.filter(openid=self.request.auth.openid,
+                supplier_city = supplier.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                         supplier_name=str(data['supplier']),
                                                         is_delete=False).first().supplier_city
-                warehouse_city = warehouse.objects.filter(openid=self.request.auth.openid).first().warehouse_city
+                warehouse_city = warehouse.objects.filter(openid=self.request.META.get('HTTP_TOKEN')).first().warehouse_city
                 transportation_fee = transportation.objects.filter(
-                    Q(openid=self.request.auth.openid, send_city__icontains=supplier_city,
+                    Q(openid=self.request.META.get('HTTP_TOKEN'), send_city__icontains=supplier_city,
                       receiver_city__icontains=warehouse_city,
                       is_delete=False) | Q(openid='init_data', send_city__icontains=supplier_city,
                                            receiver_city__icontains=warehouse_city,
@@ -395,7 +395,7 @@ class AsnDetailViewSet(viewsets.ModelViewSet):
                         transportation_list.append(transportation_detail)
                     transportation_res['detail'] = transportation_list
                 AsnDetailModel.objects.bulk_create(post_data_list, batch_size=100)
-                check_data = AsnDetailModel.objects.filter(openid=self.request.auth.openid, asn_code=data['asn_code'], is_delete=False)
+                check_data = AsnDetailModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), asn_code=data['asn_code'], is_delete=False)
                 for k in range(len(check_data)):
                     res_check_data = check_data.filter(goods_code=check_data[k].goods_code)
                     if res_check_data.count() > 1:
@@ -409,7 +409,7 @@ class AsnDetailViewSet(viewsets.ModelViewSet):
                             conbine_volume.append(res_check_data[z].goods_volume)
                             conbine_cost.append(res_check_data[z].goods_cost)
                             res_check_data[z].delete()
-                        AsnDetailModel.objects.create(openid=self.request.auth.openid,
+                        AsnDetailModel.objects.create(openid=self.request.META.get('HTTP_TOKEN'),
                                                       asn_code=str(data['asn_code']),
                                                       supplier=str(data['supplier']),
                                                       goods_code=str(check_data[k].goods_code),
@@ -419,7 +419,7 @@ class AsnDetailViewSet(viewsets.ModelViewSet):
                                                       goods_volume=sumOfList(conbine_volume, len(conbine_volume)),
                                                       goods_cost=sumOfList(conbine_cost, len(conbine_cost)),
                                                       creater=str(staff_name))
-                AsnListModel.objects.filter(openid=self.request.auth.openid, asn_code=str(data['asn_code'])).update(
+                AsnListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), asn_code=str(data['asn_code'])).update(
                     supplier=str(data['supplier']), total_weight=total_weight, total_volume=total_volume,
                     transportation_fee=transportation_res)
                 return Response({"detail": "success"}, status=200)
@@ -449,9 +449,9 @@ class AsnViewPrintViewSet(viewsets.ModelViewSet):
         id = self.get_project()
         if self.request.user:
             if id is None:
-                return AsnListModel.objects.filter(openid=self.request.auth.openid, is_delete=False)
+                return AsnListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), is_delete=False)
             else:
-                return AsnListModel.objects.filter(openid=self.request.auth.openid, id=id, is_delete=False)
+                return AsnListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=id, is_delete=False)
         else:
             return AsnListModel.objects.none()
 
@@ -463,17 +463,17 @@ class AsnViewPrintViewSet(viewsets.ModelViewSet):
 
     def retrieve(self, request, pk):
         qs = self.get_object()
-        if qs.openid != self.request.auth.openid:
+        if qs.openid != self.request.META.get('HTTP_TOKEN'):
             raise APIException({"detail": "Cannot update data which not yours"})
         else:
             context = {}
-            asn_detail_list = AsnDetailModel.objects.filter(openid=self.request.auth.openid,
+            asn_detail_list = AsnDetailModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                             asn_code=qs.asn_code,
                                                             is_delete=False)
             asn_detail = serializers.ASNDetailGetSerializer(asn_detail_list, many=True)
-            supplier_detail = supplier.objects.filter(openid=self.request.auth.openid,
+            supplier_detail = supplier.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                             supplier_name=qs.supplier).first()
-            warehouse_detail = warehouse.objects.filter(openid=self.request.auth.openid,).first()
+            warehouse_detail = warehouse.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),).first()
             context['asn_detail'] = asn_detail.data
             context['supplier_detail'] = {
                 "supplier_name": supplier_detail.supplier_name,
@@ -510,9 +510,9 @@ class AsnPreLoadViewSet(viewsets.ModelViewSet):
         id = self.get_project()
         if self.request.user:
             if id is None:
-                return AsnListModel.objects.filter(openid=self.request.auth.openid, is_delete=False)
+                return AsnListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), is_delete=False)
             else:
-                return AsnListModel.objects.filter(openid=self.request.auth.openid, id=id, is_delete=False)
+                return AsnListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=id, is_delete=False)
         else:
             return AsnListModel.objects.none()
 
@@ -524,17 +524,17 @@ class AsnPreLoadViewSet(viewsets.ModelViewSet):
 
     def create(self, request, pk):
         qs = self.get_object()
-        if qs.openid != self.request.auth.openid:
+        if qs.openid != self.request.META.get('HTTP_TOKEN'):
             raise APIException({"detail": "Cannot delete data which not yours"})
         else:
             if qs.asn_status == 1:
-                if AsnDetailModel.objects.filter(openid=self.request.auth.openid, asn_code=qs.asn_code,
+                if AsnDetailModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), asn_code=qs.asn_code,
                                                                 asn_status=1, is_delete=False).exists():
                     qs.asn_status = 2
-                    asn_detail_list = AsnDetailModel.objects.filter(openid=self.request.auth.openid, asn_code=qs.asn_code,
+                    asn_detail_list = AsnDetailModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), asn_code=qs.asn_code,
                                                                     asn_status=1, is_delete=False)
                     for i in range(len(asn_detail_list)):
-                        goods_qty_change = stocklist.objects.filter(openid=self.request.auth.openid,
+                        goods_qty_change = stocklist.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                                     goods_code=str(asn_detail_list[i].goods_code)).first()
                         goods_qty_change.asn_stock = goods_qty_change.asn_stock - asn_detail_list[i].goods_qty
                         if goods_qty_change.asn_stock < 0:
@@ -572,9 +572,9 @@ class AsnPreSortViewSet(viewsets.ModelViewSet):
         id = self.get_project()
         if self.request.user:
             if id is None:
-                return AsnListModel.objects.filter(openid=self.request.auth.openid, is_delete=False)
+                return AsnListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), is_delete=False)
             else:
-                return AsnListModel.objects.filter(openid=self.request.auth.openid, id=id, is_delete=False)
+                return AsnListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=id, is_delete=False)
         else:
             return AsnListModel.objects.none()
 
@@ -586,15 +586,15 @@ class AsnPreSortViewSet(viewsets.ModelViewSet):
 
     def create(self, request, pk):
         qs = self.get_object()
-        if qs.openid != self.request.auth.openid:
+        if qs.openid != self.request.META.get('HTTP_TOKEN'):
             raise APIException({"detail": "Cannot delete data which not yours"})
         else:
             if qs.asn_status == 2:
                 qs.asn_status = 3
-                asn_detail_list = AsnDetailModel.objects.filter(openid=self.request.auth.openid, asn_code=qs.asn_code,
+                asn_detail_list = AsnDetailModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), asn_code=qs.asn_code,
                                                                 asn_status=2, is_delete=False)
                 for i in range(len(asn_detail_list)):
-                    goods_qty_change = stocklist.objects.filter(openid=self.request.auth.openid,
+                    goods_qty_change = stocklist.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                                 goods_code=str(asn_detail_list[i].goods_code)).first()
                     goods_qty_change.pre_load_stock = goods_qty_change.pre_load_stock - asn_detail_list[i].goods_qty
                     if goods_qty_change.pre_load_stock < 0:
@@ -633,9 +633,9 @@ class AsnSortedViewSet(viewsets.ModelViewSet):
         id = self.get_project()
         if self.request.user:
             if id is None:
-                return AsnListModel.objects.filter(openid=self.request.auth.openid, is_delete=False)
+                return AsnListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), is_delete=False)
             else:
-                return AsnListModel.objects.filter(openid=self.request.auth.openid, id=id, is_delete=False)
+                return AsnListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=id, is_delete=False)
         else:
             return AsnListModel.objects.none()
 
@@ -652,15 +652,15 @@ class AsnSortedViewSet(viewsets.ModelViewSet):
         else:
             data = self.request.data
             for j in range(len(data['goodsData'])):
-                goods_qty_change = stocklist.objects.filter(openid=self.request.auth.openid,
+                goods_qty_change = stocklist.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                             goods_code=str(
                                                                 data['goodsData'][j].get('goods_code'))).first()
-                asn_detail = AsnDetailModel.objects.filter(openid=self.request.auth.openid,
+                asn_detail = AsnDetailModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                            asn_code=str(data['asn_code']),
                                                            asn_status=3, supplier=str(data['supplier']),
                                                            goods_code=str(
                                                                data['goodsData'][j].get('goods_code'))).first()
-                goods_detail = goods.objects.filter(openid=self.request.auth.openid,
+                goods_detail = goods.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                     goods_code=str(data['goodsData'][j].get('goods_code')),
                                                     is_delete=False).first()
                 if int(data['goodsData'][j].get('goods_actual_qty')) == 0:
@@ -704,7 +704,7 @@ class AsnSortedViewSet(viewsets.ModelViewSet):
                     goods_qty_change.save()
                     if goods_qty_change.goods_qty == 0 and goods_qty_change.back_order_stock == 0:
                         goods_qty_change.delete()
-            if AsnDetailModel.objects.filter(openid=self.request.auth.openid, asn_code=str(data['asn_code']),
+            if AsnDetailModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), asn_code=str(data['asn_code']),
                                                       asn_status=4, supplier=str(data['supplier'])).exists():
                 qs.asn_status = 4
             else:
@@ -719,14 +719,14 @@ class AsnSortedViewSet(viewsets.ModelViewSet):
             raise APIException({"detail": "This ASN Status Is Not 3"})
         else:
             for j in range(len(data['goodsData'])):
-                goods_qty_change = stocklist.objects.filter(openid=self.request.auth.openid,
+                goods_qty_change = stocklist.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                             goods_code=str(
                                                                 data['goodsData'][j].get('goods_code'))).first()
-                asn_detail = AsnDetailModel.objects.filter(openid=self.request.auth.openid,
+                asn_detail = AsnDetailModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                            asn_code=str(data['asn_code']),
                                                            goods_code=str(
                                                                data['goodsData'][j].get('goods_code'))).first()
-                goods_detail = goods.objects.filter(openid=self.request.auth.openid,
+                goods_detail = goods.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                     goods_code=str(data['goodsData'][j].get('goods_code')),
                                                     is_delete=False).first()
                 if int(data['goodsData'][j].get('goods_actual_qty')) == 0:
@@ -770,7 +770,7 @@ class AsnSortedViewSet(viewsets.ModelViewSet):
                     goods_qty_change.save()
                     if goods_qty_change.goods_qty == 0 and goods_qty_change.back_order_stock == 0:
                         goods_qty_change.delete()
-            if AsnDetailModel.objects.filter(openid=self.request.auth.openid, asn_code=str(data['asn_code']),
+            if AsnDetailModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), asn_code=str(data['asn_code']),
                                                       asn_status=4).exists():
                 qs.asn_status = 4
             else:
@@ -799,9 +799,9 @@ class MoveToBinViewSet(viewsets.ModelViewSet):
         id = self.get_project()
         if self.request.user:
             if id is None:
-                return AsnDetailModel.objects.filter(openid=self.request.auth.openid, is_delete=False)
+                return AsnDetailModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), is_delete=False)
             else:
-                return AsnDetailModel.objects.filter(openid=self.request.auth.openid, id=id, is_delete=False)
+                return AsnDetailModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=id, is_delete=False)
         else:
             return AsnDetailModel.objects.none()
 
@@ -815,7 +815,7 @@ class MoveToBinViewSet(viewsets.ModelViewSet):
 
     def create(self, request, pk):
         qs = self.get_object()
-        if qs.openid != self.request.auth.openid:
+        if qs.openid != self.request.META.get('HTTP_TOKEN'):
             raise APIException({"detail": "Cannot delete data which not yours"})
         else:
             if qs.asn_status != 4:
@@ -825,17 +825,17 @@ class MoveToBinViewSet(viewsets.ModelViewSet):
                 if 'bin_name' not in data:
                     raise APIException({"detail": "Please Enter the Bin Name"})
                 else:
-                    bin_detail = binset.objects.filter(openid=self.request.auth.openid,
+                    bin_detail = binset.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                        bin_name=str(data['bin_name']),
                                                        is_delete=False).first()
-                    asn_detail = AsnListModel.objects.filter(openid=self.request.auth.openid,
+                    asn_detail = AsnListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                              asn_code=str(data['asn_code'])).first()
-                    goods_qty_change = stocklist.objects.filter(openid=self.request.auth.openid,
+                    goods_qty_change = stocklist.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                                 goods_code=str(data['goods_code'])).first()
                     if int(data['qty']) <= 0:
                         raise APIException({"detail": "Move QTY Must > 0"})
                     else:
-                        staff_name = staff.objects.filter(openid=self.request.auth.openid,
+                        staff_name = staff.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                           id=self.request.META.get('HTTP_OPERATOR')).first().staff_name
                         move_qty = qs.goods_actual_qty - qs.sorted_qty - int(data['qty'])
                         if move_qty > 0:
@@ -854,7 +854,7 @@ class MoveToBinViewSet(viewsets.ModelViewSet):
                             qs.save()
                             goods_qty_change.save()
                             store_code = Md5.md5(str(data['goods_code']))
-                            stockbin.objects.create(openid=self.request.auth.openid,
+                            stockbin.objects.create(openid=self.request.META.get('HTTP_TOKEN'),
                                                     bin_name=str(data['bin_name']),
                                                     goods_code=str(data['goods_code']),
                                                     goods_desc=goods_qty_change.goods_desc,
@@ -864,7 +864,7 @@ class MoveToBinViewSet(viewsets.ModelViewSet):
                                                     t_code=store_code,
                                                     create_time=qs.create_time
                                                     )
-                            qtychangerecorder.objects.create(openid=self.request.auth.openid,
+                            qtychangerecorder.objects.create(openid=self.request.META.get('HTTP_TOKEN'),
                                                              mode_code=qs.asn_code,
                                                              bin_name=str(data['bin_name']),
                                                              goods_code=str(data['goods_code']),
@@ -874,11 +874,11 @@ class MoveToBinViewSet(viewsets.ModelViewSet):
                                                              creater=str(staff_name)
                                                              )
                             cur_date = timezone.now().date()
-                            line_data = cyclecount.objects.filter(openid=self.request.auth.openid,
+                            line_data = cyclecount.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                                   bin_name=str(data['bin_name']),
                                                                   goods_code=str(data['goods_code']),
                                                                   create_time__gte=cur_date)
-                            bin_check = stockbin.objects.filter(openid=self.request.auth.openid,
+                            bin_check = stockbin.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                                 bin_name=str(data['bin_name']),
                                                                 goods_code=str(data['goods_code']),
                                                                 )
@@ -890,7 +890,7 @@ class MoveToBinViewSet(viewsets.ModelViewSet):
                                 line_data.goods_qty = bin_stock + int(data['qty'])
                                 line_data.update(goods_qty=line_data.goods_qty)
                             else:
-                                cyclecount.objects.create(openid=self.request.auth.openid,
+                                cyclecount.objects.create(openid=self.request.META.get('HTTP_TOKEN'),
                                                           bin_name=str(data['bin_name']),
                                                           goods_code=str(data['goods_code']),
                                                           goods_qty=int(data['qty']),
@@ -914,11 +914,11 @@ class MoveToBinViewSet(viewsets.ModelViewSet):
                             else:
                                 goods_qty_change.can_order_stock = goods_qty_change.can_order_stock + int(data['qty'])
                             cur_date = timezone.now().date()
-                            line_data = cyclecount.objects.filter(openid=self.request.auth.openid,
+                            line_data = cyclecount.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                                   bin_name=str(data['bin_name']),
                                                                   goods_code=str(data['goods_code']),
                                                                   create_time__gte=cur_date)
-                            bin_check = stockbin.objects.filter(openid=self.request.auth.openid,
+                            bin_check = stockbin.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                                 bin_name=str(data['bin_name']),
                                                                 goods_code=str(data['goods_code']),
                                                                 )
@@ -930,7 +930,7 @@ class MoveToBinViewSet(viewsets.ModelViewSet):
                                 line_data.goods_qty = bin_stock + int(data['qty'])
                                 line_data.update(goods_qty=line_data.goods_qty)
                             else:
-                                cyclecount.objects.create(openid=self.request.auth.openid,
+                                cyclecount.objects.create(openid=self.request.META.get('HTTP_TOKEN'),
                                                           bin_name=str(data['bin_name']),
                                                           goods_code=str(data['goods_code']),
                                                           goods_qty=int(data['qty']),
@@ -939,7 +939,7 @@ class MoveToBinViewSet(viewsets.ModelViewSet):
                                                           )
                             qs.save()
                             goods_qty_change.save()
-                            if AsnDetailModel.objects.filter(openid=self.request.auth.openid,
+                            if AsnDetailModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                              asn_code=str(data['asn_code']),
                                                              asn_status=4
                                                              ).exists():
@@ -948,7 +948,7 @@ class MoveToBinViewSet(viewsets.ModelViewSet):
                                 asn_detail.asn_status = 5
                                 asn_detail.save()
                             store_code = Md5.md5(str(data['goods_code']))
-                            stockbin.objects.create(openid=self.request.auth.openid,
+                            stockbin.objects.create(openid=self.request.META.get('HTTP_TOKEN'),
                                                     bin_name=str(data['bin_name']),
                                                     goods_code=str(data['goods_code']),
                                                     goods_desc=goods_qty_change.goods_desc,
@@ -957,7 +957,7 @@ class MoveToBinViewSet(viewsets.ModelViewSet):
                                                     bin_property=bin_detail.bin_property,
                                                     t_code=store_code,
                                                     create_time=qs.create_time)
-                            qtychangerecorder.objects.create(openid=self.request.auth.openid,
+                            qtychangerecorder.objects.create(openid=self.request.META.get('HTTP_TOKEN'),
                                                              mode_code=qs.asn_code,
                                                              bin_name=str(data['bin_name']),
                                                              goods_code=str(data['goods_code']),
@@ -976,22 +976,22 @@ class MoveToBinViewSet(viewsets.ModelViewSet):
     def update(self, request, *args, **kwargs):
         data = self.request.data
         qs_list = self.get_queryset().filter(asn_code=data['asn_code'])
-        if qs_list[0].openid != self.request.auth.openid:
+        if qs_list[0].openid != self.request.META.get('HTTP_TOKEN'):
             raise APIException({"detail": "Cannot delete data which not yours"})
         else:
             if 'bin_name' not in data:
                 raise APIException({"detail": "Please Enter the Bin Name"})
             else:
-                bin_detail = binset.objects.filter(openid=self.request.auth.openid,
+                bin_detail = binset.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                    bin_name=str(data['bin_name']),
                                                    is_delete=False).first()
-                asn_detail = AsnListModel.objects.filter(openid=self.request.auth.openid,
+                asn_detail = AsnListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                          asn_code=str(data['asn_code'])
                                                          ).first()
-                staff_name = staff.objects.filter(openid=self.request.auth.openid,
+                staff_name = staff.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                   id=self.request.META.get('HTTP_OPERATOR')).first().staff_name
                 for i in range(len(data['res_data'])):
-                    goods_qty_change = stocklist.objects.filter(openid=self.request.auth.openid,
+                    goods_qty_change = stocklist.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                                 goods_code=str(data['res_data'][i]['goods_code'])).first()
                     if int(data['res_data'][i]['qty']) <= 0:
                         continue
@@ -1014,7 +1014,7 @@ class MoveToBinViewSet(viewsets.ModelViewSet):
                             qs.save()
                             goods_qty_change.save()
                             store_code = Md5.md5(str(data['res_data'][i]['goods_code']))
-                            stockbin.objects.create(openid=self.request.auth.openid,
+                            stockbin.objects.create(openid=self.request.META.get('HTTP_TOKEN'),
                                                     bin_name=str(data['bin_name']),
                                                     goods_code=str(data['res_data'][i]['goods_code']),
                                                     goods_desc=goods_qty_change.goods_desc,
@@ -1024,7 +1024,7 @@ class MoveToBinViewSet(viewsets.ModelViewSet):
                                                     t_code=store_code,
                                                     create_time=qs.create_time
                                                     )
-                            qtychangerecorder.objects.create(openid=self.request.auth.openid,
+                            qtychangerecorder.objects.create(openid=self.request.META.get('HTTP_TOKEN'),
                                                              mode_code=qs.asn_code,
                                                              bin_name=str(data['bin_name']),
                                                              goods_code=str(data['res_data'][i]['goods_code']),
@@ -1034,11 +1034,11 @@ class MoveToBinViewSet(viewsets.ModelViewSet):
                                                              creater=str(staff_name)
                                                              )
                             cur_date = timezone.now().date()
-                            line_data = cyclecount.objects.filter(openid=self.request.auth.openid,
+                            line_data = cyclecount.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                                   bin_name=str(data['bin_name']),
                                                                   goods_code=str(data['res_data'][i]['goods_code']),
                                                                   create_time__gte=cur_date)
-                            bin_check = stockbin.objects.filter(openid=self.request.auth.openid,
+                            bin_check = stockbin.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                                 bin_name=str(data['bin_name']),
                                                                 goods_code=str(data['res_data'][i]['goods_code']),
                                                                 )
@@ -1050,7 +1050,7 @@ class MoveToBinViewSet(viewsets.ModelViewSet):
                                 line_data.goods_qty = bin_stock + int(data['res_data'][i]['qty'])
                                 line_data.update(goods_qty=line_data.goods_qty)
                             else:
-                                cyclecount.objects.create(openid=self.request.auth.openid,
+                                cyclecount.objects.create(openid=self.request.META.get('HTTP_TOKEN'),
                                                           bin_name=str(data['bin_name']),
                                                           goods_code=str(data['res_data'][i]['goods_code']),
                                                           goods_qty=int(data['res_data'][i]['qty']),
@@ -1074,11 +1074,11 @@ class MoveToBinViewSet(viewsets.ModelViewSet):
                             else:
                                 goods_qty_change.can_order_stock = goods_qty_change.can_order_stock + int(data['res_data'][i]['qty'])
                             cur_date = timezone.now().date()
-                            line_data = cyclecount.objects.filter(openid=self.request.auth.openid,
+                            line_data = cyclecount.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                                   bin_name=str(data['bin_name']),
                                                                   goods_code=str(data['res_data'][i]['goods_code']),
                                                                   create_time__gte=cur_date)
-                            bin_check = stockbin.objects.filter(openid=self.request.auth.openid,
+                            bin_check = stockbin.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                                 bin_name=str(data['bin_name']),
                                                                 goods_code=str(data['res_data'][i]['goods_code']),
                                                                 )
@@ -1090,7 +1090,7 @@ class MoveToBinViewSet(viewsets.ModelViewSet):
                                 line_data.goods_qty = bin_stock + int(data['res_data'][i]['qty'])
                                 line_data.update(goods_qty=line_data.goods_qty)
                             else:
-                                cyclecount.objects.create(openid=self.request.auth.openid,
+                                cyclecount.objects.create(openid=self.request.META.get('HTTP_TOKEN'),
                                                           bin_name=str(data['bin_name']),
                                                           goods_code=str(data['res_data'][i]['goods_code']),
                                                           goods_qty=int(data['res_data'][i]['qty']),
@@ -1099,7 +1099,7 @@ class MoveToBinViewSet(viewsets.ModelViewSet):
                                                           )
                             qs.save()
                             goods_qty_change.save()
-                            if AsnDetailModel.objects.filter(openid=self.request.auth.openid,
+                            if AsnDetailModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                              asn_code=str(data['asn_code']),
                                                              asn_status=4
                                                              ).exists():
@@ -1108,7 +1108,7 @@ class MoveToBinViewSet(viewsets.ModelViewSet):
                                 asn_detail.asn_status = 5
                                 asn_detail.save()
                             store_code = Md5.md5(str(data['res_data'][i]['goods_code']))
-                            stockbin.objects.create(openid=self.request.auth.openid,
+                            stockbin.objects.create(openid=self.request.META.get('HTTP_TOKEN'),
                                                     bin_name=str(data['bin_name']),
                                                     goods_code=str(data['res_data'][i]['goods_code']),
                                                     goods_desc=goods_qty_change.goods_desc,
@@ -1117,7 +1117,7 @@ class MoveToBinViewSet(viewsets.ModelViewSet):
                                                     bin_property=bin_detail.bin_property,
                                                     t_code=store_code,
                                                     create_time=qs.create_time)
-                            qtychangerecorder.objects.create(openid=self.request.auth.openid,
+                            qtychangerecorder.objects.create(openid=self.request.META.get('HTTP_TOKEN'),
                                                              mode_code=qs.asn_code,
                                                              bin_name=str(data['bin_name']),
                                                              goods_code=str(data['res_data'][i]['goods_code']),
@@ -1148,7 +1148,7 @@ class FileListDownloadView(viewsets.ModelViewSet):
         id = self.get_project()
         if self.request.user:
             empty_qs = AsnListModel.objects.filter(
-                Q(openid=self.request.auth.openid, asn_status=1, is_delete=False) & Q(supplier=''))
+                Q(openid=self.request.META.get('HTTP_TOKEN'), asn_status=1, is_delete=False) & Q(supplier=''))
             cur_date = timezone.now()
             date_check = relativedelta(day=1)
             if len(empty_qs) > 0:
@@ -1157,10 +1157,10 @@ class FileListDownloadView(viewsets.ModelViewSet):
                         empty_qs[i].delete()
             if id is None:
                 return AsnListModel.objects.filter(
-                    Q(openid=self.request.auth.openid, is_delete=False) & ~Q(supplier=''))
+                    Q(openid=self.request.META.get('HTTP_TOKEN'), is_delete=False) & ~Q(supplier=''))
             else:
                 return AsnListModel.objects.filter(
-                    Q(openid=self.request.auth.openid, id=id, is_delete=False) & ~Q(supplier=''))
+                    Q(openid=self.request.META.get('HTTP_TOKEN'), id=id, is_delete=False) & ~Q(supplier=''))
         else:
             return AsnListModel.objects.none()
 
@@ -1213,9 +1213,9 @@ class FileDetailDownloadView(viewsets.ModelViewSet):
         id = self.get_project()
         if self.request.user:
             if id is None:
-                return AsnDetailModel.objects.filter(openid=self.request.auth.openid, is_delete=False)
+                return AsnDetailModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), is_delete=False)
             else:
-                return AsnDetailModel.objects.filter(openid=self.request.auth.openid, id=id, is_delete=False)
+                return AsnDetailModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=id, is_delete=False)
         else:
             return AsnDetailModel.objects.none()
 

@@ -51,12 +51,12 @@ class MyPageNumberPagination(PageNumberPagination):
             raise APIException({"detail": "Wrong API Url"})
 
     def get_paginated_response(self, data):
-        bin_property_list_data = binproperty.objects.filter(Q(openid=self.request.auth.openid, is_delete=False) |
+        bin_property_list_data = binproperty.objects.filter(Q(openid=self.request.META.get('HTTP_TOKEN'), is_delete=False) |
                                                             Q(openid='init_data', is_delete=False))
         bin_property_list = []
         for i in range(len(bin_property_list_data)):
             bin_property_list.append(bin_property_list_data[i].bin_property)
-        bin_size_list_data = binsize.objects.filter(openid=self.request.auth.openid, is_delete=False)
+        bin_size_list_data = binsize.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), is_delete=False)
         bin_size_list = []
         for i in range(len(bin_size_list_data)):
             bin_size_list.append(bin_size_list_data[i].bin_size)

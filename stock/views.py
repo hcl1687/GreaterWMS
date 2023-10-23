@@ -36,9 +36,9 @@ class StockListViewSet(viewsets.ModelViewSet):
         id = self.get_project()
         if self.request.user:
             if id is None:
-                return StockListModel.objects.filter(openid=self.request.auth.openid)
+                return StockListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'))
             else:
-                return StockListModel.objects.filter(openid=self.request.auth.openid, id=id)
+                return StockListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=id)
         else:
             return StockListModel.objects.none()
 
@@ -69,9 +69,9 @@ class StockBinViewSet(viewsets.ModelViewSet):
         id = self.get_project()
         if self.request.user:
             if id is None:
-                return StockBinModel.objects.filter(openid=self.request.auth.openid)
+                return StockBinModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'))
             else:
-                return StockBinModel.objects.filter(openid=self.request.auth.openid, id=id)
+                return StockBinModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=id)
         else:
             return StockBinModel.objects.none()
 
@@ -85,18 +85,18 @@ class StockBinViewSet(viewsets.ModelViewSet):
 
     def create(self, request, pk):
         qs = self.get_object()
-        if qs.openid != self.request.auth.openid:
+        if qs.openid != self.request.META.get('HTTP_TOKEN'):
             raise APIException({"detail": "Cannot update data which not yours"})
         else:
             data = self.request.data
             if 'bin_name' not in data and 'move_to_bin' not in data:
                 raise APIException({"detail": "Please Enter The Bin Name"})
             else:
-                current_bin_detail = binset.objects.filter(openid=self.request.auth.openid,
+                current_bin_detail = binset.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                    bin_name=str(data['bin_name'])).first()
-                move_to_bin_detail = binset.objects.filter(openid=self.request.auth.openid,
+                move_to_bin_detail = binset.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                    bin_name=str(data['move_to_bin'])).first()
-                goods_qty_change = stocklist.objects.filter(openid=self.request.auth.openid,
+                goods_qty_change = stocklist.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                             goods_code=str(data['goods_code'])).first()
                 if int(data['move_qty']) <= 0:
                     raise APIException({"detail": "Move QTY Must > 0"})
@@ -152,7 +152,7 @@ class StockBinViewSet(viewsets.ModelViewSet):
                                 goods_qty_change.hold_stock = goods_qty_change.hold_stock + int(data['move_qty'])
                             else:
                                 pass
-                        StockBinModel.objects.create(openid=self.request.auth.openid,
+                        StockBinModel.objects.create(openid=self.request.META.get('HTTP_TOKEN'),
                                                      bin_name=str(data['move_to_bin']),
                                                      goods_code=str(data['goods_code']),
                                                      goods_desc=goods_qty_change.goods_desc,
@@ -217,7 +217,7 @@ class StockBinViewSet(viewsets.ModelViewSet):
                                 goods_qty_change.hold_stock = goods_qty_change.hold_stock + int(data['move_qty'])
                             else:
                                 pass
-                        StockBinModel.objects.create(openid=self.request.auth.openid,
+                        StockBinModel.objects.create(openid=self.request.META.get('HTTP_TOKEN'),
                                                      bin_name=str(data['move_to_bin']),
                                                      goods_code=str(data['goods_code']),
                                                      goods_desc=goods_qty_change.goods_desc,
@@ -232,7 +232,7 @@ class StockBinViewSet(viewsets.ModelViewSet):
                             move_to_bin_detail.save()
                         goods_qty_change.save()
                         qs.save()
-                        if StockBinModel.objects.filter(openid=self.request.auth.openid,
+                        if StockBinModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                         bin_name=str(data['bin_name'])).exists():
                             pass
                         else:
@@ -246,17 +246,17 @@ class StockBinViewSet(viewsets.ModelViewSet):
                 return Response(data, status=200, headers=headers)
 
     def update(self, request, *args, **kwargs):
-        qs = StockBinModel.objects.filter(openid=self.request.auth.openid)
+        qs = StockBinModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'))
         data = self.request.data
         for i in range(len(data)):
             if 'bin_name' not in data[i] and 'move_to_bin' not in data[i]:
                 raise APIException({"detail": "Please Enter The Bin Name"})
         for j in range(len(data)):
-            current_bin_detail = binset.objects.filter(openid=self.request.auth.openid,
+            current_bin_detail = binset.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                        bin_name=str(data[j]['bin_name'])).first()
-            move_to_bin_detail = binset.objects.filter(openid=self.request.auth.openid,
+            move_to_bin_detail = binset.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                        bin_name=str(data[j]['move_to_bin'])).first()
-            goods_qty_change = stocklist.objects.filter(openid=self.request.auth.openid,
+            goods_qty_change = stocklist.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                         goods_code=str(data[j]['goods_code'])).first()
             qs_project = qs.filter(t_code=data[j]['t_code']).first()
             if int(data[j]['move_qty']) <= 0:
@@ -326,7 +326,7 @@ class StockBinViewSet(viewsets.ModelViewSet):
                             goods_qty_change.hold_stock = goods_qty_change.hold_stock + int(data[j]['move_qty'])
                         else:
                             pass
-                    StockBinModel.objects.create(openid=self.request.auth.openid,
+                    StockBinModel.objects.create(openid=self.request.META.get('HTTP_TOKEN'),
                                                  bin_name=str(data[j]['move_to_bin']),
                                                  goods_code=str(data[j]['goods_code']),
                                                  goods_desc=goods_qty_change.goods_desc,
@@ -403,7 +403,7 @@ class StockBinViewSet(viewsets.ModelViewSet):
                             goods_qty_change.hold_stock = goods_qty_change.hold_stock + int(data[j]['move_qty'])
                         else:
                             pass
-                    StockBinModel.objects.create(openid=self.request.auth.openid,
+                    StockBinModel.objects.create(openid=self.request.META.get('HTTP_TOKEN'),
                                                  bin_name=str(data[j]['move_to_bin']),
                                                  goods_code=str(data[j]['goods_code']),
                                                  goods_desc=goods_qty_change.goods_desc,
@@ -418,7 +418,7 @@ class StockBinViewSet(viewsets.ModelViewSet):
                         move_to_bin_detail.save()
                     goods_qty_change.save()
                     qs_project.save()
-                    if StockBinModel.objects.filter(openid=self.request.auth.openid,
+                    if StockBinModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                     bin_name=str(data[j]['bin_name'])).exists() is False:
                         current_bin_detail.empty_label = True
                         current_bin_detail.save()
@@ -446,9 +446,9 @@ class FileListDownloadView(viewsets.ModelViewSet):
         id = self.get_project()
         if self.request.user:
             if id is None:
-                return StockListModel.objects.filter(openid=self.request.auth.openid)
+                return StockListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'))
             else:
-                return StockListModel.objects.filter(openid=self.request.auth.openid, id=id)
+                return StockListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=id)
         else:
             return StockListModel.objects.none()
 
@@ -500,9 +500,9 @@ class FileBinListDownloadView(viewsets.ModelViewSet):
         id = self.get_project()
         if self.request.user:
             if id is None:
-                return StockBinModel.objects.filter(openid=self.request.auth.openid)
+                return StockBinModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'))
             else:
-                return StockBinModel.objects.filter(openid=self.request.auth.openid, id=id)
+                return StockBinModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=id)
         else:
             return StockBinModel.objects.none()
 

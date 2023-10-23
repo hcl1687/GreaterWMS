@@ -41,9 +41,9 @@ class ScannerBinsetTagView(viewsets.ModelViewSet):
         bar_code = self.get_project()
         if self.request.user:
             if bar_code is None:
-                return ListModel.objects.filter(openid=self.request.auth.openid, is_delete=False)
+                return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), is_delete=False)
             else:
-                return ListModel.objects.filter(openid=self.request.auth.openid, bar_code=bar_code, is_delete=False)
+                return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), bar_code=bar_code, is_delete=False)
         else:
             return ListModel.objects.none()
 
@@ -92,9 +92,9 @@ class APIViewSet(viewsets.ModelViewSet):
         id = self.get_project()
         if self.request.user:
             if id is None:
-                return ListModel.objects.filter(openid=self.request.auth.openid, is_delete=False)
+                return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), is_delete=False)
             else:
-                return ListModel.objects.filter(openid=self.request.auth.openid, id=id, is_delete=False)
+                return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=id, is_delete=False)
         else:
             return ListModel.objects.none()
 
@@ -112,7 +112,7 @@ class APIViewSet(viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         data = self.request.data
-        data['openid'] = self.request.auth.openid
+        data['openid'] = self.request.META.get('HTTP_TOKEN')
         if ListModel.objects.filter(openid=data['openid'], bin_name=data['bin_name'], is_delete=False).exists():
             raise APIException({"detail": "Data exists"})
         else:
@@ -123,7 +123,7 @@ class APIViewSet(viewsets.ModelViewSet):
                     serializer = self.get_serializer(data=data)
                     serializer.is_valid(raise_exception=True)
                     serializer.save()
-                    scanner.objects.create(openid=self.request.auth.openid, mode="BINSET", code=data['bin_name'],
+                    scanner.objects.create(openid=self.request.META.get('HTTP_TOKEN'), mode="BINSET", code=data['bin_name'],
                                            bar_code=data['bar_code'])
                     headers = self.get_success_headers(serializer.data)
                     return Response(serializer.data, status=200, headers=headers)
@@ -134,12 +134,12 @@ class APIViewSet(viewsets.ModelViewSet):
 
     def update(self, request, pk):
         qs = self.get_object()
-        if qs.openid != self.request.auth.openid:
+        if qs.openid != self.request.META.get('HTTP_TOKEN'):
             raise APIException({"detail": "Cannot update data which not yours"})
         else:
             data = self.request.data
-            if binsize.objects.filter(openid=self.request.auth.openid, bin_size=data['bin_size'], is_delete=False).exists():
-                if binproperty.objects.filter(Q(openid=self.request.auth.openid, bin_property=data['bin_property'], is_delete=False) |
+            if binsize.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), bin_size=data['bin_size'], is_delete=False).exists():
+                if binproperty.objects.filter(Q(openid=self.request.META.get('HTTP_TOKEN'), bin_property=data['bin_property'], is_delete=False) |
                                               Q(openid='init_data', bin_property=data['bin_property'], is_delete=False)).exists():
                     serializer = self.get_serializer(qs, data=data)
                     serializer.is_valid(raise_exception=True)
@@ -153,12 +153,12 @@ class APIViewSet(viewsets.ModelViewSet):
 
     def partial_update(self, request, pk):
         qs = self.get_object()
-        if qs.openid != self.request.auth.openid:
+        if qs.openid != self.request.META.get('HTTP_TOKEN'):
             raise APIException({"detail": "Cannot partial_update data which not yours"})
         else:
             data = self.request.data
-            if binsize.objects.filter(openid=self.request.auth.openid, bin_size=data['bin_size'], is_delete=False).exists():
-                if binproperty.objects.filter(Q(openid=self.request.auth.openid, bin_property=data['bin_property'], is_delete=False) |
+            if binsize.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), bin_size=data['bin_size'], is_delete=False).exists():
+                if binproperty.objects.filter(Q(openid=self.request.META.get('HTTP_TOKEN'), bin_property=data['bin_property'], is_delete=False) |
                                               Q(openid='init_data', bin_property=data['bin_property'], is_delete=False)).exists():
                     serializer = self.get_serializer(qs, data=data, partial=True)
                     serializer.is_valid(raise_exception=True)
@@ -172,7 +172,7 @@ class APIViewSet(viewsets.ModelViewSet):
 
     def destroy(self, request, pk):
         qs = self.get_object()
-        if qs.openid != self.request.auth.openid:
+        if qs.openid != self.request.META.get('HTTP_TOKEN'):
             raise APIException({"detail": "Cannot delete data which not yours"})
         else:
             qs.is_delete = True
@@ -198,9 +198,9 @@ class FileDownloadView(viewsets.ModelViewSet):
         id = self.get_project()
         if self.request.user:
             if id is None:
-                return ListModel.objects.filter(openid=self.request.auth.openid, is_delete=False)
+                return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), is_delete=False)
             else:
-                return ListModel.objects.filter(openid=self.request.auth.openid, id=id, is_delete=False)
+                return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=id, is_delete=False)
         else:
             return ListModel.objects.none()
 

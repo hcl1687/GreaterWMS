@@ -3,6 +3,7 @@ from throttle.models import ListModel
 from utils.md5 import Md5
 from django.utils import timezone
 from django.conf import settings
+from userprofile.models import Users
 
 data = {}
 
@@ -13,8 +14,11 @@ class VisitThrottle(BaseThrottle):
         else:
             ip = request.META.get('HTTP_X_FORWARDED_FOR') if request.META.get(
                 'HTTP_X_FORWARDED_FOR') else request.META.get('REMOTE_ADDR')
-            openid = request.auth.openid
-            appid = request.auth.appid
+            openid = request.META.get('HTTP_TOKEN')
+            appid = ''
+            if openid:
+                user = Users.objects.filter(openid__exact=str(openid)).first()
+                appid = user.appid
             if request.method.lower() == "get":
                 ntime = timezone.now()
                 ctime = ntime - timezone.timedelta(seconds=1)

@@ -33,7 +33,7 @@ class GoodlistfileViewSet(views.APIView):
 
     def get_queryset(self):
         if self.request.user:
-            return goodslist.objects.filter(openid=self.request.auth.openid)
+            return goodslist.objects.filter(openid=self.request.META.get('HTTP_TOKEN'))
         else:
             return goodslist.objects.filter().none()
 
@@ -55,7 +55,7 @@ class GoodlistfileViewSet(views.APIView):
         files = self.request.FILES.get('file')
         if files:
             excel_type = files.name.split('.')[1]
-            staff_name = staff.objects.filter(openid=self.request.auth.openid,
+            staff_name = staff.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                               id=self.request.META.get('HTTP_OPERATOR')).first().staff_name
             if excel_type in ['xlsx', 'xls', 'csv']:
                 self.get_queryset().delete()
@@ -66,7 +66,7 @@ class GoodlistfileViewSet(views.APIView):
                 goodsshape.objects.all().delete()
                 goodsspecs.objects.all().delete()
                 goodsorigin.objects.all().delete()
-                scanner.objects.filter(openid=self.request.auth.openid, mode='GOODS').delete()
+                scanner.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), mode='GOODS').delete()
                 if excel_type == 'csv':
                     df = pd.read_csv(files)
                 else:
@@ -133,7 +133,7 @@ class GoodlistfileViewSet(views.APIView):
                         else:
                             data_list[i][16] = 0
                         bar_code = Md5.md5(str(data_list[i][0]).strip())
-                        goodslist.objects.create(openid=self.request.auth.openid,
+                        goodslist.objects.create(openid=self.request.META.get('HTTP_TOKEN'),
                                                  goods_code=str(data_list[i][0]).strip(),
                                                  goods_desc=str(data_list[i][1]).strip(),
                                                  goods_supplier=str(data_list[i][2]).strip(),
@@ -154,7 +154,7 @@ class GoodlistfileViewSet(views.APIView):
                                                  bar_code=bar_code,
                                                  creater=str(staff_name)
                                                  )
-                        scanner.objects.create(openid=self.request.auth.openid, mode="GOODS",
+                        scanner.objects.create(openid=self.request.META.get('HTTP_TOKEN'), mode="GOODS",
                                                code=str(data_list[i][0]).strip(),
                                                bar_code=bar_code)
                 goods_supplier_list = df.drop_duplicates(subset=[data_header.get('goods_supplier')], keep='first').loc[
@@ -163,11 +163,11 @@ class GoodlistfileViewSet(views.APIView):
                 for i in goods_supplier_list:
                     if str(i) == 'nan':
                         i = 'N/A'
-                    if supplier.objects.filter(openid=self.request.auth.openid,
+                    if supplier.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                             supplier_name=str(i).strip()).exists():
                         pass
                     else:
-                        supplier.objects.create(openid=self.request.auth.openid,
+                        supplier.objects.create(openid=self.request.META.get('HTTP_TOKEN'),
                                                 supplier_name=str(i).strip(),
                                                 supplier_city="Supplier City",
                                                 supplier_address="Supplier Address",
@@ -180,11 +180,11 @@ class GoodlistfileViewSet(views.APIView):
                 for i in goods_unit_list:
                     if str(i) == 'nan':
                         i = 'N/A'
-                    if goodsunit.objects.filter(openid=self.request.auth.openid,
+                    if goodsunit.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                 goods_unit=str(i).strip()).exists():
                         pass
                     else:
-                        goodsunit.objects.create(openid=self.request.auth.openid,
+                        goodsunit.objects.create(openid=self.request.META.get('HTTP_TOKEN'),
                                                  goods_unit=str(i).strip(),
                                                  creater=str(staff_name)
                                                  )
@@ -193,11 +193,11 @@ class GoodlistfileViewSet(views.APIView):
                 for i in goods_class_list:
                     if str(i) == 'nan':
                         i = 'N/A'
-                    if goodsclass.objects.filter(openid=self.request.auth.openid,
+                    if goodsclass.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                  goods_class=str(i).strip()).exists():
                         pass
                     else:
-                        goodsclass.objects.create(openid=self.request.auth.openid,
+                        goodsclass.objects.create(openid=self.request.META.get('HTTP_TOKEN'),
                                                   goods_class=str(i).strip(),
                                                   creater=str(staff_name)
                                                   )
@@ -206,11 +206,11 @@ class GoodlistfileViewSet(views.APIView):
                 for i in goods_brand_list:
                     if str(i) == 'nan':
                         i = 'N/A'
-                    if goodsbrand.objects.filter(openid=self.request.auth.openid,
+                    if goodsbrand.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                goods_brand=str(i).strip()).exists():
                         pass
                     else:
-                        goodsbrand.objects.create(openid=self.request.auth.openid,
+                        goodsbrand.objects.create(openid=self.request.META.get('HTTP_TOKEN'),
                                                   goods_brand=str(i).strip(),
                                                   creater=str(staff_name)
                                                   )
@@ -219,11 +219,11 @@ class GoodlistfileViewSet(views.APIView):
                 for i in goods_color_list:
                     if str(i) == 'nan':
                         i = 'N/A'
-                    if goodscolor.objects.filter(openid=self.request.auth.openid,
+                    if goodscolor.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                  goods_color=str(i).strip()).exists():
                         pass
                     else:
-                        goodscolor.objects.create(openid=self.request.auth.openid,
+                        goodscolor.objects.create(openid=self.request.META.get('HTTP_TOKEN'),
                                                   goods_color=str(i).strip(),
                                                   creater=str(staff_name)
                                                   )
@@ -232,11 +232,11 @@ class GoodlistfileViewSet(views.APIView):
                 for i in goods_shape_list:
                     if str(i) == 'nan':
                         i = 'N/A'
-                    if goodsshape.objects.filter(openid=self.request.auth.openid,
+                    if goodsshape.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                  goods_shape=str(i).strip()).exists():
                         pass
                     else:
-                        goodsshape.objects.create(openid=self.request.auth.openid,
+                        goodsshape.objects.create(openid=self.request.META.get('HTTP_TOKEN'),
                                                   goods_shape=str(i).strip(),
                                                   creater=str(staff_name)
                                                   )
@@ -245,11 +245,11 @@ class GoodlistfileViewSet(views.APIView):
                 for i in goods_specs_list:
                     if str(i) == 'nan':
                         i = 'N/A'
-                    if goodsspecs.objects.filter(openid=self.request.auth.openid,
+                    if goodsspecs.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                  goods_specs=str(i).strip()).exists():
                         pass
                     else:
-                        goodsspecs.objects.create(openid=self.request.auth.openid,
+                        goodsspecs.objects.create(openid=self.request.META.get('HTTP_TOKEN'),
                                                   goods_specs=str(i).strip(),
                                                   creater=str(staff_name)
                                                   )
@@ -258,11 +258,11 @@ class GoodlistfileViewSet(views.APIView):
                 for i in goods_origin_list:
                     if str(i) == 'nan':
                         i = 'N/A'
-                    if goodsorigin.objects.filter(openid=self.request.auth.openid,
+                    if goodsorigin.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                   goods_origin=str(i).strip()).exists():
                         pass
                     else:
-                        goodsorigin.objects.create(openid=self.request.auth.openid,
+                        goodsorigin.objects.create(openid=self.request.META.get('HTTP_TOKEN'),
                                                    goods_origin=str(i).strip(),
                                                    creater=str(staff_name)
                                                    )
@@ -281,7 +281,7 @@ class SupplierfileViewSet(views.APIView):
 
     def get_queryset(self):
         if self.request.user:
-            return supplier.objects.filter(openid=self.request.auth.openid)
+            return supplier.objects.filter(openid=self.request.META.get('HTTP_TOKEN'))
         else:
             return supplier.objects.filter().none()
 
@@ -303,7 +303,7 @@ class SupplierfileViewSet(views.APIView):
         files = self.request.FILES.get('file')
         if files:
             excel_type = files.name.split('.')[1]
-            staff_name = staff.objects.filter(openid=self.request.auth.openid,
+            staff_name = staff.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                               id=self.request.META.get('HTTP_OPERATOR')).first().staff_name
             if excel_type in ['xlsx', 'xls', 'csv']:
                 self.get_queryset().delete()
@@ -335,7 +335,7 @@ class SupplierfileViewSet(views.APIView):
                                 data_list[i][5] = 0
                         else:
                             data_list[i][5] = 0
-                        supplier.objects.create(openid=self.request.auth.openid,
+                        supplier.objects.create(openid=self.request.META.get('HTTP_TOKEN'),
                                                 supplier_name=str(data_list[i][0]).strip(),
                                                 supplier_city=str(data_list[i][1]).strip(),
                                                 supplier_address=str(data_list[i][2]).strip(),
@@ -359,7 +359,7 @@ class CustomerfileViewSet(views.APIView):
 
     def get_queryset(self):
         if self.request.user:
-            return customer.objects.filter(openid=self.request.auth.openid)
+            return customer.objects.filter(openid=self.request.META.get('HTTP_TOKEN'))
         else:
             return customer.objects.filter().none()
 
@@ -381,7 +381,7 @@ class CustomerfileViewSet(views.APIView):
         files = self.request.FILES.get('file')
         if files:
             excel_type = files.name.split('.')[1]
-            staff_name = staff.objects.filter(openid=self.request.auth.openid,
+            staff_name = staff.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                               id=self.request.META.get('HTTP_OPERATOR')).first().staff_name
             if excel_type in ['xlsx', 'xls', 'csv']:
                 self.get_queryset().delete()
@@ -413,7 +413,7 @@ class CustomerfileViewSet(views.APIView):
                                 data_list[i][5] = 0
                         else:
                             data_list[i][5] = 0
-                        customer.objects.create(openid=self.request.auth.openid,
+                        customer.objects.create(openid=self.request.META.get('HTTP_TOKEN'),
                                                 customer_name=str(data_list[i][0]).strip(),
                                                 customer_city=str(data_list[i][1]).strip(),
                                                 customer_address=str(data_list[i][2]).strip(),
@@ -437,7 +437,7 @@ class CapitalfileViewSet(views.APIView):
 
     def get_queryset(self):
         if self.request.user:
-            return capital.objects.filter(openid=self.request.auth.openid)
+            return capital.objects.filter(openid=self.request.META.get('HTTP_TOKEN'))
         else:
             return capital.objects.filter().none()
 
@@ -445,7 +445,7 @@ class CapitalfileViewSet(views.APIView):
         files = self.request.FILES.get('file')
         if files:
             excel_type = files.name.split('.')[1]
-            staff_name = staff.objects.filter(openid=self.request.auth.openid,
+            staff_name = staff.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                               id=self.request.META.get('HTTP_OPERATOR')).first().staff_name
             if excel_type in ['xlsx', 'xls', 'csv']:
                 self.get_queryset().delete()
@@ -470,7 +470,7 @@ class CapitalfileViewSet(views.APIView):
                                 data_list[i][2] = 0
                         else:
                             data_list[i][2] = 0
-                        capital.objects.create(openid=self.request.auth.openid,
+                        capital.objects.create(openid=self.request.META.get('HTTP_TOKEN'),
                                                capital_name=str(data_list[i][0]).strip(),
                                                capital_qty=data_list[i][1],
                                                capital_cost=data_list[i][2],
@@ -491,7 +491,7 @@ class FreightfileViewSet(views.APIView):
 
     def get_queryset(self):
         if self.request.user:
-            return freight.objects.filter(openid=self.request.auth.openid)
+            return freight.objects.filter(openid=self.request.META.get('HTTP_TOKEN'))
         else:
             return freight.objects.filter().none()
 
@@ -499,7 +499,7 @@ class FreightfileViewSet(views.APIView):
         files = self.request.FILES.get('file')
         if files:
             excel_type = files.name.split('.')[1]
-            staff_name = staff.objects.filter(openid=self.request.auth.openid,
+            staff_name = staff.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                               id=self.request.META.get('HTTP_OPERATOR')).first().staff_name
             if excel_type in ['xlsx', 'xls', 'csv']:
                 self.get_queryset().delete()
@@ -532,7 +532,7 @@ class FreightfileViewSet(views.APIView):
                             data_list[i][4] = 0
                         if str(data_list[i][5]) == 'nan':
                             data_list[i][5] = 'N/A'
-                        freight.objects.create(openid=self.request.auth.openid,
+                        freight.objects.create(openid=self.request.META.get('HTTP_TOKEN'),
                                                send_city=str(data_list[i][0]).strip(),
                                                receiver_city=str(data_list[i][1]).strip(),
                                                weight_fee=data_list[i][2],
@@ -556,7 +556,7 @@ class GoodlistfileAddViewSet(views.APIView):
 
     def get_queryset(self):
         if self.request.user:
-            return goodslist.objects.filter(openid=self.request.auth.openid)
+            return goodslist.objects.filter(openid=self.request.META.get('HTTP_TOKEN'))
         else:
             return goodslist.objects.filter().none()
 
@@ -578,7 +578,7 @@ class GoodlistfileAddViewSet(views.APIView):
         files = self.request.FILES.get('file')
         if files:
             excel_type = files.name.split('.')[1]
-            staff_name = staff.objects.filter(openid=self.request.auth.openid,
+            staff_name = staff.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                               id=self.request.META.get('HTTP_OPERATOR')).first().staff_name
             if excel_type in ['xlsx', 'xls', 'csv']:
                 if excel_type == 'csv':
@@ -646,12 +646,12 @@ class GoodlistfileAddViewSet(views.APIView):
                                 data_list[i][16] = 0
                         else:
                             data_list[i][16] = 0
-                        if goodslist.objects.filter(openid=self.request.auth.openid,
+                        if goodslist.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                      goods_code=str(data_list[i][0]).strip()).exists():
                             pass
                         else:
                             bar_code = Md5.md5(str(data_list[i][0]).strip())
-                            goodslist.objects.create(openid=self.request.auth.openid,
+                            goodslist.objects.create(openid=self.request.META.get('HTTP_TOKEN'),
                                                      goods_code=str(data_list[i][0]).strip(),
                                                      goods_desc=str(data_list[i][1]).strip(),
                                                      goods_supplier=str(data_list[i][2]).strip(),
@@ -672,7 +672,7 @@ class GoodlistfileAddViewSet(views.APIView):
                                                      bar_code=bar_code,
                                                      creater=str(staff_name)
                                                      )
-                            scanner.objects.create(openid=self.request.auth.openid, mode="GOODS",
+                            scanner.objects.create(openid=self.request.META.get('HTTP_TOKEN'), mode="GOODS",
                                                    code=str(data_list[i][0]).strip(),
                                                    bar_code=bar_code)
                 goods_supplier_list = df.drop_duplicates(subset=[data_header.get('goods_supplier')], keep='first').loc[:,
@@ -680,11 +680,11 @@ class GoodlistfileAddViewSet(views.APIView):
                 for i in goods_supplier_list:
                     if str(i) == 'nan':
                         i = 'N/A'
-                    if supplier.objects.filter(openid=self.request.auth.openid,
+                    if supplier.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                supplier_name=str(i).strip()).exists():
                         pass
                     else:
-                        supplier.objects.create(openid=self.request.auth.openid,
+                        supplier.objects.create(openid=self.request.META.get('HTTP_TOKEN'),
                                                 supplier_name=str(i).strip(),
                                                 supplier_city="Supplier City",
                                                 supplier_address="Supplier Address",
@@ -697,11 +697,11 @@ class GoodlistfileAddViewSet(views.APIView):
                 for i in goods_unit_list:
                     if str(i) == 'nan':
                         i = 'N/A'
-                    if goodsunit.objects.filter(openid=self.request.auth.openid,
+                    if goodsunit.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                 goods_unit=str(i).strip()).exists():
                         pass
                     else:
-                        goodsunit.objects.create(openid=self.request.auth.openid,
+                        goodsunit.objects.create(openid=self.request.META.get('HTTP_TOKEN'),
                                                  goods_unit=str(i).strip(),
                                                  creater=str(staff_name)
                                                  )
@@ -710,11 +710,11 @@ class GoodlistfileAddViewSet(views.APIView):
                 for i in goods_class_list:
                     if str(i) == 'nan':
                         i = 'N/A'
-                    if goodsclass.objects.filter(openid=self.request.auth.openid,
+                    if goodsclass.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                               goods_class=str(i).strip()).exists():
                         pass
                     else:
-                        goodsclass.objects.create(openid=self.request.auth.openid,
+                        goodsclass.objects.create(openid=self.request.META.get('HTTP_TOKEN'),
                                                   goods_class=str(i).strip(),
                                                   creater=str(staff_name)
                                                   )
@@ -723,11 +723,11 @@ class GoodlistfileAddViewSet(views.APIView):
                 for i in goods_brand_list:
                     if str(i) == 'nan':
                         i = 'N/A'
-                    if goodsbrand.objects.filter(openid=self.request.auth.openid,
+                    if goodsbrand.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                  goods_brand=str(i).strip()).exists():
                         pass
                     else:
-                        goodsbrand.objects.create(openid=self.request.auth.openid,
+                        goodsbrand.objects.create(openid=self.request.META.get('HTTP_TOKEN'),
                                                   goods_brand=str(i).strip(),
                                                   creater=str(staff_name)
                                                   )
@@ -736,11 +736,11 @@ class GoodlistfileAddViewSet(views.APIView):
                 for i in goods_color_list:
                     if str(i) == 'nan':
                         i = 'N/A'
-                    if goodscolor.objects.filter(openid=self.request.auth.openid,
+                    if goodscolor.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                  goods_color=str(i).strip()).exists():
                         pass
                     else:
-                        goodscolor.objects.create(openid=self.request.auth.openid,
+                        goodscolor.objects.create(openid=self.request.META.get('HTTP_TOKEN'),
                                                   goods_color=str(i).strip(),
                                                   creater=str(staff_name)
                                                   )
@@ -749,11 +749,11 @@ class GoodlistfileAddViewSet(views.APIView):
                 for i in goods_shape_list:
                     if str(i) == 'nan':
                         i = 'N/A'
-                    if goodsshape.objects.filter(openid=self.request.auth.openid,
+                    if goodsshape.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                  goods_shape=str(i).strip()).exists():
                         pass
                     else:
-                        goodsshape.objects.create(openid=self.request.auth.openid,
+                        goodsshape.objects.create(openid=self.request.META.get('HTTP_TOKEN'),
                                                   goods_shape=str(i).strip(),
                                                   creater=str(staff_name)
                                                   )
@@ -762,11 +762,11 @@ class GoodlistfileAddViewSet(views.APIView):
                 for i in goods_specs_list:
                     if str(i) == 'nan':
                         i = 'N/A'
-                    if goodsspecs.objects.filter(openid=self.request.auth.openid,
+                    if goodsspecs.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                               goods_specs=str(i).strip()).exists():
                         pass
                     else:
-                        goodsspecs.objects.create(openid=self.request.auth.openid,
+                        goodsspecs.objects.create(openid=self.request.META.get('HTTP_TOKEN'),
                                                   goods_specs=str(i).strip(),
                                                   creater=str(staff_name)
                                                   )
@@ -775,11 +775,11 @@ class GoodlistfileAddViewSet(views.APIView):
                 for i in goods_origin_list:
                     if str(i) == 'nan':
                         i = 'N/A'
-                    if goodsorigin.objects.filter(openid=self.request.auth.openid,
+                    if goodsorigin.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                   goods_origin=str(i).strip()).exists():
                         pass
                     else:
-                        goodsorigin.objects.create(openid=self.request.auth.openid,
+                        goodsorigin.objects.create(openid=self.request.META.get('HTTP_TOKEN'),
                                                    goods_origin=str(i).strip(),
                                                    creater=str(staff_name)
                                                    )
@@ -798,7 +798,7 @@ class SupplierfileAddViewSet(views.APIView):
 
     def get_queryset(self):
         if self.request.user:
-            return supplier.objects.filter(openid=self.request.auth.openid)
+            return supplier.objects.filter(openid=self.request.META.get('HTTP_TOKEN'))
         else:
             return supplier.objects.filter().none()
 
@@ -820,7 +820,7 @@ class SupplierfileAddViewSet(views.APIView):
         files = self.request.FILES.get('file')
         if files:
             excel_type = files.name.split('.')[1]
-            staff_name = staff.objects.filter(openid=self.request.auth.openid,
+            staff_name = staff.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                               id=self.request.META.get('HTTP_OPERATOR')).first().staff_name
             if excel_type in ['xlsx', 'xls', 'csv']:
                 if excel_type == 'csv':
@@ -851,7 +851,7 @@ class SupplierfileAddViewSet(views.APIView):
                                 data_list[i][5] = 0
                         else:
                             data_list[i][5] = 0
-                        if supplier.objects.filter(openid=self.request.auth.openid,
+                        if supplier.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                    supplier_name=str(data_list[i][0]).strip(),
                                                    supplier_city=str(data_list[i][1]).strip(),
                                                    supplier_address=str(data_list[i][2]).strip(),
@@ -862,7 +862,7 @@ class SupplierfileAddViewSet(views.APIView):
                                                    ).exists():
                             pass
                         else:
-                            supplier.objects.create(openid=self.request.auth.openid,
+                            supplier.objects.create(openid=self.request.META.get('HTTP_TOKEN'),
                                                     supplier_name=str(data_list[i][0]).strip(),
                                                     supplier_city=str(data_list[i][1]).strip(),
                                                     supplier_address=str(data_list[i][2]).strip(),
@@ -886,7 +886,7 @@ class CustomerfileAddViewSet(views.APIView):
 
     def get_queryset(self):
         if self.request.user:
-            return customer.objects.filter(openid=self.request.auth.openid)
+            return customer.objects.filter(openid=self.request.META.get('HTTP_TOKEN'))
         else:
             return customer.objects.filter().none()
 
@@ -908,7 +908,7 @@ class CustomerfileAddViewSet(views.APIView):
         files = self.request.FILES.get('file')
         if files:
             excel_type = files.name.split('.')[1]
-            staff_name = staff.objects.filter(openid=self.request.auth.openid,
+            staff_name = staff.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                               id=self.request.META.get('HTTP_OPERATOR')).first().staff_name
             if excel_type in ['xlsx', 'xls', 'csv']:
                 if excel_type == 'csv':
@@ -939,7 +939,7 @@ class CustomerfileAddViewSet(views.APIView):
                                 data_list[i][5] = 0
                         else:
                             data_list[i][5] = 0
-                        if customer.objects.filter(openid=self.request.auth.openid,
+                        if customer.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                    customer_name=str(data_list[i][0]).strip(),
                                                    customer_city=str(data_list[i][1]).strip(),
                                                    customer_address=str(data_list[i][2]).strip(),
@@ -949,7 +949,7 @@ class CustomerfileAddViewSet(views.APIView):
                                                    ).exists():
                             pass
                         else:
-                            customer.objects.create(openid=self.request.auth.openid,
+                            customer.objects.create(openid=self.request.META.get('HTTP_TOKEN'),
                                                     customer_name=str(data_list[i][0]).strip(),
                                                     customer_city=str(data_list[i][1]).strip(),
                                                     customer_address=str(data_list[i][2]).strip(),
@@ -973,7 +973,7 @@ class CapitalfileAddViewSet(views.APIView):
 
     def get_queryset(self):
         if self.request.user:
-            return capital.objects.filter(openid=self.request.auth.openid)
+            return capital.objects.filter(openid=self.request.META.get('HTTP_TOKEN'))
         else:
             return capital.objects.filter().none()
 
@@ -981,7 +981,7 @@ class CapitalfileAddViewSet(views.APIView):
         files = self.request.FILES.get('file')
         if files:
             excel_type = files.name.split('.')[1]
-            staff_name = staff.objects.filter(openid=self.request.auth.openid,
+            staff_name = staff.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                               id=self.request.META.get('HTTP_OPERATOR')).first().staff_name
             if excel_type in ['xlsx', 'xls', 'csv']:
                 if excel_type == 'csv':
@@ -1005,14 +1005,14 @@ class CapitalfileAddViewSet(views.APIView):
                                 data_list[i][2] = 0
                         else:
                             data_list[i][2] = 0
-                        if capital.objects.filter(openid=self.request.auth.openid,
+                        if capital.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                    capital_name=str(data_list[i][0]).strip(),
                                                    capital_qty=data_list[i][1],
                                                    capital_cost=data_list[i][2],
                                                    ).exists():
                             pass
                         else:
-                            capital.objects.create(openid=self.request.auth.openid,
+                            capital.objects.create(openid=self.request.META.get('HTTP_TOKEN'),
                                                    capital_name=str(data_list[i][0]).strip(),
                                                    capital_qty=data_list[i][1],
                                                    capital_cost=data_list[i][2],
@@ -1033,7 +1033,7 @@ class FreightfileAddViewSet(views.APIView):
 
     def get_queryset(self):
         if self.request.user:
-            return freight.objects.filter(openid=self.request.auth.openid)
+            return freight.objects.filter(openid=self.request.META.get('HTTP_TOKEN'))
         else:
             return freight.objects.filter().none()
 
@@ -1041,7 +1041,7 @@ class FreightfileAddViewSet(views.APIView):
         files = self.request.FILES.get('file')
         if files:
             excel_type = files.name.split('.')[1]
-            staff_name = staff.objects.filter(openid=self.request.auth.openid,
+            staff_name = staff.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                               id=self.request.META.get('HTTP_OPERATOR')).first().staff_name
             if excel_type in ['xlsx', 'xls', 'csv']:
                 if excel_type == 'csv':
@@ -1073,7 +1073,7 @@ class FreightfileAddViewSet(views.APIView):
                             data_list[i][4] = 0
                         if str(data_list[i][5]) == 'nan':
                             data_list[i][5] = 'N/A'
-                        if freight.objects.filter(openid=self.request.auth.openid,
+                        if freight.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                   send_city=str(data_list[i][0]).strip(),
                                                   receiver_city=str(data_list[i][1]).strip(),
                                                   weight_fee=data_list[i][2],
@@ -1083,7 +1083,7 @@ class FreightfileAddViewSet(views.APIView):
                                                   ).exists():
                             pass
                         else:
-                            freight.objects.create(openid=self.request.auth.openid,
+                            freight.objects.create(openid=self.request.META.get('HTTP_TOKEN'),
                                                    send_city=str(data_list[i][0]).strip(),
                                                    receiver_city=str(data_list[i][1]).strip(),
                                                    weight_fee=data_list[i][2],
