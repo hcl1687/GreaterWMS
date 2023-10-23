@@ -11,6 +11,7 @@ from staff.models import ListModel as staff
 import json, random, os
 from django.conf import settings
 from scanner.models import ListModel as scanner
+from rest_framework_simplejwt.tokens import RefreshToken
 
 def randomPhone():
     List = ["130", "131", "132", "133", "134", "135", "136", "137", "138", "139",
@@ -124,6 +125,11 @@ def register(request, *args, **kwargs):
                             data['user_id'] = user_id
                             data.pop('password1', '')
                             data.pop('password2', '')
+
+                            refresh = RefreshToken.for_user(user)
+                            data['refresh_token'] = str(refresh)
+                            data['access_token'] = str(refresh.access_token)
+
                             ret['data'] = data
                             from company.models import ListModel as company
                             company.objects.create(openid=transaction_code,

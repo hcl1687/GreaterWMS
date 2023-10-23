@@ -54,6 +54,7 @@ axiosInstanceAuth.interceptors.request.use(
       config.headers.token = LocalStorage.getItem('openid')
       config.headers.operator = LocalStorage.getItem('login_id')
       config.headers.language = lang
+      config.headers.Authorization = `Bearer ${LocalStorage.getItem('access_token')}`
       return config
     } else {
       Bus.$emit('needLogin', true)
@@ -192,6 +193,7 @@ axiosInstanceAuthScan.interceptors.request.use(
       config.headers.token = LocalStorage.getItem('openid')
       config.headers.operator = LocalStorage.getItem('login_id')
       config.headers.language = lang
+      config.headers.Authorization = `Bearer ${LocalStorage.getItem('access_token')}`
       return config
     } else {
       Bus.$emit('needLogin', true)
@@ -444,6 +446,7 @@ axiosFile.interceptors.request.use(
       config.headers.token = LocalStorage.getItem('openid')
       config.headers.operator = LocalStorage.getItem('login_id')
       config.headers.language = lang
+      config.headers.Authorization = `Bearer ${LocalStorage.getItem('access_token')}`
       return config
     } else {
       Bus.$emit('needLogin', true)

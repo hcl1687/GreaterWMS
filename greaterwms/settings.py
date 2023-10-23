@@ -1,5 +1,6 @@
 from pathlib import Path
 import os
+from datetime import timedelta
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -62,7 +63,10 @@ INSTALLED_APPS = [
     'django_filters',
     'corsheaders',
     'drf_spectacular',
-    'drf_spectacular_sidecar'
+    'drf_spectacular_sidecar',
+    'rest_framework_simplejwt'
+    # 下面这个app用于刷新refresh_token后，将旧的加到到blacklist时使用
+    # 'rest_framework_simplejwt.token_blacklist'
 ]
 
 MIDDLEWARE = [
@@ -188,8 +192,10 @@ REST_FRAMEWORK = {
         'rest_framework.parsers.FormParser',
         'rest_framework.parsers.MultiPartParser'
     ],
-    'DEFAULT_AUTHENTICATION_CLASSES': ['utils.auth.Authtication', ],
-    'DEFAULT_PERMISSION_CLASSES': ["utils.permission.Normalpermission", ],
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework_simplejwt.authentication.JWTAuthentication'
+    ],
+    'DEFAULT_PERMISSION_CLASSES': ["rest_framework.permissions.IsAuthenticated", ],
     'DEFAULT_THROTTLE_CLASSES': ['utils.throttle.VisitThrottle', ],
     # 'DEFAULT_THROTTLE_RATES': ['utils.throttle.VisitThrottle', ],
     'DEFAULT_CONTENT_NEGOTIATION_CLASS': 'rest_framework.negotiation.DefaultContentNegotiation',
@@ -240,6 +246,11 @@ REST_FRAMEWORK = {
         'retrieve': 'read',
         'destroy': 'delete'
     },
+}
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7)
 }
 
 SERVER_LOGS_FILE = os.path.join(BASE_DIR, "logs", "server.log")

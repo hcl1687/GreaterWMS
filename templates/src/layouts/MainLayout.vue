@@ -911,11 +911,15 @@ export default {
                 _this.openid = res.data.openid
                 _this.login_name = res.data.name
                 _this.login_id = res.data.user_id
+                _this.access_token = res.data.access_token
+                _this.refresh_token = res.data.refresh_token
                 LocalStorage.set('auth', '1')
                 LocalStorage.set('openid', res.data.openid)
                 LocalStorage.set('login_name', _this.login_name)
                 LocalStorage.set('login_id', _this.login_id)
                 LocalStorage.set('login_mode', 'admin')
+                LocalStorage.set('access_token', _this.access_token)
+                LocalStorage.set('refresh_token', _this.refresh_token)
                 _this.$q.notify({
                   message: 'Success Login',
                   icon: 'check',
@@ -977,10 +981,14 @@ export default {
             _this.login_name = _this.registerform.name
             _this.login_id = res.data.user_id
             _this.authin = '1'
+            _this.access_token = res.data.access_token
+            _this.refresh_token = res.data.refresh_token
             LocalStorage.set('openid', res.data.openid)
             LocalStorage.set('login_name', _this.registerform.name)
             LocalStorage.set('login_id', _this.login_id)
             LocalStorage.set('auth', '1')
+            LocalStorage.set('access_token', _this.access_token)
+            LocalStorage.set('refresh_token', _this.refresh_token)
             _this.registerform = {
               name: '',
               password1: '',
