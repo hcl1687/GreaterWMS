@@ -30,6 +30,7 @@ from .files import FileListRenderCN, FileListRenderEN, FileDetailRenderCN, FileD
 from rest_framework.settings import api_settings
 from dateutil.relativedelta import relativedelta
 from staff.models import ListModel as staff
+from rest_framework import permissions
 
 class AsnListViewSet(viewsets.ModelViewSet):
     """
@@ -48,6 +49,7 @@ class AsnListViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, OrderingFilter, ]
     ordering_fields = ['id', "create_time", "update_time", ]
     filter_class = AsnListFilter
+    permission_classes = (permissions.DjangoModelPermissions,)
 
     def get_project(self):
         try:
