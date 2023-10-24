@@ -537,6 +537,7 @@
           style="height: 50px"
         >
           <q-tabs v-model="activeTab" class="tabs">
+            <!--
             <q-tab name="user" @click="admin = false">
               {{ $t("index.user_login") }}
               <q-tooltip
@@ -546,13 +547,14 @@
                 >{{ $t("index.user_login") }}</q-tooltip
               >
             </q-tab>
+            -->
             <q-tab name="admin" @click="admin = true">
-              {{ $t("index.admin_login") }}
+              {{ $t("index.user_login") }}
               <q-tooltip
                 content-class="bg-amber text-black shadow-4"
                 :offset="[5, 5]"
                 content-style="font-size: 12px"
-                >{{ $t("index.admin_login") }}</q-tooltip
+                >{{ $t("index.user_login") }}</q-tooltip
               >
             </q-tab>
           </q-tabs>
@@ -640,6 +642,7 @@
               @click="admin ? adminLogin() : Login()"
             />
           </template>
+          <!--
           <div class="q-mx-auto">
             <q-btn
               flat
@@ -652,6 +655,7 @@
               {{ $t("index.register_tip") }}
             </q-btn>
           </div>
+          -->
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -722,6 +726,25 @@
               />
             </template>
           </q-input>
+          <q-input
+            dense
+            outlined
+            square
+            :label="$t('index.your_openid')"
+            v-model="registerform.openid"
+            @keyup.enter="Register()"
+          />
+          <q-input
+          <q-select
+            dense
+            outlined
+            square
+            v-model="registerform.staff_type"
+            :options="staff_type_list"
+            transition-show="scale"
+            transition-hide="scale"
+            :label="$t('staff.view_staff.staff_type')"
+          />
         </q-card-section>
         <q-card-actions align="right" class="text-primary q-mx-sm"
           ><q-btn
@@ -1107,6 +1130,8 @@ export default {
       _this.authin = '0'
       _this.isLoggedIn()
     }
+
+    _this.staff_type_list = ['Manager', 'Supervisor', 'Inbount', 'Outbound', 'StockControl', 'Customer', 'Supplier']
   },
   mounted () {
     var _this = this
