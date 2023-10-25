@@ -302,6 +302,7 @@
         <q-list>
           <q-item
             clickable
+            v-if="!isSupplier()"
             :to="{ name: 'outbounddashboard' }"
             @click="linkChange('outbounddashboard')"
             v-ripple
@@ -358,6 +359,7 @@
           <q-separator />
           <q-item
             clickable
+            v-if="!isSupplier()"
             :to="{ name: 'capitallist' }"
             @click="linkChange('finance')"
             v-ripple
@@ -396,6 +398,7 @@
           </q-item>
           <q-item
             clickable
+            v-if="!isSupplier()"
             :to="{ name: 'warehouseset' }"
             @click="linkChange('warehouse')"
             v-ripple
@@ -409,6 +412,7 @@
           <q-separator />
           <q-item
             clickable
+            v-if="!isSupplier()"
             :to="{ name: 'stafflist' }"
             @click="linkChange('staff')"
             v-ripple
@@ -423,6 +427,7 @@
           </q-item>
           <q-item
             clickable
+            v-if="!isSupplier()"
             :to="{ name: 'driverlist' }"
             @click="linkChange('driver')"
             v-ripple
@@ -438,6 +443,7 @@
           <q-separator />
           <q-item
             clickable
+            v-if="!isSupplier()"
             :to="{ name: 'initializeupload' }"
             @click="linkChange('uploadcenter')"
             v-ripple
@@ -452,6 +458,7 @@
           </q-item>
           <q-item
             clickable
+            v-if="!isSupplier()"
             :to="{ name: 'downloadinbound' }"
             @click="linkChange('downloadcenter')"
             v-ripple
@@ -469,6 +476,7 @@
           <q-separator/>
           <q-item
             clickable
+            v-if="!isSupplier()"
             :to="{ name: 'warehouselist' }"
             @click="linkChange('warehouselist')"
             v-ripple
@@ -598,6 +606,7 @@
               </template>
             </q-input>
           </template>
+          <!--
           <template v-if="!admin">
             <q-input
               dense
@@ -631,6 +640,7 @@
               style="margin-top: 5px"
             />
           </template>
+          -->
         </q-card-section>
         <q-card-actions align="left" class="text-primary">
           <q-space />
@@ -796,7 +806,7 @@ export default {
         { value: 'ja', label: '日本語' }
       ],
       title: this.$t('index.webtitle'),
-      admin: false,
+      admin: true,
       adminlogin: {
         name: '',
         password: ''
@@ -930,7 +940,7 @@ export default {
               if (res.code === '200') {
                 _this.authin = '1'
                 _this.login = false
-                _this.admin = false
+                _this.admin = true
                 _this.openid = res.data.openid
                 _this.login_name = res.data.name
                 _this.login_id = res.data.user_id
@@ -1051,6 +1061,9 @@ export default {
         LocalStorage.set('staff_type', res.results[0].staff_type)
       })
     },
+    isSupplier () {
+      return LocalStorage.getItem('staff_type') === 'Supplier'
+    },
     warehouseOptionsGet () {
       var _this = this
       get('warehouse/multiple/?max_page=30')
@@ -1111,7 +1124,7 @@ export default {
     var _this = this
     if (LocalStorage.has('openid')) {
       _this.openid = LocalStorage.getItem('openid')
-      _this.activeTab = LocalStorage.getItem('login_mode')
+      _this.activeTab = LocalStorage.getItem('login_mode') || 'admin'
     } else {
       _this.openid = ''
       LocalStorage.set('openid', '')

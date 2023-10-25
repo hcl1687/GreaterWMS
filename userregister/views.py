@@ -13,6 +13,7 @@ from django.conf import settings
 from scanner.models import ListModel as scanner
 from rest_framework_simplejwt.tokens import RefreshToken
 from utils.staff_type import StaffType
+from supplier.models import ListModel as supplier
 
 def randomPhone():
     List = ["130", "131", "132", "133", "134", "135", "136", "137", "138", "139",
@@ -58,7 +59,9 @@ def register(request, *args, **kwargs):
     data = {
         "name": post_data.get('name'),
         "password1": post_data.get('password1'),
-        "password2": post_data.get('password2')
+        "password2": post_data.get('password2'),
+        "staff_type": post_data.get('staff_type'),
+        "openid": post_data.get('openid'),
     }
     ip = request.META.get('HTTP_X_FORWARDED_FOR') if request.META.get(
         'HTTP_X_FORWARDED_FOR') else request.META.get('REMOTE_ADDR')
@@ -114,6 +117,13 @@ def register(request, *args, **kwargs):
                                                     openid=transaction_code)
                                 user_id = staff.objects.filter(openid=transaction_code, staff_name=str(data['name']),
                                                     staff_type='Admin', check_code=check_code).first().id
+                                folder = os.path.exists(os.path.join(settings.BASE_DIR, 'media/' + transaction_code))
+                                if not folder:
+                                    os.makedirs(os.path.join(settings.BASE_DIR, 'media/' + transaction_code))
+                                    os.makedirs(os.path.join(settings.BASE_DIR, 'media/' + transaction_code + "/win32"))
+                                    os.makedirs(os.path.join(settings.BASE_DIR, 'media/' + transaction_code + "/linux"))
+                                    os.makedirs(os.path.join(settings.BASE_DIR, 'media/' + transaction_code + "/darwin"))
+                                data['openid'] = transaction_code
                             else:
                                 if not StaffType.is_valid(str(data['staff_type'])):
                                     err_invalid_staff_type = FBMsg.err_invalid_staff_type()
@@ -121,7 +131,6 @@ def register(request, *args, **kwargs):
                                     err_invalid_staff_type['data'] = data['name']
                                     return JsonResponse(err_invalid_staff_type)
                                 else:
-                                    transaction_code = Md5.md5(data['name'])
                                     user = User.objects.create_user(username=str(data['name']),
                                                                     password=str(data['password1']))
                                     Users.objects.create(user_id=user.id, name=str(data['name']),
@@ -136,16 +145,16 @@ def register(request, *args, **kwargs):
                                                         openid=str(data['openid']))
                                     user_id = staff.objects.filter(openid=str(data['openid']), staff_name=str(data['name']),
                                                         staff_type=str(data['staff_type']), check_code=check_code).first().id
-
-                            folder = os.path.exists(os.path.join(settings.BASE_DIR, 'media/' + transaction_code))
-                            if not folder:
-                                os.makedirs(os.path.join(settings.BASE_DIR, 'media/' + transaction_code))
-                                os.makedirs(os.path.join(settings.BASE_DIR, 'media/' + transaction_code + "/win32"))
-                                os.makedirs(os.path.join(settings.BASE_DIR, 'media/' + transaction_code + "/linux"))
-                                os.makedirs(os.path.join(settings.BASE_DIR, 'media/' + transaction_code + "/darwin"))
+                                    supplier.objects.create(openid=str(data['openid']),
+                                                            supplier_name='',
+                                                            supplier_city='',
+                                                            supplier_address='',
+                                                            supplier_contact='',
+                                                            supplier_manager=str(data['name']),
+                                                            creater=str(data['name'])
+                                                            )
                             ret = FBMsg.ret()
                             ret['ip'] = ip
-                            data['openid'] = transaction_code
                             data['name'] = str(data['name'])
                             data['user_id'] = user_id
                             data.pop('password1', '')

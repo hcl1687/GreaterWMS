@@ -6,6 +6,7 @@ import json
 from userprofile.models import Users
 from staff.models import ListModel as staff
 from rest_framework_simplejwt.tokens import RefreshToken
+from utils.staff import Staff
 
 def login(request, *args, **kwargs):
     post_data = json.loads(request.body.decode())
@@ -24,12 +25,14 @@ def login(request, *args, **kwargs):
         else:
             auth.login(request, user)
             user_detail = Users.objects.filter(user_id=user.id).first()
-            staff_id = staff.objects.filter(openid=user_detail.openid, staff_name=str(user_detail.name)).first().id
+            staff_obj = staff.objects.filter(staff_name=str(user_detail.name)).first()
+            staff_id = staff_obj.id
+
             refresh = RefreshToken.for_user(user)
 
             data = {
                 "name": data['name'],
-                'openid': user_detail.openid,
+                'openid': user_detail.openid if Staff.is_admin(staff_obj) else staff_obj.openid,
                 "user_id": staff_id,
                 "refresh_token": str(refresh),
                 "access_token": str(refresh.access_token)

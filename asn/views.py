@@ -31,7 +31,7 @@ from rest_framework.settings import api_settings
 from dateutil.relativedelta import relativedelta
 from staff.models import ListModel as staff
 from rest_framework import permissions
-from utils.staff import get_supplier_name
+from utils.staff import Staff
 
 class AsnListViewSet(viewsets.ModelViewSet):
     """
@@ -62,7 +62,7 @@ class AsnListViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         id = self.get_project()
         if self.request.user:
-            supplier_name = get_supplier_name(self.request.user)
+            supplier_name = Staff.get_supplier_name(self.request.user)
             if supplier_name:
                 # is supplier
                 if id is None:
