@@ -12,6 +12,7 @@ import json, random, os
 from django.conf import settings
 from scanner.models import ListModel as scanner
 from rest_framework_simplejwt.tokens import RefreshToken
+from utils.staff_type import StaffType
 
 def randomPhone():
     List = ["130", "131", "132", "133", "134", "135", "136", "137", "138", "139",
@@ -97,21 +98,45 @@ def register(request, *args, **kwargs):
                             err_password_not_same['data'] = data['name']
                             return JsonResponse(err_password_not_same)
                         else:
-                            transaction_code = Md5.md5(data['name'])
-                            user = User.objects.create_user(username=str(data['name']),
-                                                            password=str(data['password1']))
-                            Users.objects.create(user_id=user.id, name=str(data['name']),
-                                                 openid=transaction_code, appid=Md5.md5(data['name'] + '1'),
-                                                 t_code=Md5.md5(str(timezone.now())),
-                                                 developer=1, ip=ip)
-                            auth.login(request, user)
-                            check_code = random.randint(1000, 9999)
-                            staff.objects.create(staff_name=str(data['name']),
-                                                 staff_type='Admin',
-                                                 check_code=check_code,
-                                                 openid=transaction_code)
-                            user_id = staff.objects.filter(openid=transaction_code, staff_name=str(data['name']),
-                                                 staff_type='Admin', check_code=check_code).first().id
+                            if data.get('staff_type') is None or data.get('openid') is None:
+                                transaction_code = Md5.md5(data['name'])
+                                user = User.objects.create_user(username=str(data['name']),
+                                                                password=str(data['password1']))
+                                Users.objects.create(user_id=user.id, name=str(data['name']),
+                                                    openid=transaction_code, appid=Md5.md5(data['name'] + '1'),
+                                                    t_code=Md5.md5(str(timezone.now())),
+                                                    developer=1, ip=ip)
+                                auth.login(request, user)
+                                check_code = random.randint(1000, 9999)
+                                staff.objects.create(staff_name=str(data['name']),
+                                                    staff_type='Admin',
+                                                    check_code=check_code,
+                                                    openid=transaction_code)
+                                user_id = staff.objects.filter(openid=transaction_code, staff_name=str(data['name']),
+                                                    staff_type='Admin', check_code=check_code).first().id
+                            else:
+                                if not StaffType.is_valid(str(data['staff_type'])):
+                                    err_invalid_staff_type = FBMsg.err_invalid_staff_type()
+                                    err_invalid_staff_type['ip'] = ip
+                                    err_invalid_staff_type['data'] = data['name']
+                                    return JsonResponse(err_invalid_staff_type)
+                                else:
+                                    transaction_code = Md5.md5(data['name'])
+                                    user = User.objects.create_user(username=str(data['name']),
+                                                                    password=str(data['password1']))
+                                    Users.objects.create(user_id=user.id, name=str(data['name']),
+                                                        openid='', appid='',
+                                                        t_code=Md5.md5(str(timezone.now())),
+                                                        developer=1, ip=ip)
+                                    auth.login(request, user)
+                                    check_code = random.randint(1000, 9999)
+                                    staff.objects.create(staff_name=str(data['name']),
+                                                        staff_type=str(data['staff_type']),
+                                                        check_code=check_code,
+                                                        openid=str(data['openid']))
+                                    user_id = staff.objects.filter(openid=str(data['openid']), staff_name=str(data['name']),
+                                                        staff_type=str(data['staff_type']), check_code=check_code).first().id
+
                             folder = os.path.exists(os.path.join(settings.BASE_DIR, 'media/' + transaction_code))
                             if not folder:
                                 os.makedirs(os.path.join(settings.BASE_DIR, 'media/' + transaction_code))

@@ -278,3 +278,9 @@ class FBMsg(object):
     def wms_capcha_n():
         wms_capcha_n = {"code": "100082", "msg": "验证码不存在", "data": None}
         return wms_capcha_n
+    def err_no_openid_or_staff_type():
+        err_no_openid_or_staff_type = {'code': "200001", 'msg': 'No openid or staff_type'}
+        return err_no_openid_or_staff_type
+    def err_invalid_staff_type():
+        err_invalid_staff_type = {'code': "200002", 'msg': 'Invalid staff_type'}
+        return err_invalid_staff_type
