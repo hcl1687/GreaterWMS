@@ -21,6 +21,7 @@ from userprofile.models import Users
 from stock.views import StockBinViewSet
 from utils.md5 import Md5
 from staff.models import ListModel as staff
+from rest_framework import permissions
 
 class QTYRecorderViewSet(viewsets.ModelViewSet):
     """
@@ -32,6 +33,7 @@ class QTYRecorderViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, OrderingFilter, ]
     ordering_fields = ['id', "create_time", "update_time", ]
     filter_class = QTYRecorderListFilter
+    permission_classes = (permissions.DjangoModelPermissions,)
 
     def get_queryset(self):
         if self.request.user:
@@ -69,6 +71,7 @@ class CyclecountModeDayViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, OrderingFilter, ]
     ordering_fields = ['id', "create_time", "update_time", ]
     filter_class = Filter
+    permission_classes = (permissions.DjangoModelPermissions,)
 
     def get_project(self):
         try:
@@ -132,6 +135,7 @@ class CyclecountModeAllViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, OrderingFilter, ]
     ordering_fields = ['id', "create_time", "update_time", ]
     filter_class = Filter
+    permission_classes = (permissions.DjangoModelPermissions,)
 
     def get_project(self):
         try:
@@ -180,6 +184,7 @@ class FileDownloadView(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, OrderingFilter, ]
     ordering_fields = ['id', "create_time"]
     filter_class = Filter
+    permission_classes = (permissions.DjangoModelPermissions,)
 
     def get_project(self):
         try:
@@ -238,6 +243,7 @@ class FileDownloadAllView(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, OrderingFilter, ]
     ordering_fields = ['id', "create_time"]
     filter_class = Filter
+    permission_classes = (permissions.DjangoModelPermissions,)
 
     def get_project(self):
         try:
@@ -299,6 +305,7 @@ class GetGoodsCyclecountViewSet(StockBinViewSet):
             Response a data list（get）
     """
     pagination_class = None
+    permission_classes = (permissions.DjangoModelPermissions,)
 
     def list(self, request, *args, **kwargs):
         staff_name = staff.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=self.request.META.get('HTTP_OPERATOR')).first().staff_name
@@ -353,6 +360,7 @@ class ManualCyclecountViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, OrderingFilter, ]
     ordering_fields = ['id', "create_time", "update_time", ]
     filter_class = ManualFilter
+    permission_classes = (permissions.DjangoModelPermissions,)
 
     def get_project(self):
         try:
@@ -424,6 +432,7 @@ class ManualCyclecountRecorderViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, OrderingFilter, ]
     ordering_fields = ['id', "create_time", "update_time", ]
     filter_class = ManualFilter
+    permission_classes = (permissions.DjangoModelPermissions,)
 
     def get_project(self):
         try:
@@ -470,6 +479,7 @@ class ManualFileDownloadView(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, OrderingFilter, ]
     ordering_fields = ['id', "create_time"]
     filter_class = ManualFilter
+    permission_classes = (permissions.DjangoModelPermissions,)
 
     def get_project(self):
         try:

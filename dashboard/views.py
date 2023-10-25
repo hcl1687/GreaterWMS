@@ -22,6 +22,7 @@ from django.db.models import Q
 from django.db.models import Sum
 import re
 from django.utils import timezone
+from rest_framework import permissions
 
 class ReceiptsViewSet(viewsets.ModelViewSet):
     """
@@ -32,6 +33,7 @@ class ReceiptsViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, OrderingFilter, ]
     ordering_fields = ['id', "create_time", "update_time", ]
     filter_class = AsnDetailFilter
+    permission_classes = (permissions.DjangoModelPermissions,)
 
     def get_project(self):
         try:
@@ -121,6 +123,7 @@ class SalesViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, OrderingFilter, ]
     ordering_fields = ['id', "create_time", "update_time", ]
     filter_class = DnDetailFilter
+    permission_classes = (permissions.DjangoModelPermissions,)
 
     def get_project(self):
         try:

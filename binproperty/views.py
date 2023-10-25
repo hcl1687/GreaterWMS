@@ -5,6 +5,7 @@ from utils.page import MyPageNumberPagination
 from rest_framework.filters import OrderingFilter
 from django_filters.rest_framework import DjangoFilterBackend
 from .filter import Filter
+from rest_framework import permissions
 
 class APIViewSet(viewsets.ModelViewSet):
     """
@@ -15,6 +16,7 @@ class APIViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, OrderingFilter, ]
     ordering_fields = ['id', "create_time", "update_time", ]
     filter_class = Filter
+    permission_classes = (permissions.DjangoModelPermissions,)
 
     def get_queryset(self):
         if self.request.user:
