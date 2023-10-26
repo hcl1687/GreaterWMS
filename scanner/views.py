@@ -16,6 +16,7 @@ from rest_framework.exceptions import APIException
 from stock.models import StockBinModel
 from dn.models import DnDetailModel
 from dn.filter import DnDetailFilter
+from rest_framework import permissions
 
 class SannerDnDetailPickingListView(viewsets.ModelViewSet):
     """
@@ -26,6 +27,7 @@ class SannerDnDetailPickingListView(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, OrderingFilter, ]
     ordering_fields = ['id', "create_time", "update_time", ]
     filter_class = DnDetailFilter
+    permission_classes = (permissions.DjangoModelPermissions,)
 
 
     def get_project(self):
@@ -60,6 +62,7 @@ class ListViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, OrderingFilter, ]
     ordering_fields = ['id', "create_time", "update_time", ]
     filter_class = Filter
+    permission_classes = (permissions.DjangoModelPermissions,)
 
     def get_project(self):
         try:
@@ -96,6 +99,8 @@ class SannerView(viewsets.ModelViewSet):
     ordering_fields = ['id', "create_time", "update_time", ]
     filter_class = Filter
     lookup_field = 'bar_code'
+    permission_classes = (permissions.DjangoModelPermissions,)
+
     def get_project(self):
         try:
             bar_code = self.kwargs['bar_code']

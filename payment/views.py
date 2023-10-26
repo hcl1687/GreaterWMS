@@ -10,6 +10,7 @@ from rest_framework.response import Response
 from .filter import TransportationFeeListFilter
 from rest_framework.exceptions import APIException
 from .files import FreightfileRenderCN, FreightfileRenderEN
+from rest_framework import permissions
 
 class TransportationFeeListViewSet(viewsets.ModelViewSet):
     """
@@ -35,6 +36,7 @@ class TransportationFeeListViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, OrderingFilter, ]
     ordering_fields = ['id', "create_time", "update_time", ]
     filter_class = TransportationFeeListFilter
+    permission_classes = (permissions.DjangoModelPermissions,)
 
     def get_project(self):
         try:
@@ -114,6 +116,7 @@ class FreightfileDownloadView(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, OrderingFilter, ]
     ordering_fields = ['id', "create_time", "update_time", ]
     filter_class = TransportationFeeListFilter
+    permission_classes = (permissions.DjangoModelPermissions,)
 
     def get_project(self):
         try:

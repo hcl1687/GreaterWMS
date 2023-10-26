@@ -11,6 +11,7 @@ from .serializers import FileRenderSerializer
 from django.http import StreamingHttpResponse
 from .files import FileRenderCN, FileRenderEN
 from rest_framework.settings import api_settings
+from rest_framework import permissions
 
 class APIViewSet(viewsets.ModelViewSet):
     """
@@ -36,6 +37,7 @@ class APIViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, OrderingFilter, ]
     ordering_fields = ['id', "create_time", "update_time", ]
     filter_class = Filter
+    permission_classes = (permissions.DjangoModelPermissions,)
 
     def get_project(self):
         try:
@@ -125,6 +127,7 @@ class DispatchListViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, OrderingFilter, ]
     ordering_fields = ['id', "create_time", "update_time", ]
     filter_class = DispatchFilter
+    permission_classes = (permissions.DjangoModelPermissions,)
 
     def get_project(self):
         try:
@@ -154,6 +157,7 @@ class FileDownloadView(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, OrderingFilter, ]
     ordering_fields = ['id', "create_time", "update_time", ]
     filter_class = Filter
+    permission_classes = (permissions.DjangoModelPermissions,)
 
     def get_project(self):
         try:

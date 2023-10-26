@@ -23,6 +23,7 @@ from .files import FileRenderCN, FileRenderEN
 from rest_framework.settings import api_settings
 from asn.models import AsnDetailModel
 from django.db.models import Q
+from rest_framework import permissions
 
 class SannerGoodsTagView(viewsets.ModelViewSet):
 
@@ -37,6 +38,8 @@ class SannerGoodsTagView(viewsets.ModelViewSet):
     ordering_fields = ['id', "create_time", "update_time", ]
     filter_class = Filter
     lookup_field = 'bar_code'
+    permission_classes = (permissions.DjangoModelPermissions,)
+
     def get_project(self):
         try:
             bar_code = self.kwargs['bar_code']
@@ -103,6 +106,7 @@ class APIViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, OrderingFilter, ]
     ordering_fields = ['id', "create_time", "update_time", ]
     filter_class = Filter
+    permission_classes = (permissions.DjangoModelPermissions,)
 
     def get_project(self):
         try:
@@ -319,6 +323,7 @@ class FileDownloadView(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, OrderingFilter, ]
     ordering_fields = ['id', "create_time", "update_time", ]
     filter_class = Filter
+    permission_classes = (permissions.DjangoModelPermissions,)
 
     def get_project(self):
         try:

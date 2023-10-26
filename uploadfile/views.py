@@ -23,6 +23,7 @@ from scanner.models import ListModel as scanner
 from rest_framework.response import Response
 from rest_framework.exceptions import APIException
 from staff.models import ListModel as staff
+from rest_framework import permissions
 
 class GoodlistfileViewSet(views.APIView):
     """
@@ -30,6 +31,7 @@ class GoodlistfileViewSet(views.APIView):
             Upload One Excel（post）
     """
     pagination_class = []
+    permission_classes = (permissions.DjangoModelPermissions,)
 
     def get_queryset(self):
         if self.request.user:
@@ -278,6 +280,7 @@ class SupplierfileViewSet(views.APIView):
             Upload One Excel（post）
     """
     pagination_class = []
+    permission_classes = (permissions.DjangoModelPermissions,)
 
     def get_queryset(self):
         if self.request.user:
@@ -356,6 +359,7 @@ class CustomerfileViewSet(views.APIView):
             Upload One Excel（post）
     """
     pagination_class = []
+    permission_classes = (permissions.DjangoModelPermissions,)
 
     def get_queryset(self):
         if self.request.user:
@@ -434,6 +438,7 @@ class CapitalfileViewSet(views.APIView):
             Upload One Excel（post）
     """
     pagination_class = []
+    permission_classes = (permissions.DjangoModelPermissions,)
 
     def get_queryset(self):
         if self.request.user:
@@ -488,6 +493,7 @@ class FreightfileViewSet(views.APIView):
             Upload One Excel（post）
     """
     pagination_class = []
+    permission_classes = (permissions.DjangoModelPermissions,)
 
     def get_queryset(self):
         if self.request.user:
@@ -553,6 +559,7 @@ class GoodlistfileAddViewSet(views.APIView):
             Upload One Excel（post）
     """
     pagination_class = []
+    permission_classes = (permissions.DjangoModelPermissions,)
 
     def get_queryset(self):
         if self.request.user:
@@ -795,6 +802,7 @@ class SupplierfileAddViewSet(views.APIView):
             Upload One Excel（post）
     """
     pagination_class = []
+    permission_classes = (permissions.DjangoModelPermissions,)
 
     def get_queryset(self):
         if self.request.user:
@@ -883,6 +891,7 @@ class CustomerfileAddViewSet(views.APIView):
             Upload One Excel（post）
     """
     pagination_class = []
+    permission_classes = (permissions.DjangoModelPermissions,)
 
     def get_queryset(self):
         if self.request.user:
@@ -970,6 +979,7 @@ class CapitalfileAddViewSet(views.APIView):
             Upload One Excel（post）
     """
     pagination_class = []
+    permission_classes = (permissions.DjangoModelPermissions,)
 
     def get_queryset(self):
         if self.request.user:
@@ -1030,6 +1040,7 @@ class FreightfileAddViewSet(views.APIView):
             Upload One Excel（post）
     """
     pagination_class = []
+    permission_classes = (permissions.DjangoModelPermissions,)
 
     def get_queryset(self):
         if self.request.user:

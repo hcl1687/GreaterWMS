@@ -14,6 +14,7 @@ from .serializers import FileListRenderSerializer, FileBinListRenderSerializer
 from django.http import StreamingHttpResponse
 from .files import FileListRenderCN, FileListRenderEN, FileBinListRenderCN, FileBinListRenderEN
 from rest_framework.settings import api_settings
+from rest_framework import permissions
 
 class StockListViewSet(viewsets.ModelViewSet):
     """
@@ -24,6 +25,7 @@ class StockListViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, OrderingFilter, ]
     ordering_fields = ['id', "create_time", "update_time", ]
     filter_class = StockListFilter
+    permission_classes = (permissions.DjangoModelPermissions,)
 
     def get_project(self):
         try:
@@ -57,6 +59,7 @@ class StockBinViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, OrderingFilter, ]
     ordering_fields = ['id', "create_time", "update_time", ]
     filter_class = StockBinFilter
+    permission_classes = (permissions.DjangoModelPermissions,)
 
     def get_project(self):
         try:
@@ -434,6 +437,7 @@ class FileListDownloadView(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, OrderingFilter, ]
     ordering_fields = ['id', "create_time", "update_time", ]
     filter_class = StockListFilter
+    permission_classes = (permissions.DjangoModelPermissions,)
 
     def get_project(self):
         try:
@@ -488,6 +492,7 @@ class FileBinListDownloadView(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, OrderingFilter, ]
     ordering_fields = ['id', "create_time", "update_time", ]
     filter_class = StockBinFilter
+    permission_classes = (permissions.DjangoModelPermissions,)
 
     def get_project(self):
         try:
