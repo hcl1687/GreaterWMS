@@ -39,7 +39,7 @@ class SupplierUpdateSerializer(serializers.ModelSerializer):
     supplier_contact = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     supplier_manager = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     supplier_level = serializers.IntegerField(read_only=False, required=True, validators=[datasolve.data_validate])
-    creater = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
+    creater = serializers.CharField(read_only=True, required=False, validators=[datasolve.data_validate])
     class Meta:
         model = ListModel
         exclude = ['openid', 'is_delete', ]
@@ -52,7 +52,7 @@ class SupplierPartialUpdateSerializer(serializers.ModelSerializer):
     supplier_contact = serializers.CharField(read_only=False, required=False, validators=[datasolve.data_validate])
     supplier_manager = serializers.CharField(read_only=False, required=False, validators=[datasolve.data_validate])
     supplier_level = serializers.IntegerField(read_only=False, required=False, validators=[datasolve.data_validate])
-    creater = serializers.CharField(read_only=False, required=False, validators=[datasolve.data_validate])
+    creater = serializers.CharField(read_only=True, required=False, validators=[datasolve.data_validate])
     class Meta:
         model = ListModel
         exclude = ['openid', 'is_delete', ]

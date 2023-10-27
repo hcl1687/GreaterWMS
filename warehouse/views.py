@@ -136,7 +136,6 @@ class MultipleViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, OrderingFilter, ]
     ordering_fields = ['-id', ]
     filter_class = Filter
-    permission_classes = (permissions.DjangoModelPermissions,)
 
     def get_project(self):
         try:

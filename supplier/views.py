@@ -86,6 +86,7 @@ class APIViewSet(viewsets.ModelViewSet):
             raise APIException({"detail": "Cannot update data which not yours"})
         else:
             data = self.request.data
+            data.pop('creater')
             serializer = self.get_serializer(qs, data=data)
             serializer.is_valid(raise_exception=True)
             serializer.save()
@@ -98,6 +99,7 @@ class APIViewSet(viewsets.ModelViewSet):
             raise APIException({"detail": "Cannot partial_update data which not yours"})
         else:
             data = self.request.data
+            data.pop('creater')
             serializer = self.get_serializer(qs, data=data, partial=True)
             serializer.is_valid(raise_exception=True)
             serializer.save()
