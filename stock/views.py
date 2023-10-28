@@ -15,6 +15,7 @@ from django.http import StreamingHttpResponse
 from .files import FileListRenderCN, FileListRenderEN, FileBinListRenderCN, FileBinListRenderEN
 from rest_framework.settings import api_settings
 from rest_framework import permissions
+from utils.staff import Staff
 
 class StockListViewSet(viewsets.ModelViewSet):
     """
@@ -37,10 +38,17 @@ class StockListViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         id = self.get_project()
         if self.request.user:
-            if id is None:
-                return StockListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'))
+            supplier_name = Staff.get_supplier_name(self.request.user)
+            if supplier_name:
+                if id is None:
+                    return StockListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), supplier=supplier_name)
+                else:
+                    return StockListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), supplier=supplier_name, id=id)
             else:
-                return StockListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=id)
+                if id is None:
+                    return StockListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'))
+                else:
+                    return StockListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=id)
         else:
             return StockListModel.objects.none()
 
@@ -449,10 +457,17 @@ class FileListDownloadView(viewsets.ModelViewSet):
     def get_queryset(self):
         id = self.get_project()
         if self.request.user:
-            if id is None:
-                return StockListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'))
+            supplier_name = Staff.get_supplier_name(self.request.user)
+            if supplier_name:
+                if id is None:
+                    return StockListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), supplier=supplier_name)
+                else:
+                    return StockListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), supplier=supplier_name, id=id)
             else:
-                return StockListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=id)
+                if id is None:
+                    return StockListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'))
+                else:
+                    return StockListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=id)
         else:
             return StockListModel.objects.none()
 

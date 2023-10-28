@@ -178,10 +178,17 @@ class AsnDetailViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         id = self.get_project()
         if self.request.user:
-            if id is None:
-                return AsnDetailModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), is_delete=False)
+            supplier_name = Staff.get_supplier_name(self.request.user)
+            if supplier_name:
+                if id is None:
+                    return AsnDetailModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), supplier=supplier_name, is_delete=False)
+                else:
+                    return AsnDetailModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=id, supplier=supplier_name, is_delete=False)
             else:
-                return AsnDetailModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=id, is_delete=False)
+                if id is None:
+                    return AsnDetailModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), is_delete=False)
+                else:
+                    return AsnDetailModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=id, is_delete=False)
         else:
             return AsnDetailModel.objects.none()
 
@@ -233,7 +240,8 @@ class AsnDetailViewSet(viewsets.ModelViewSet):
                                                  goods_code=str(data['goods_code'][j]),
                                                  goods_desc=goods_detail.goods_desc,
                                                  goods_qty=int(data['goods_qty'][j]),
-                                                 asn_stock=int(data['goods_qty'][j]))
+                                                 asn_stock=int(data['goods_qty'][j]),
+                                                 supplier=str(data['supplier']))
                     post_data = AsnDetailModel(openid=self.request.META.get('HTTP_TOKEN'),
                                                asn_code=str(data['asn_code']),
                                                supplier=str(data['supplier']),
@@ -364,7 +372,8 @@ class AsnDetailViewSet(viewsets.ModelViewSet):
                                                  goods_code=str(data['goods_code'][j]),
                                                  goods_desc=goods_detail.goods_desc,
                                                  goods_qty=int(data['goods_qty'][j]),
-                                                 asn_stock=int(data['goods_qty'][j]))
+                                                 asn_stock=int(data['goods_qty'][j]),
+                                                 supplier=str(data['supplier']))
                     post_data = AsnDetailModel(openid=self.request.META.get('HTTP_TOKEN'),
                                                asn_code=str(data['asn_code']),
                                                supplier=str(data['supplier']),
@@ -461,10 +470,17 @@ class AsnViewPrintViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         id = self.get_project()
         if self.request.user:
-            if id is None:
-                return AsnListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), is_delete=False)
+            supplier_name = Staff.get_supplier_name(self.request.user)
+            if supplier_name:
+                if id is None:
+                    return AsnListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), supplier=supplier_name, is_delete=False)
+                else:
+                    return AsnListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), supplier=supplier_name, id=id, is_delete=False)
             else:
-                return AsnListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=id, is_delete=False)
+                if id is None:
+                    return AsnListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), is_delete=False)
+                else:
+                    return AsnListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=id, is_delete=False)
         else:
             return AsnListModel.objects.none()
 
@@ -523,10 +539,17 @@ class AsnPreLoadViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         id = self.get_project()
         if self.request.user:
-            if id is None:
-                return AsnListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), is_delete=False)
+            supplier_name = Staff.get_supplier_name(self.request.user)
+            if supplier_name:
+                if id is None:
+                    return AsnListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), supplier=supplier_name, is_delete=False)
+                else:
+                    return AsnListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), supplier=supplier_name, id=id, is_delete=False)
             else:
-                return AsnListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=id, is_delete=False)
+                if id is None:
+                    return AsnListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), is_delete=False)
+                else:
+                    return AsnListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=id, is_delete=False)
         else:
             return AsnListModel.objects.none()
 
@@ -586,10 +609,17 @@ class AsnPreSortViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         id = self.get_project()
         if self.request.user:
-            if id is None:
-                return AsnListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), is_delete=False)
+            supplier_name = Staff.get_supplier_name(self.request.user)
+            if supplier_name:
+                if id is None:
+                    return AsnListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), supplier=supplier_name, is_delete=False)
+                else:
+                    return AsnListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), supplier=supplier_name, id=id, is_delete=False)
             else:
-                return AsnListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=id, is_delete=False)
+                if id is None:
+                    return AsnListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), is_delete=False)
+                else:
+                    return AsnListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=id, is_delete=False)
         else:
             return AsnListModel.objects.none()
 
@@ -648,10 +678,17 @@ class AsnSortedViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         id = self.get_project()
         if self.request.user:
-            if id is None:
-                return AsnListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), is_delete=False)
+            supplier_name = Staff.get_supplier_name(self.request.user)
+            if supplier_name:
+                if id is None:
+                    return AsnListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), supplier=supplier_name, is_delete=False)
+                else:
+                    return AsnListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), supplier=supplier_name, id=id, is_delete=False)
             else:
-                return AsnListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=id, is_delete=False)
+                if id is None:
+                    return AsnListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), is_delete=False)
+                else:
+                    return AsnListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=id, is_delete=False)
         else:
             return AsnListModel.objects.none()
 
@@ -815,10 +852,17 @@ class MoveToBinViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         id = self.get_project()
         if self.request.user:
-            if id is None:
-                return AsnDetailModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), is_delete=False)
+            supplier_name = Staff.get_supplier_name(self.request.user)
+            if supplier_name:
+                if id is None:
+                    return AsnDetailModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), supplier=supplier_name, is_delete=False)
+                else:
+                    return AsnDetailModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), supplier=supplier_name, id=id, is_delete=False)
             else:
-                return AsnDetailModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=id, is_delete=False)
+                if id is None:
+                    return AsnDetailModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), is_delete=False)
+                else:
+                    return AsnDetailModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=id, is_delete=False)
         else:
             return AsnDetailModel.objects.none()
 
@@ -1165,20 +1209,29 @@ class FileListDownloadView(viewsets.ModelViewSet):
     def get_queryset(self):
         id = self.get_project()
         if self.request.user:
-            empty_qs = AsnListModel.objects.filter(
-                Q(openid=self.request.META.get('HTTP_TOKEN'), asn_status=1, is_delete=False) & Q(supplier=''))
-            cur_date = timezone.now()
-            date_check = relativedelta(day=1)
-            if len(empty_qs) > 0:
-                for i in range(len(empty_qs)):
-                    if empty_qs[i].create_time <= cur_date - date_check:
-                        empty_qs[i].delete()
-            if id is None:
-                return AsnListModel.objects.filter(
-                    Q(openid=self.request.META.get('HTTP_TOKEN'), is_delete=False) & ~Q(supplier=''))
+            supplier_name = Staff.get_supplier_name(self.request.user)
+            if supplier_name:
+                if id is None:
+                    return AsnListModel.objects.filter(
+                        Q(openid=self.request.META.get('HTTP_TOKEN'), is_delete=False) & Q(supplier=supplier_name))
+                else:
+                    return AsnListModel.objects.filter(
+                        Q(openid=self.request.META.get('HTTP_TOKEN'), id=id, is_delete=False) & Q(supplier=supplier_name))
             else:
-                return AsnListModel.objects.filter(
-                    Q(openid=self.request.META.get('HTTP_TOKEN'), id=id, is_delete=False) & ~Q(supplier=''))
+                empty_qs = AsnListModel.objects.filter(
+                    Q(openid=self.request.META.get('HTTP_TOKEN'), asn_status=1, is_delete=False) & Q(supplier=''))
+                cur_date = timezone.now()
+                date_check = relativedelta(day=1)
+                if len(empty_qs) > 0:
+                    for i in range(len(empty_qs)):
+                        if empty_qs[i].create_time <= cur_date - date_check:
+                            empty_qs[i].delete()
+                if id is None:
+                    return AsnListModel.objects.filter(
+                        Q(openid=self.request.META.get('HTTP_TOKEN'), is_delete=False) & ~Q(supplier=''))
+                else:
+                    return AsnListModel.objects.filter(
+                        Q(openid=self.request.META.get('HTTP_TOKEN'), id=id, is_delete=False) & ~Q(supplier=''))
         else:
             return AsnListModel.objects.none()
 
@@ -1231,10 +1284,17 @@ class FileDetailDownloadView(viewsets.ModelViewSet):
     def get_queryset(self):
         id = self.get_project()
         if self.request.user:
-            if id is None:
-                return AsnDetailModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), is_delete=False)
+            supplier_name = Staff.get_supplier_name(self.request.user)
+            if supplier_name:
+                if id is None:
+                    return AsnDetailModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), supplier=supplier_name, is_delete=False)
+                else:
+                    return AsnDetailModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), supplier=supplier_name, id=id, is_delete=False)
             else:
-                return AsnDetailModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=id, is_delete=False)
+                if id is None:
+                    return AsnDetailModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), is_delete=False)
+                else:
+                    return AsnDetailModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=id, is_delete=False)
         else:
             return AsnDetailModel.objects.none()
 

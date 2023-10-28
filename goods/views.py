@@ -24,6 +24,7 @@ from rest_framework.settings import api_settings
 from asn.models import AsnDetailModel
 from django.db.models import Q
 from rest_framework import permissions
+from utils.staff import Staff
 
 class SannerGoodsTagView(viewsets.ModelViewSet):
 
@@ -50,10 +51,17 @@ class SannerGoodsTagView(viewsets.ModelViewSet):
     def get_queryset(self):
         bar_code = self.get_project()
         if self.request.user:
-            if bar_code is None:
-                return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), is_delete=False)
+            supplier_name = Staff.get_supplier_name(self.request.user)
+            if supplier_name:
+                if bar_code is None:
+                    return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), goods_supplier=supplier_name, is_delete=False)
+                else:
+                    return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), bar_code=bar_code, goods_supplier=supplier_name, is_delete=False)
             else:
-                return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), bar_code=bar_code, is_delete=False)
+                if bar_code is None:
+                    return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), is_delete=False)
+                else:
+                    return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), bar_code=bar_code, is_delete=False)
         else:
             return ListModel.objects.filter().none()
 
@@ -118,21 +126,39 @@ class APIViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         id = self.get_project()
         if self.request.user:
-            search_word = self.request.GET.get('search', '')
-            if search_word:
-                if id is None:
-                    data_list = ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), is_delete=False)
-                    search_list = data_list.filter(Q(goods_shape=search_word) | Q(goods_specs=search_word))
-                    return search_list
+            supplier_name = Staff.get_supplier_name(self.request.user)
+            if supplier_name:
+                search_word = self.request.GET.get('search', '')
+                if search_word:
+                    if id is None:
+                        data_list = ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), goods_supplier=supplier_name, is_delete=False)
+                        search_list = data_list.filter(Q(goods_shape=search_word) | Q(goods_specs=search_word))
+                        return search_list
+                    else:
+                        data_list = ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=id, goods_supplier=supplier_name, is_delete=False)
+                        search_list = data_list.filter(Q(goods_shape=search_word) | Q(goods_specs=search_word))
+                        return search_list
                 else:
-                    data_list = ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=id, is_delete=False)
-                    search_list = data_list.filter(Q(goods_shape=search_word) | Q(goods_specs=search_word))
-                    return search_list
+                    if id is None:
+                        return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), goods_supplier=supplier_name, is_delete=False)
+                    else:
+                        return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=id, goods_supplier=supplier_name, is_delete=False)
             else:
-                if id is None:
-                    return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), is_delete=False)
+                search_word = self.request.GET.get('search', '')
+                if search_word:
+                    if id is None:
+                        data_list = ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), is_delete=False)
+                        search_list = data_list.filter(Q(goods_shape=search_word) | Q(goods_specs=search_word))
+                        return search_list
+                    else:
+                        data_list = ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=id, is_delete=False)
+                        search_list = data_list.filter(Q(goods_shape=search_word) | Q(goods_specs=search_word))
+                        return search_list
                 else:
-                    return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=id, is_delete=False)
+                    if id is None:
+                        return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), is_delete=False)
+                    else:
+                        return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=id, is_delete=False)
         else:
             return ListModel.objects.filter().none()
 
@@ -335,10 +361,17 @@ class FileDownloadView(viewsets.ModelViewSet):
     def get_queryset(self):
         id = self.get_project()
         if self.request.user:
-            if id is None:
-                return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), is_delete=False)
+            supplier_name = Staff.get_supplier_name(self.request.user)
+            if supplier_name:
+                if id is None:
+                    return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), goods_supplier=supplier_name, is_delete=False)
+                else:
+                    return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=id, goods_supplier=supplier_name, is_delete=False)
             else:
-                return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=id, is_delete=False)
+                if id is None:
+                    return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), is_delete=False)
+                else:
+                    return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=id, is_delete=False)
         else:
             return ListModel.objects.none()
 

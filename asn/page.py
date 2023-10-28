@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from rest_framework.utils.urls import replace_query_param, remove_query_param
 
 from supplier.models import ListModel as supplier
+from utils.staff import Staff
 
 class MyPageNumberPaginationASNList(PageNumberPagination):
     page_size = 30
@@ -50,7 +51,11 @@ class MyPageNumberPaginationASNList(PageNumberPagination):
             raise APIException({"detail": "Wrong API Url"})
 
     def get_paginated_response(self, data):
-        supplier_list_data = supplier.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), is_delete=False)
+        supplier_name = Staff.get_supplier_name(self.request.user)
+        if supplier_name:
+            supplier_list_data = supplier.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), supplier_name=supplier_name, is_delete=False)
+        else:
+            supplier_list_data = supplier.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), is_delete=False)
         supplier_list = []
         for i in range(len(supplier_list_data)):
             supplier_list.append(supplier_list_data[i].supplier_name)
