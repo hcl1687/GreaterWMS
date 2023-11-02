@@ -427,6 +427,20 @@
           </q-item>
           <q-item
             clickable
+            :to="{ name: 'shoplist' }"
+            @click="linkChange('shop')"
+            v-ripple
+            exact
+            :active="link === 'shop' && link !== ''"
+            :class="{ 'my-menu-link': link === 'shop' && link !== '' }"
+          >
+            <q-item-section avatar
+              ><q-icon name="store"
+            /></q-item-section>
+            <q-item-section>{{ $t("menuItem.shop") }}</q-item-section>
+          </q-item>
+          <q-item
+            clickable
             v-if="!isSupplier()"
             :to="{ name: 'driverlist' }"
             @click="linkChange('driver')"

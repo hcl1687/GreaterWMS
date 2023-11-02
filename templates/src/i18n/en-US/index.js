@@ -72,7 +72,8 @@ export default {
     supplierasn: 'Supplieer ASN',
     uploadcenter: 'Upload Center',
     downloadcenter: 'Download Center',
-    cloudwarehouse: 'Warehouse Interconnection'
+    cloudwarehouse: 'Warehouse Interconnection',
+    shop: 'Shop'
   },
   contact: 'Contact',
   sendmessage: 'Send A Message',
@@ -537,6 +538,7 @@ export default {
     valuenullerror: 'Please Fill In The Complete Data',
     loginerror: 'Please Login First',
     detail: 'Detail',
+    shoperror: 'Shop name already Exists',
     goodserror: {
       goods_listerror: 'The product code already exists',
       goods_uniterror: 'Goods unit already exists',
@@ -652,5 +654,11 @@ export default {
     503: 'Service unavailable (503)',
     504: 'Network timeout (504)',
     505: 'HTTP version is not supported (505)'
+  },
+  shop: {
+    shop: 'Shop',
+    staff_type: 'Shop Type',
+    error1: 'Please Enter The Shop Name',
+    error2: 'Please Enter The Shop Type'
   }
 }

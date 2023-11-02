@@ -71,3 +71,17 @@ python3 manage.py makemigrations
 python3 manage.py migrate
 python manage.py createsuperuser
 ```
+
+- Run Backend:
+```shell
+cd GreaterWMS
+daphne -p 8008 greaterwms.asgi:application
+or
+daphne -b 0.0.0.0 -p 8008 greaterwms.asgi:application # lan
+```
+
+- Run Frontend:
+```shell
+cd templates
+quasar d
+```

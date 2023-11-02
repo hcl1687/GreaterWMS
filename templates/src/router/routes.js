@@ -302,6 +302,22 @@ const routes = [{
       ]
     },
     {
+      path: 'shop',
+      name: 'shop',
+      component: () => import('pages/shop/shop.vue'),
+      children: [{
+        path: 'shoplist',
+        name: 'shoplist',
+        component: () => import('pages/shop/shoplist.vue')
+      },
+      {
+        path: 'shoptype',
+        name: 'shoptype',
+        component: () => import('pages/shop/shoptype.vue')
+      }
+      ]
+    },
+    {
       path: 'driver',
       name: 'driver',
       component: () => import('pages/driverlist/driver.vue'),
