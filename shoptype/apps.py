@@ -1,5 +1,6 @@
 from django.apps import AppConfig
 from django.db.models.signals import post_migrate
+import json
 
 class ShoptypeConfig(AppConfig):
     name = 'shoptype'
@@ -16,8 +17,8 @@ def init_category():
     """
     try:
         from .models import ListModel as ls
-        ozon_schema = {
-            fields: [{
+        ozon_schema = json.dumps({
+            'fields': [{
                 'filed': 'api_url',
                 'type': 'input'
             }, {
@@ -27,18 +28,18 @@ def init_category():
                 'filed': 'api_key',
                 'type': 'input'
             }]
-        }
-        wibe_schema = {
-            fields: [{
+        })
+        wibe_schema = json.dumps({
+            'fields': [{
                 'filed': 'api_url',
                 'type': 'input'
             }, {
                 'filed': 'api_key',
                 'type': 'input'
             }]
-        }
-        yade_schema = {
-            fields: [{
+        })
+        yade_schema = json.dumps({
+            'fields': [{
                 'filed': 'api_url',
                 'type': 'input'
             }, {
@@ -51,7 +52,8 @@ def init_category():
                 'filed': 'warehouse_id',
                 'type': 'input'
             }]
-        }
+        })
+
         if ls.objects.filter(openid__iexact='init_data').exists():
             if ls.objects.filter(openid__iexact='init_data').count() != 3:
                 ls.objects.filter(openid__iexact='init_data').delete()
@@ -68,5 +70,6 @@ def init_category():
                 ls(id=3, openid='init_data', shop_type='YADE', shop_schema=yade_schema, creater='GreaterWMS'),
             ]
             ls.objects.bulk_create(init_data, batch_size=100)
-    except:
+    except Exception as e:
+        print(e)
         pass
