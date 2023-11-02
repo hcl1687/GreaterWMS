@@ -59,6 +59,8 @@ INSTALLED_APPS = [
     'throttle.apps.ThrottleConfig',
     'uploadfile.apps.UploadfileConfig',
     'scanner.apps.ScannerConfig',
+    'shoptype.apps.ShoptypeConfig',
+    'shop.apps.ShopConfig',
     'rest_framework',
     'django_filters',
     'corsheaders',
