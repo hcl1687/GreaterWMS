@@ -1,5 +1,5 @@
 from django_filters import FilterSet
-from .models import ListModel, TypeListModel
+from .models import ListModel
 
 class Filter(FilterSet):
     class Meta:

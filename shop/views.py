@@ -66,13 +66,13 @@ class APIViewSet(viewsets.ModelViewSet):
 
     def get_serializer_class(self):
         if self.action in ['list', 'retrieve', 'destroy']:
-            return serializers.StaffGetSerializer
+            return serializers.ShopGetSerializer
         elif self.action in ['create']:
-            return serializers.StaffPostSerializer
+            return serializers.ShopPostSerializer
         elif self.action in ['update']:
-            return serializers.StaffUpdateSerializer
+            return serializers.ShopUpdateSerializer
         elif self.action in ['partial_update']:
-            return serializers.StaffPartialUpdateSerializer
+            return serializers.ShopPartialUpdateSerializer
         else:
             return self.http_method_not_allowed(request=self.request)
 
@@ -199,6 +199,6 @@ class FileDownloadView(viewsets.ModelViewSet):
             renderer,
             content_type="text/csv"
         )
-        response['Content-Disposition'] = "attachment; filename='staff_{}.csv'".format(
+        response['Content-Disposition'] = "attachment; filename='shop_{}.csv'".format(
             str(dt.strftime('%Y%m%d%H%M%S%f')))
         return response

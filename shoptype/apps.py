@@ -19,37 +19,37 @@ def init_category():
         from .models import ListModel as ls
         ozon_schema = json.dumps({
             'fields': [{
-                'filed': 'api_url',
+                'key': 'api_url',
                 'type': 'input'
             }, {
-                'filed': 'client_id',
+                'key': 'client_id',
                 'type': 'input'
             }, {
-                'filed': 'api_key',
+                'key': 'api_key',
                 'type': 'input'
             }]
         })
         wibe_schema = json.dumps({
             'fields': [{
-                'filed': 'api_url',
+                'key': 'api_url',
                 'type': 'input'
             }, {
-                'filed': 'api_key',
+                'key': 'api_key',
                 'type': 'input'
             }]
         })
         yade_schema = json.dumps({
             'fields': [{
-                'filed': 'api_url',
+                'key': 'api_url',
                 'type': 'input'
             }, {
-                'filed': 'token',
+                'key': 'token',
                 'type': 'input'
             }, {
-                'filed': 'shop_id',
+                'key': 'shop_id',
                 'type': 'input'
             }, {
-                'filed': 'warehouse_id',
+                'key': 'warehouse_id',
                 'type': 'input'
             }]
         })

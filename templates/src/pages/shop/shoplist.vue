@@ -22,7 +22,7 @@
             <q-btn
               :label="$t('new')"
               icon="add"
-              @click="newForm = true"
+              @click="showForm = true"
             >
               <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ $t('newtip') }}</q-tooltip>
             </q-btn>
@@ -42,79 +42,32 @@
         </template>
         <template v-slot:body="props">
           <q-tr :props="props">
-            <template v-if="props.row.id === editid">
-              <q-td key="staff_name" :props="props">
-                <q-input
-                  dense
-                  outlined
-                  square
-                  v-model="editFormData.shop_name"
-                  :label="$t('shop.shop_name')"
-                  autofocus
-                  :rules="[val => (val && val.length > 0) || error1]"
-                />
-              </q-td>
-            </template>
-            <template v-else-if="props.row.id !== editid">
-              <q-td key="shop_name" :props="props">{{ props.row.shop_name }}</q-td>
-            </template>
-            <template v-if="props.row.id === editid">
-              <q-td key="shop_type" :props="props">
-                <q-select
-                  dense
-                  outlined
-                  square
-                  v-model="editFormData.shop_type"
-                  :options="shop_type_list"
-                  transition-show="scale"
-                  transition-hide="scale"
-                  :label="$t('shop.shop_type')"
-                  :rules="[val => (val && val.length > 0) || error2]"
-                />
-              </q-td>
-            </template>
-            <template v-else-if="props.row.id !== editid">
-              <q-td key="shop_type" :props="props">{{ props.row.shop_type }}</q-td>
-            </template>
+            <q-td key="shop_name" :props="props">{{ props.row.shop_name }}</q-td>
+            <q-td key="shop_type" :props="props">{{ props.row.shop_type }}</q-td>
             <q-td key="create_time" :props="props">{{ props.row.create_time }}</q-td>
             <q-td key="update_time" :props="props">{{ props.row.update_time }}</q-td>
-            <template v-if="!editMode">
-              <q-td key="action" :props="props" style="width: 175px">
-                <q-btn
-                  round
-                  flat
-                  push
-                  color="purple"
-                  icon="edit"
-                  @click="editData(props.row)"
-                >
-                  <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ $t('edit') }}</q-tooltip>
-                </q-btn>
-                <q-btn
-                  round
-                  flat
-                  push
-                  color="dark"
-                  icon="delete"
-                  @click="deleteData(props.row.id)"
-                >
-                  <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ $t('delete') }}</q-tooltip>
-                </q-btn>
-              </q-td>
-            </template>
-            <template v-else-if="editMode">
-              <template v-if="props.row.id === editid">
-                <q-td key="action" :props="props" style="width: 150px">
-                  <q-btn round flat push color="secondary" icon="check" @click="editDataSubmit()">
-                    <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ $t('confirmedit') }}</q-tooltip>
-                  </q-btn>
-                  <q-btn round flat push color="red" icon="close" @click="editDataCancel()">
-                    <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ $t('canceledit') }}</q-tooltip>
-                  </q-btn>
-                </q-td>
-              </template>
-              <template v-else-if="props.row.id !== editid"></template>
-            </template>
+            <q-td key="action" :props="props" style="width: 175px">
+              <q-btn
+                round
+                flat
+                push
+                color="purple"
+                icon="edit"
+                @click="editData(props.row)"
+              >
+                <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ $t('edit') }}</q-tooltip>
+              </q-btn>
+              <q-btn
+                round
+                flat
+                push
+                color="dark"
+                icon="delete"
+                @click="deleteData(props.row.id)"
+              >
+                <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ $t('delete') }}</q-tooltip>
+              </q-btn>
+            </q-td>
           </q-tr>
         </template>
       </q-table>
@@ -143,10 +96,10 @@
           <q-btn flat push color="dark" :label="$t('no_data')"></q-btn>
         </div>
     </template>
-    <q-dialog v-model="newForm">
+    <q-dialog v-model="showForm">
       <q-card class="shadow-24">
         <q-bar class="bg-light-blue-10 text-white rounded-borders" style="height: 50px">
-          <div>{{ $t('newtip') }}</div>
+          <div>{{ editid ? $t('edit') : $t('newtip') }}</div>
           <q-space />
           <q-btn dense flat icon="close" v-close-popup>
             <q-tooltip content-class="bg-amber text-black shadow-4">{{ $t('index.close') }}</q-tooltip>
@@ -157,29 +110,40 @@
             dense
             outlined
             square
-            v-model.trim="newFormData.shop_name"
+            v-model.trim="formData.shop_name"
             :label="$t('shop.shop_name')"
             autofocus
             :rules="[val => (val && val.length > 0) || error1]"
-            @keyup.enter="newDataSubmit()"
+            @keyup.enter="dataSubmit()"
           />
           <q-select
             dense
             outlined
             square
-            v-model="newFormData.shop_type"
-            :options="shop_type_list"
+            v-model="formData.shop_type"
+            :options="shop_type_name_list"
             transition-show="scale"
             transition-hide="scale"
             :label="$t('shop.shop_type')"
             :rules="[val => (val && val.length > 0) || error2]"
-            @keyup.enter="newDataSubmit()"
+            @keyup.enter="dataSubmit()"
             style="margin-top: 5px"
+          />
+          <q-input
+            dense
+            outlined
+            square
+            v-for="item in getShopTypeFields()"
+            v-model.trim="formData[item.key]"
+            :label="$t(`shoptype.${formData['shop_type']}.${item.key}`)"
+            autofocus
+            :rules="[val => (val && val.length > 0) || error1]"
+            @keyup.enter="dataSubmit()"
           />
         </q-card-section>
         <div style="float: right; padding: 15px 15px 15px 0">
-          <q-btn color="white" text-color="black" style="margin-right: 25px" @click="newDataCancel()">{{ $t('cancel') }}</q-btn>
-          <q-btn color="primary" @click="newDataSubmit()">{{ $t('submit') }}</q-btn>
+          <q-btn color="white" text-color="black" style="margin-right: 25px" @click="dataCancel()">{{ $t('cancel') }}</q-btn>
+          <q-btn color="primary" @click="dataSubmit()">{{ $t('submit') }}</q-btn>
         </div>
       </q-card>
     </q-dialog>
@@ -233,15 +197,13 @@ export default {
         page: 1,
         rowsPerPage: '30'
       },
-      newForm: false,
-      newFormData: {
+      showForm: false,
+      formData: {
         shop_name: '',
         shop_type: '',
         shop_data: ''
       },
       editid: 0,
-      editFormData: {},
-      editMode: false,
       deleteForm: false,
       deleteid: 0,
       filter: '',
@@ -250,10 +212,49 @@ export default {
       current: 1,
       max: 0,
       total: 0,
-      paginationIpt: 1
+      paginationIpt: 1,
+    }
+  },
+  computed: {
+    shop_type_name_list: function() {
+      return this.shop_type_list.map(item => item.shop_type)
+    },
+    getShopTypeFields () {
+      const currentShopType = this.current_shop_type
+      let schema
+      this.shop_type_list.some(item => {
+        if (item.shop_type === currentShopType) {
+          schema = item && item.schema
+          return true
+        }
+      })
+
+      if (!schema) {
+        return []
+      }
+
+      const shopSchema = JSON.parse(schema) || {}
+      return shopSchema.fields || []
+    },
+    current_shop_type: function() {
+      return this.formData.shop_type
     }
   },
   methods: {
+    getShopType () {
+      var _this = this
+      getauth('shoptype/?page=1', {})
+        .then(res => {
+          _this.shop_type_list = res.results
+        })
+        .catch(err => {
+          _this.$q.notify({
+            message: err.detail,
+            icon: 'close',
+            color: 'negative'
+          })
+        })
+    },
     getList () {
       var _this = this
       getauth(_this.pathname + '?page=' + '' + _this.current, {})
@@ -359,18 +360,67 @@ export default {
       var _this = this
       _this.getList()
     },
-    newDataSubmit () {
+    dataSubmit () {
       var _this = this
       var shops = []
-      _this.newFormData.is_lock = false
       _this.table_list.forEach(i => {
         shops.push(i.shop_name)
       })
-      if (shops.indexOf(_this.newFormData.shop_name) === -1 && _this.newFormData.shop_name.length !== 0 && _this.newFormData.shop_type && _this.newFormData.shop_data) {
-        postauth(_this.pathname, _this.newFormData)
+
+      if (_this.formData.shop_name.length === 0) {
+        _this.$q.notify({
+          message: _this.$t('shop.error1'),
+          icon: 'close',
+          color: 'negative'
+        })
+        return
+      }
+
+      if (!_this.editid && shops.indexOf(_this.formData.shop_name) !== -1) {
+        // add
+        _this.$q.notify({
+          message: _this.$t('notice.shoperror'),
+          icon: 'close',
+          color: 'negative'
+        })
+        return
+      }
+
+      if (!_this.formData.shop_type) {
+        _this.$q.notify({
+          message: _this.$t('shop.error2'),
+          icon: 'close',
+          color: 'negative'
+        })
+        return
+      }
+
+      const shopTypeFields = _this.getShopTypeFields()
+      const shop_data = {}
+      for (let i = 0; i < shopTypeFields.length; i++) {
+        const field = shopTypeFields[i]
+        if (!_this.formData[field.key]) {
+          _this.$q.notify({
+            message: _this.$t('shop.fieldRequiredError', { field: field.key}),
+            icon: 'close',
+            color: 'negative'
+          })
+          return
+        }
+        shop_data[field.key] = _this.formData[field.key]
+      }
+
+      const data = {
+        shop_name: _this.formData.shop_name,
+        shop_type: _this.formData.shop_type,
+        shop_data
+      }
+
+      if (!_this.editid) {
+        postauth(_this.pathname, data)
           .then(res => {
             _this.getList()
-            _this.newDataCancel()
+            _this.dataCancel()
             _this.$q.notify({
               message: 'Success Create',
               icon: 'check',
@@ -384,49 +434,10 @@ export default {
               color: 'negative'
             })
           })
-      } else if (shops.indexOf(_this.newFormData.shop_name) !== -1) {
-        _this.$q.notify({
-          message: _this.$t('notice.shoperror'),
-          icon: 'close',
-          color: 'negative'
-        })
-      } else if (_this.newFormData.shop_name.length === 0) {
-        _this.$q.notify({
-          message: _this.$t('shop.error1'),
-          icon: 'close',
-          color: 'negative'
-        })
-      } else if (!_this.newFormData.shop_type) {
-        _this.$q.notify({
-          message: _this.$t('shop.error2'),
-          icon: 'close',
-          color: 'negative'
-        })
-      }
-    },
-    newDataCancel () {
-      var _this = this
-      _this.newForm = false
-      _this.newFormData = {
-        shop_name: '',
-        shop_type: '',
-        shop_data: ''
-      }
-    },
-    editData (e) {
-      var _this = this
-      _this.editMode = true
-      _this.editid = e.id
-      _this.editFormData = {
-        shop_name: e.shop_name,
-        shop_type: e.shop_type
-      }
-    },
-    editDataSubmit () {
-      var _this = this
-      putauth(_this.pathname + _this.editid + '/', _this.editFormData)
+      } else {
+        putauth(_this.pathname + _this.editid + '/', data)
         .then(res => {
-          _this.editDataCancel()
+          _this.dataCancel()
           _this.getList()
           _this.$q.notify({
             message: 'Success Edit Data',
@@ -441,15 +452,25 @@ export default {
             color: 'negative'
           })
         })
+      }
     },
-    editDataCancel () {
+    dataCancel () {
       var _this = this
-      _this.editMode = false
+      _this.showForm = false
       _this.editid = 0
-      _this.editFormData = {
+      _this.formData = {
         shop_name: '',
         shop_type: '',
         shop_data: ''
+      }
+    },
+    editData (e) {
+      var _this = this
+      _this.editid = e.id
+      _this.formData = {
+        shop_name: e.shop_name,
+        shop_type: e.shop_type,
+        ...JSON.parse(e.shop_data)
       }
     },
     deleteData (e) {
@@ -522,6 +543,7 @@ export default {
     }
     if (LocalStorage.has('auth')) {
       _this.authin = '1'
+      _this.getShopType()
       _this.getList()
     } else {
       _this.authin = '0'

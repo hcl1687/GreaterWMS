@@ -58,5 +58,5 @@ class FileRenderSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ListModel
-        ref_name = 'StaffFileRenderSerializer'
+        ref_name = 'ShopFileRenderSerializer'
         exclude = ['openid', 'is_delete', ]

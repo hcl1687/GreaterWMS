@@ -659,6 +659,7 @@ export default {
     shop: 'Shop',
     staff_type: 'Shop Type',
     error1: 'Please Enter The Shop Name',
-    error2: 'Please Enter The Shop Type'
+    error2: 'Please Enter The Shop Type',
+    field_required_error: '{field} is required'
   }
 }
