@@ -85,6 +85,7 @@ class APIViewSet(viewsets.ModelViewSet):
             supplier_name = Staff.get_supplier_name(self.request.user)
             if supplier_name and supplier_name != data['supplier']:
                 raise APIException({"detail": "Supplier is wrong"})
+            data['creater'] = self.request.user.username
             serializer = self.get_serializer(data=data)
             serializer.is_valid(raise_exception=True)
             serializer.save()

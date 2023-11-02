@@ -12,6 +12,7 @@ from django.http import StreamingHttpResponse
 from .files import FileRenderCN, FileRenderEN
 from rest_framework.settings import api_settings
 from rest_framework import permissions
+from utils.staff import Staff
 
 class APIViewSet(viewsets.ModelViewSet):
     """
@@ -49,10 +50,17 @@ class APIViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         id = self.get_project()
         if self.request.user:
-            if id is None:
-                return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), is_delete=False)
+            supplier_name = Staff.get_supplier_name(self.request.user)
+            if supplier_name:
+                if id is None:
+                    return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), supplier_name=supplier_name, is_delete=False)
+                else:
+                    return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), supplier_name=supplier_name, id=id, is_delete=False)
             else:
-                return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=id, is_delete=False)
+                if id is None:
+                    return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), is_delete=False)
+                else:
+                    return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=id, is_delete=False)
         else:
             return ListModel.objects.none()
 
@@ -134,10 +142,17 @@ class FileDownloadView(viewsets.ModelViewSet):
     def get_queryset(self):
         id = self.get_project()
         if self.request.user:
-            if id is None:
-                return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), is_delete=False)
+            supplier_name = Staff.get_supplier_name(self.request.user)
+            if supplier_name:
+                if id is None:
+                    return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), supplier_name=supplier_name, is_delete=False)
+                else:
+                    return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), supplier_name=supplier_name, id=id, is_delete=False)
             else:
-                return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=id, is_delete=False)
+                if id is None:
+                    return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), is_delete=False)
+                else:
+                    return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=id, is_delete=False)
         else:
             return ListModel.objects.none()
 

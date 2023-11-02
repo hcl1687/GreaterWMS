@@ -539,6 +539,7 @@ export default {
     loginerror: 'Please Login First',
     detail: 'Detail',
     shoperror: 'Shop name already Exists',
+    field_required_error: '{field} is required',
     goodserror: {
       goods_listerror: 'The product code already exists',
       goods_uniterror: 'Goods unit already exists',
@@ -659,7 +660,23 @@ export default {
     shop: 'Shop',
     staff_type: 'Shop Type',
     error1: 'Please Enter The Shop Name',
-    error2: 'Please Enter The Shop Type',
-    field_required_error: '{field} is required'
+    error2: 'Please Enter The Shop Type'
+  },
+  shoptype: {
+    OZON: {
+      api_url: 'API URL',
+      client_id: 'Client ID',
+      api_key: 'API Key'
+    },
+    WIBE: {
+      api_url: 'API URL',
+      api_key: 'API Key'
+    },
+    YADE: {
+      api_url: 'API URL',
+      token: 'Token',
+      shop_id: 'Shop ID',
+      warehouse_id: 'Warehouse ID'
+    }
   }
 }

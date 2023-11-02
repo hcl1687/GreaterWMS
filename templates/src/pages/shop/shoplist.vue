@@ -106,6 +106,19 @@
           </q-btn>
         </q-bar>
         <q-card-section style="max-height: 325px; width: 400px" class="scroll">
+          <q-select
+            dense
+            outlined
+            square
+            v-model="formData.supplier"
+            :options="supplier_name_list"
+            transition-show="scale"
+            transition-hide="scale"
+            :label="$t('shop.supplier')"
+            :rules="[val => (val && val.length > 0) || getFieldRequiredMessage('supplier')]"
+            @keyup.enter="dataSubmit()"
+            style="margin-top: 5px"
+          />
           <q-input
             dense
             outlined
@@ -113,7 +126,7 @@
             v-model.trim="formData.shop_name"
             :label="$t('shop.shop_name')"
             autofocus
-            :rules="[val => (val && val.length > 0) || error1]"
+            :rules="[val => (val && val.length > 0) || getFieldRequiredMessage('shop_name')]"
             @keyup.enter="dataSubmit()"
           />
           <q-select
@@ -125,7 +138,7 @@
             transition-show="scale"
             transition-hide="scale"
             :label="$t('shop.shop_type')"
-            :rules="[val => (val && val.length > 0) || error2]"
+            :rules="[val => (val && val.length > 0) || getFieldRequiredMessage('shop_type')]"
             @keyup.enter="dataSubmit()"
             style="margin-top: 5px"
           />
@@ -133,11 +146,12 @@
             dense
             outlined
             square
-            v-for="item in getShopTypeFields()"
+            v-for="item in shopTypeFields"
+            :key="item.key"
             v-model.trim="formData[item.key]"
-            :label="$t(`shoptype.${formData['shop_type']}.${item.key}`)"
+            :label="getShopTypeFieldLabel(item)"
             autofocus
-            :rules="[val => (val && val.length > 0) || error1]"
+            :rules="[val => (val && val.length > 0) || getFieldRequiredMessage(item.key)]"
             @keyup.enter="dataSubmit()"
           />
         </q-card-section>
@@ -207,24 +221,24 @@ export default {
       deleteForm: false,
       deleteid: 0,
       filter: '',
-      error1: this.$t('shop.error1'),
-      error2: this.$t('shop.error2'),
       current: 1,
       max: 0,
       total: 0,
       paginationIpt: 1,
+      current_shop_type: '',
+      supplier_list: []
     }
   },
   computed: {
     shop_type_name_list: function() {
       return this.shop_type_list.map(item => item.shop_type)
     },
-    getShopTypeFields () {
+    shopTypeFields () {
       const currentShopType = this.current_shop_type
       let schema
       this.shop_type_list.some(item => {
         if (item.shop_type === currentShopType) {
-          schema = item && item.schema
+          schema = item && item.shop_schema
           return true
         }
       })
@@ -236,8 +250,13 @@ export default {
       const shopSchema = JSON.parse(schema) || {}
       return shopSchema.fields || []
     },
-    current_shop_type: function() {
-      return this.formData.shop_type
+    supplier_name_list: function() {
+      return this.supplier_list.map(item => item.supplier_name)
+    }
+  },
+  watch: {
+    'formData.shop_type': function (val) {
+      this.current_shop_type = val
     }
   },
   methods: {
@@ -246,6 +265,20 @@ export default {
       getauth('shoptype/?page=1', {})
         .then(res => {
           _this.shop_type_list = res.results
+        })
+        .catch(err => {
+          _this.$q.notify({
+            message: err.detail,
+            icon: 'close',
+            color: 'negative'
+          })
+        })
+    },
+    getSupplier () {
+      var _this = this
+      getauth('supplier/?page=1', {})
+        .then(res => {
+          _this.supplier_list = res.results
         })
         .catch(err => {
           _this.$q.notify({
@@ -367,9 +400,18 @@ export default {
         shops.push(i.shop_name)
       })
 
+      if (_this.formData.supplier.length === 0) {
+        _this.$q.notify({
+          message: _this.getFieldRequiredMessage('supplier'),
+          icon: 'close',
+          color: 'negative'
+        })
+        return
+      }
+
       if (_this.formData.shop_name.length === 0) {
         _this.$q.notify({
-          message: _this.$t('shop.error1'),
+          message: _this.getFieldRequiredMessage('shop_name'),
           icon: 'close',
           color: 'negative'
         })
@@ -388,20 +430,20 @@ export default {
 
       if (!_this.formData.shop_type) {
         _this.$q.notify({
-          message: _this.$t('shop.error2'),
+          message: _this.getFieldRequiredMessage('shop_type'),
           icon: 'close',
           color: 'negative'
         })
         return
       }
 
-      const shopTypeFields = _this.getShopTypeFields()
+      const shopTypeFields = _this.shopTypeFields
       const shop_data = {}
       for (let i = 0; i < shopTypeFields.length; i++) {
         const field = shopTypeFields[i]
         if (!_this.formData[field.key]) {
           _this.$q.notify({
-            message: _this.$t('shop.fieldRequiredError', { field: field.key}),
+            message: _this.getFieldRequiredMessage(field.key),
             icon: 'close',
             color: 'negative'
           })
@@ -411,9 +453,10 @@ export default {
       }
 
       const data = {
+        supplier: _this.formData.supplier,
         shop_name: _this.formData.shop_name,
         shop_type: _this.formData.shop_type,
-        shop_data
+        shop_data: JSON.stringify(shop_data)
       }
 
       if (!_this.editid) {
@@ -466,8 +509,10 @@ export default {
     },
     editData (e) {
       var _this = this
+      _this.showForm = true
       _this.editid = e.id
       _this.formData = {
+        supplier: e.supplier,
         shop_name: e.shop_name,
         shop_type: e.shop_type,
         ...JSON.parse(e.shop_data)
@@ -525,6 +570,12 @@ export default {
           icon: 'warning'
         })
       }
+    },
+    getShopTypeFieldLabel (item) {
+      return this.$t(`shoptype.${this.formData.shop_type}.${item.key}`)
+    },
+    getFieldRequiredMessage (field) {
+      return this.$t('notice.field_required_error', { field })
     }
   },
   created () {
@@ -544,6 +595,7 @@ export default {
     if (LocalStorage.has('auth')) {
       _this.authin = '1'
       _this.getShopType()
+      _this.getSupplier()
       _this.getList()
     } else {
       _this.authin = '0'

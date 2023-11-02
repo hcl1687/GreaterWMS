@@ -33,6 +33,7 @@ class ShopUpdateSerializer(serializers.ModelSerializer):
     shop_name = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     shop_type = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     shop_data = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
+    creater = serializers.CharField(read_only=True, required=False, validators=[datasolve.data_validate])
     class Meta:
         model = ListModel
         exclude = ['openid', 'is_delete', ]
@@ -42,6 +43,7 @@ class ShopPartialUpdateSerializer(serializers.ModelSerializer):
     shop_name = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     shop_type = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     shop_data = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
+    creater = serializers.CharField(read_only=True, required=False, validators=[datasolve.data_validate])
     class Meta:
         model = ListModel
         exclude = ['openid', 'is_delete', ]
