@@ -10,7 +10,7 @@
               <q-route-tab name="shoplist" :label="$t('shop.shop')" icon="perm_contact_calendar" :to="{ name: 'shoplist' }" exact/>
             </transition>
             <transition appear enter-active-class="animated zoomIn">
-              <q-route-tab name="shoptype" :label="$t('shop.shop_type')" icon="img:statics/staff/stafftype.png" :to="{ name: 'shoptype' }" exact/>
+              <q-route-tab name="shoptype" :label="$t('shoptype.shop_type')" icon="img:statics/staff/stafftype.png" :to="{ name: 'shoptype' }" exact/>
             </transition>
           </q-tabs>
         </div>

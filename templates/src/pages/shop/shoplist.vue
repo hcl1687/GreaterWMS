@@ -137,7 +137,7 @@
             :options="shop_type_name_list"
             transition-show="scale"
             transition-hide="scale"
-            :label="$t('shop.shop_type')"
+            :label="$t('shoptype.shop_type')"
             :rules="[val => (val && val.length > 0) || getFieldRequiredMessage('shop_type')]"
             @keyup.enter="dataSubmit()"
             style="margin-top: 5px"
@@ -202,7 +202,7 @@ export default {
       shop_type_list: [],
       columns: [
         { name: 'shop_name', required: true, label: this.$t('shop.shop_name'), align: 'left', field: 'shop_name' },
-        { name: 'shop_type', label: this.$t('shop.shop_type'), field: 'shop_type', align: 'center' },
+        { name: 'shop_type', label: this.$t('shoptype.shop_type'), field: 'shop_type', align: 'center' },
         { name: 'create_time', label: this.$t('createtime'), field: 'create_time', align: 'center' },
         { name: 'update_time', label: this.$t('updatetime'), field: 'update_time', align: 'center' },
         { name: 'action', label: this.$t('action'), align: 'right' }

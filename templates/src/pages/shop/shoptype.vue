@@ -28,8 +28,8 @@
          </template>
          <template v-slot:body="props">
            <q-tr :props="props">
-               <q-td key="staff_type" :props="props">
-                 {{ props.row.staff_type }}
+               <q-td key="shop_type" :props="props">
+                 {{ props.row.shop_type }}
                </q-td>
               <q-td key="creater" :props="props">
                  {{ props.row.creater }}
@@ -76,13 +76,13 @@ import { getauth } from 'boot/axios_request'
 import { LocalStorage } from 'quasar'
 
 export default {
-  name: 'Pagestafflist',
+  name: 'Pageshoptype',
   data () {
     return {
       openid: '',
       login_name: '',
       authin: '0',
-      pathname: 'staff/type/',
+      pathname: 'shoptype/',
       pathname_previous: '',
       pathname_next: '',
       separator: 'cell',
@@ -90,7 +90,7 @@ export default {
       height: '',
       table_list: [],
       columns: [
-        { name: 'staff_type', required: true, label: this.$t('staff.view_staff.staff_type'), align: 'left', field: 'staff_type' },
+        { name: 'shop_type', required: true, label: this.$t('shoptype.shop_type'), align: 'left', field: 'shop_type' },
         { name: 'creater', label: this.$t('creater'), field: 'creater', align: 'center' },
         { name: 'create_time', label: this.$t('createtime'), field: 'create_time', align: 'center' },
         { name: 'update_time', label: this.$t('updatetime'), field: 'update_time', align: 'center' }
@@ -123,27 +123,7 @@ export default {
               _this.max = Math.ceil(res.count / 30)
             }
           }
-          if (LocalStorage.getItem('lang') === 'zh-hans') {
-            _this.table_list.forEach((item, index) => {
-              if (item.staff_type === 'Admin') {
-                item.staff_type = '管理员'
-              } else if (item.staff_type === 'Customer') {
-                item.staff_type = '客户'
-              } else if (item.staff_type === 'Supplier') {
-                item.staff_type = '供应商'
-              } else if (item.staff_type === 'Manager') {
-                item.staff_type = '经理'
-              } else if (item.staff_type === 'Supervisor') {
-                item.staff_type = '主管'
-              } else if (item.staff_type === 'Inbound') {
-                item.staff_type = '收货组'
-              } else if (item.staff_type === 'Outbound') {
-                item.staff_type = '发货组'
-              } else if (item.staff_type === 'StockControl') {
-                item.staff_type = '库存管理'
-              }
-            })
-          }
+
           _this.pathname_previous = res.previous
           _this.pathname_next = res.next
         }).catch(err => {
@@ -173,27 +153,7 @@ export default {
         getauth(_this.pathname_previous, {
         }).then(res => {
           _this.table_list = res.results
-          if (LocalStorage.getItem('lang') === 'zh-hans') {
-            _this.table_list.forEach((item, index) => {
-              if (item.staff_type === 'Admin') {
-                item.staff_type = '管理员'
-              } else if (item.staff_type === 'Customer') {
-                item.staff_type = '客户'
-              } else if (item.staff_type === 'Supplier') {
-                item.staff_type = '供应商'
-              } else if (item.staff_type === 'Manager') {
-                item.staff_type = '经理'
-              } else if (item.staff_type === 'Supervisor') {
-                item.staff_type = '主管'
-              } else if (item.staff_type === 'Inbound') {
-                item.staff_type = '收货组'
-              } else if (item.staff_type === 'Outbound') {
-                item.staff_type = '发货组'
-              } else if (item.staff_type === 'StockControl') {
-                item.staff_type = '库存管理'
-              }
-            })
-          }
+
           _this.pathname_previous = res.previous
           _this.pathname_next = res.next
         }).catch(err => {
@@ -212,27 +172,7 @@ export default {
         getauth(_this.pathname_next, {
         }).then(res => {
           _this.table_list = res.results
-          if (LocalStorage.getItem('lang') === 'zh-hans') {
-            _this.table_list.forEach((item, index) => {
-              if (item.staff_type === 'Admin') {
-                item.staff_type = '管理员'
-              } else if (item.staff_type === 'Customer') {
-                item.staff_type = '客户'
-              } else if (item.staff_type === 'Supplier') {
-                item.staff_type = '供应商'
-              } else if (item.staff_type === 'Manager') {
-                item.staff_type = '经理'
-              } else if (item.staff_type === 'Supervisor') {
-                item.staff_type = '主管'
-              } else if (item.staff_type === 'Inbound') {
-                item.staff_type = '收货组'
-              } else if (item.staff_type === 'Outbound') {
-                item.staff_type = '发货组'
-              } else if (item.staff_type === 'StockControl') {
-                item.staff_type = '库存管理'
-              }
-            })
-          }
+
           _this.pathname_previous = res.previous
           _this.pathname_next = res.next
         }).catch(err => {

@@ -658,11 +658,13 @@ export default {
   },
   shop: {
     shop: 'Shop',
-    staff_type: 'Shop Type',
+    supplier: 'Supplier',
+    shop_name: 'Shop Name',
     error1: 'Please Enter The Shop Name',
     error2: 'Please Enter The Shop Type'
   },
   shoptype: {
+    shop_type: 'Shop Type',
     OZON: {
       api_url: 'API URL',
       client_id: 'Client ID',
