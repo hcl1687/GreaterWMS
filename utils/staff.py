@@ -1,13 +1,9 @@
-from userprofile.models import Users
-from staff.models import ListModel, TypeListModel
-import re, base64, json
-from rest_framework.exceptions import APIException
+from staff.models import ListModel
 from supplier.models import ListModel as SupplierModel
 
 class Staff(object):
     def get_supplier_name(user):
         name = ''
-        user_profile = Users.objects.filter(name=user.username).first()
         staff_name_obj = ListModel.objects.filter(staff_name=user.username,
             staff_type='Supplier').first()
         if staff_name_obj:

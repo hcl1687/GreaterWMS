@@ -61,6 +61,7 @@ INSTALLED_APPS = [
     'scanner.apps.ScannerConfig',
     'shoptype.apps.ShoptypeConfig',
     'shop.apps.ShopConfig',
+    'shopwarehouse.apps.ShopwarehouseConfig',
     'rest_framework',
     'django_filters',
     'corsheaders',
@@ -301,7 +302,7 @@ LOGGING = {
             "encoding": "utf-8",
         },
         "console": {
-            "level": "INFO",
+            "level": "DEBUG",
             "class": "logging.StreamHandler",
             "formatter": "console",
         },
