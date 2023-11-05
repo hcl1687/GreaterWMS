@@ -41,6 +41,11 @@ class OZON_API():
         return self._request(path='/v1/warehouse/list')
 
     def getProducts(self, params: dict) -> json:
+        if not params:
+            params = {
+                'last_id': '',
+                'limit': 1000
+            }
         return self._request(path='/v2/product/list', params=params)
 
     def getOrders(self, params: dict) -> json:
