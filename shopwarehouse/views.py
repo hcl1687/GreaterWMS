@@ -12,7 +12,7 @@ from rest_framework import permissions
 from utils.staff import Staff
 from utils.seller_api import SELLER_API
 from shop.models import ListModel as ShopModel
-import json
+from warehouse.models import ListModel as WarehouseModel
 
 class APIViewSet(viewsets.ModelViewSet):
     """
@@ -78,7 +78,7 @@ class APIViewSet(viewsets.ModelViewSet):
 
     def list(self, request, *args, **kwargs):
         shop_id = str(request.GET.get('shop_id'))
-        if shop_id == None:
+        if not shop_id:
             raise APIException({"detail": "The shop id does not exist"})
         
         shop_obj = ShopModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=shop_id).first()
@@ -96,23 +96,31 @@ class APIViewSet(viewsets.ModelViewSet):
         for item in shopwarehouse_data:
             id = item['shopwarehouse_code']
             new_dict[id] = item
+
+        resp_data = []
         for seller_item in seller_warehouse_list.get('result', []):
             seller_warehouse_id = str(seller_item['warehouse_id'])
+            resp_item = {}
+            resp_item['id'] = seller_warehouse_id
+            resp_item['name'] = seller_item['name']
             if seller_warehouse_id in new_dict:
                 sys_item = new_dict[seller_warehouse_id]
-                seller_item['sys_info'] = sys_item
+                resp_item['sys_id'] = sys_item['id']
+                resp_item['sys_warehouse_id'] = sys_item['warehouse']['id']
+                resp_item['sys_name'] = sys_item['warehouse']['warehouse_name']
+            resp_data.append(resp_item)
 
-        return Response(seller_warehouse_list.get('result', []), status=200)
+        return Response(resp_data, status=200)
 
     def create(self, request, *args, **kwargs):
         data = self.request.data
         data['openid'] = self.request.META.get('HTTP_TOKEN')
 
-        shop_id = data['shop']
-        if shop_id == None:
+        shop_id = data.get('shop', '')
+        if not shop_id:
             raise APIException({"detail": "The shop id does not exist"})
         
-        shop_obj = ShopModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=shop_id).first()
+        shop_obj = ShopModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=shop_id, is_delete=False).first()
         if shop_obj is None:
             raise APIException({"detail": "The shop does not exist"})
 
@@ -121,7 +129,15 @@ class APIViewSet(viewsets.ModelViewSet):
         if supplier_name and shop_supplier != supplier_name:
             raise APIException({"detail": "The shop is not belong to your supplier"})
 
-        if ListModel.objects.filter(openid=data['openid'], shop=shop_id, shopwarehouse_code=data['shopwarehouse_code']).exists():
+        warehouse_id = data.get('warehouse', '')
+        if not warehouse_id:
+            raise APIException({"detail": "The warehouse id does not exist"})
+
+        warehouse_obj = WarehouseModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=warehouse_id, is_delete=False).first()
+        if warehouse_obj is None:
+            raise APIException({"detail": "The warehouse does not exist"})
+
+        if ListModel.objects.filter(openid=data['openid'], shop=shop_id, shopwarehouse_code=data['shopwarehouse_code'], is_delete=False).exists():
             raise APIException({"detail": "Data exists"})
         else:
             data['supplier'] = shop_supplier
@@ -134,33 +150,61 @@ class APIViewSet(viewsets.ModelViewSet):
 
     def update(self, request, pk):
         qs = self.get_object()
+        data = self.request.data
+
+        shop_id = data.get('shop', '')
+        if not shop_id:
+            raise APIException({"detail": "The shop id does not exist"})
+        
+        shop_obj = ShopModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=shop_id, is_delete=False).first()
+        if shop_obj is None:
+            raise APIException({"detail": "The shop does not exist"})
+
+        shop_supplier = shop_obj.supplier
         supplier_name = Staff.get_supplier_name(self.request.user)
-        if qs.openid != self.request.META.get('HTTP_TOKEN'):
-            raise APIException({"detail": "Cannot Update Data Which Not Yours"})
-        elif supplier_name and supplier_name != qs.supplier:
-            raise APIException({"detail": "Cannot Update Data Which Not Yours"})
-        else:
-            data = self.request.data
-            serializer = self.get_serializer(qs, data=data)
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
-            headers = self.get_success_headers(serializer.data)
-            return Response(serializer.data, status=200, headers=headers)
+        if supplier_name and shop_supplier != supplier_name:
+            raise APIException({"detail": "The shop is not belong to your supplier"})
+
+        warehouse_id = data.get('warehouse', '')
+        if not warehouse_id:
+            raise APIException({"detail": "The warehouse id does not exist"})
+
+        warehouse_obj = WarehouseModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=warehouse_id, is_delete=False).first()
+        if warehouse_obj is None:
+            raise APIException({"detail": "The warehouse does not exist"})
+
+        serializer = self.get_serializer(qs, data=data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=200, headers=headers)
 
     def partial_update(self, request, pk):
         qs = self.get_object()
-        supplier_name = Staff.get_supplier_name(self.request.user)
-        if qs.openid != self.request.META.get('HTTP_TOKEN'):
-            raise APIException({"detail": "Cannot Partial Update Data Which Not Yours"})
-        elif supplier_name and supplier_name != qs.supplier:
-            raise APIException({"detail": "Cannot Partial Update Data Which Not Yours"})
-        else:
-            data = self.request.data
-            serializer = self.get_serializer(qs, data=data, partial=True)
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
-            headers = self.get_success_headers(serializer.data)
-            return Response(serializer.data, status=200, headers=headers)
+        data = self.request.data
+
+        shop_id = data.get('shop', '')
+        if shop_id:
+            shop_obj = ShopModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=shop_id, is_delete=False).first()
+            if shop_obj is None:
+                raise APIException({"detail": "The shop does not exist"})
+            shop_supplier = shop_obj.supplier
+            supplier_name = Staff.get_supplier_name(self.request.user)
+            if supplier_name and shop_supplier != supplier_name:
+                raise APIException({"detail": "The shop is not belong to your supplier"})
+
+        warehouse_id = data.get('warehouse', '')
+        if warehouse_id:
+            warehouse_obj = WarehouseModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=warehouse_id, is_delete=False).first()
+            if warehouse_obj is None:
+                raise APIException({"detail": "The warehouse does not exist"})
+
+        data = self.request.data
+        serializer = self.get_serializer(qs, data=data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=200, headers=headers)
 
     def destroy(self, request, pk):
         qs = self.get_object()

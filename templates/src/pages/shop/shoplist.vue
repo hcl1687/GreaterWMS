@@ -52,6 +52,16 @@
                 flat
                 push
                 color="purple"
+                icon="info"
+                @click="showWarehouse(props.row)"
+              >
+                <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ $t('shopwarehouse.shop_warehouse') }}</q-tooltip>
+              </q-btn>
+              <q-btn
+                round
+                flat
+                push
+                color="purple"
                 icon="edit"
                 @click="editData(props.row)"
               >
@@ -576,6 +586,14 @@ export default {
     },
     getFieldRequiredMessage (field) {
       return this.$t('notice.field_required_error', { field })
+    },
+    showWarehouse (e) {
+      this.$router.push({
+        name: 'shopwarehouse',
+        params: {
+          shop_id: e.id
+        }
+      })
     }
   },
   created () {

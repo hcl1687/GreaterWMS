@@ -67,7 +67,8 @@ export default {
     supplierasn: '供应商订单',
     uploadcenter: '上传中心',
     downloadcenter: '下载中心',
-    cloudwarehouse: '万仓互联'
+    cloudwarehouse: '万仓互联',
+    shop: '店铺管理'
   },
   contact: '立即沟通',
   sendmessage: '给他发一条消息',
@@ -125,6 +126,7 @@ export default {
   dispatch: '装车发货',
   deletebackorder: '删除欠货订单',
   confirminventoryresults: '确认盘点结果',
+  back: '返回',
   baseinfo: {
     company_info: '公司信息',
     supplier: '供应商',
@@ -538,6 +540,8 @@ export default {
     valuenullerror: '请填写完整数据',
     loginerror: '请先登录',
     detail: '明细',
+    shoperror: '店铺名字已存在',
+    field_required_error: '{field}必填',
     goodserror: {
       goods_listerror: '商品编码已存在',
       goods_uniterror: '商品单位已存在',
@@ -653,5 +657,36 @@ export default {
     503: '服务不可用(503)',
     504: '网络超时(504)',
     505: 'HTTP版本不受支持(505)'
+  },
+  shop: {
+    shop: '店铺',
+    supplier: '供应商',
+    shop_name: '店铺名字',
+    error1: '请输入店铺名字',
+    error2: '请输入店铺类型'
+  },
+  shoptype: {
+    shop_type: '店铺类型',
+    OZON: {
+      api_url: 'API URL',
+      client_id: 'Client ID',
+      api_key: 'API Key'
+    },
+    WIBE: {
+      api_url: 'API URL',
+      api_key: 'API Key'
+    },
+    YADE: {
+      api_url: 'API URL',
+      token: 'Token',
+      shop_id: 'Shop ID',
+      warehouse_id: '仓库ID'
+    }
+  },
+  shopwarehouse: {
+    shop_warehouse: '仓库管理',
+    id: '平台仓库ID',
+    name: '平台仓库',
+    sys_name: '系统仓库'
   }
 }

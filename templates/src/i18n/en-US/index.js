@@ -131,6 +131,7 @@ export default {
   dispatch: 'Dispatch & Shipping',
   deletebackorder: 'Delete Back Order',
   confirminventoryresults: 'Confirm Inventory Results',
+  back: 'Back',
   baseinfo: {
     company_info: 'Company Info',
     supplier: 'Supplier',
@@ -680,5 +681,11 @@ export default {
       shop_id: 'Shop ID',
       warehouse_id: 'Warehouse ID'
     }
+  },
+  shopwarehouse: {
+    shop_warehouse: 'Shop Warehouse',
+    id: 'ID',
+    name: 'Name',
+    sys_name: 'System Warehouse'
   }
 }
