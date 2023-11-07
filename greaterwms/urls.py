@@ -47,6 +47,7 @@ urlpatterns = [
     path('shop/', include('shop.urls')),
     path('shoptype/', include('shoptype.urls')),
     path('shopwarehouse/', include('shopwarehouse.urls')),
+    path('shopsku/', include('shopsku.urls')),
     path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
     re_path(r'^favicon\.ico$', views.favicon, name='favicon'),
     re_path('^css/.*$', views.css, name='css'),

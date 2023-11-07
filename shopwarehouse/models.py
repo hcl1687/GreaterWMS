@@ -3,10 +3,10 @@ from warehouse.models import ListModel as WarehosueModel
 from shop.models import ListModel as ShopModel
 
 class ListModel(models.Model):
-    shopwarehouse_code = models.CharField(max_length=255, verbose_name="Shop Warehouse id")
-    shopwarehouse_name = models.CharField(max_length=255, verbose_name="Shop Warehouse Name")
-    warehouse = models.ForeignKey(WarehosueModel, blank=True, null=True, on_delete=models.SET_NULL)
-    shop = models.ForeignKey(ShopModel, on_delete=models.CASCADE)
+    platform_id = models.CharField(max_length=255, verbose_name="Shop Warehouse id")
+    platform_name = models.CharField(max_length=255, verbose_name="Shop Warehouse Name")
+    warehouse = models.ForeignKey(WarehosueModel, blank=True, null=True, on_delete=models.SET_NULL, related_name='shopwarehouse')
+    shop = models.ForeignKey(ShopModel, on_delete=models.CASCADE, related_name='shopwarehouse')
     supplier = models.CharField(max_length=255, verbose_name="Supplier")
     openid = models.CharField(max_length=255, verbose_name="Openid")
     creater = models.CharField(max_length=255, verbose_name="Who Created")
@@ -18,4 +18,4 @@ class ListModel(models.Model):
         db_table = 'shopwarehouse'
         verbose_name = 'Shop Warehouse'
         verbose_name_plural = "Shop Warehouse"
-        ordering = ['shopwarehouse_name']
+        ordering = ['platform_name']

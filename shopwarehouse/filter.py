@@ -6,8 +6,8 @@ class Filter(FilterSet):
         model = ListModel
         fields = {
             "id": ['exact', 'iexact', 'gt', 'gte', 'lt', 'lte', 'isnull', 'in', 'range'],
-            "shopwarehouse_code": ['exact', 'iexact', 'contains', 'icontains'],
-            "shopwarehouse_name": ['exact', 'iexact', 'contains', 'icontains'],
+            "platform_id": ['exact', 'iexact', 'contains', 'icontains'],
+            "platform_name": ['exact', 'iexact', 'contains', 'icontains'],
             "openid": ['exact', 'iexact', 'contains', 'icontains'],
             "supplier": ['exact', 'iexact', 'contains', 'icontains'],
             "creater": ['exact', 'iexact', 'contains', 'icontains'],

@@ -7,12 +7,15 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.response import Response
 from .filter import Filter
 from rest_framework.exceptions import APIException
-from .serializers import ShopskuGetSerializer
+from .serializers import ShopskuGetSerializer, FileRenderSerializer
 from rest_framework import permissions
 from utils.staff import Staff
 from utils.seller_api import SELLER_API
 from shop.models import ListModel as ShopModel
 from warehouse.models import ListModel as WarehouseModel
+from .files import FileRenderCN, FileRenderEN
+from rest_framework.settings import api_settings
+from django.http import StreamingHttpResponse
 
 class APIViewSet(viewsets.ModelViewSet):
     """
@@ -28,8 +31,7 @@ class APIViewSet(viewsets.ModelViewSet):
         delete:
             Delete a data line（delete)
 
-        partial_update:
-            Partial_update a data（patch：partial_update）
+        partial_update:Partial_update a data（patch：partial_update）
 
         update:
             Update a data（put：update）
@@ -49,18 +51,19 @@ class APIViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         id = self.get_project()
+        shop_id = str(self.request.GET.get('shop_id'))
         if self.request.user:
             supplier_name = Staff.get_supplier_name(self.request.user)
             if supplier_name:
                 if id is None:
-                    return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), supplier=supplier_name, is_delete=False)
+                    return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), supplier=supplier_name, shop_id=shop_id, is_delete=False)
                 else:
-                    return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), supplier=supplier_name, id=id, is_delete=False)
+                    return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), supplier=supplier_name, id=id, shop_id=shop_id, is_delete=False)
             else:
                 if id is None:
-                    return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), is_delete=False)
+                    return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), shop_id=shop_id, is_delete=False)
                 else:
-                    return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=id, is_delete=False)
+                    return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=id, shop_id=shop_id, is_delete=False)
         else:
             return ListModel.objects.none()
 
@@ -86,7 +89,10 @@ class APIViewSet(viewsets.ModelViewSet):
             raise APIException({"detail": "The shop does not exist"})
 
         seller_api = SELLER_API(shop_id)
-        seller_sku_list = seller_api.getProducts()
+        seller_sku_resp = seller_api.getProducts({
+            'last_id': request.GET.get('last_id', ''),
+            'limit': 30
+        })
         shopsku_data = [
             ShopskuGetSerializer(instance).data
             for instance in self.get_queryset()
@@ -94,19 +100,31 @@ class APIViewSet(viewsets.ModelViewSet):
 
         new_dict = {}
         for item in shopsku_data:
-            id = item['shopsku_code']
+            id = item['platform_id']
             new_dict[id] = item
 
-        resp_data = []
-        for seller_item in seller_sku_list.get('result', {}).get('items', []):
-            seller_product_id = str(seller_item['product_id'])
-            resp_item = {}
-            resp_item['id'] = seller_product_id
+        resp_data = {}
+        resp_data['total'] = seller_sku_resp.get('total', 0)
+        resp_data['last_id'] = seller_sku_resp.get('last_id', '')
+        resp_data['items'] = []
+        resp_items = resp_data['items']
+        for seller_item in seller_sku_resp.get('result', {}).get('items', []):
+            item = {}
+            seller_product_id = str(seller_item['platform_id'])
+            item['id'] = seller_product_id
+            item['platform_id'] = seller_product_id
+            item['platform_sku'] = seller_item['platform_sku']
+            item['image'] = seller_item['image']
+            item['width'] = seller_item['width']
+            item['height'] = seller_item['height']
+            item['depth'] = seller_item['depth']
+            item['weight'] = seller_item['weight']
             if seller_product_id in new_dict:
                 sys_item = new_dict[seller_product_id]
-                resp_item['sys_id'] = sys_item['id']
-                resp_item['goods_code'] = sys_item['goods_code']
-            resp_data.append(resp_item)
+                item['sys_id'] = sys_item['id']
+                item['goods_code'] = sys_item['goods_code']
+
+            resp_items.append(item)
 
         return Response(resp_data, status=200)
 
@@ -217,3 +235,67 @@ class APIViewSet(viewsets.ModelViewSet):
             serializer = self.get_serializer(qs, many=False)
             headers = self.get_success_headers(serializer.data)
             return Response(serializer.data, status=200, headers=headers)
+
+class FileDownloadView(viewsets.ModelViewSet):
+    renderer_classes = (FileRenderCN,) + tuple(api_settings.DEFAULT_RENDERER_CLASSES)
+    filter_backends = [DjangoFilterBackend, OrderingFilter, ]
+    ordering_fields = ['id', "create_time", "update_time", ]
+    filter_class = Filter
+    permission_classes = (permissions.DjangoModelPermissions,)
+
+    def get_project(self):
+        try:
+            id = self.kwargs.get('pk')
+            return id
+        except:
+            return None
+
+    def get_queryset(self):
+        id = self.get_project()
+        shop_id = str(self.request.GET.get('shop_id'))
+        if self.request.user:
+            supplier_name = Staff.get_supplier_name(self.request.user)
+            if supplier_name:
+                if id is None:
+                    return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), supplier=supplier_name, shop_id=shop_id, is_delete=False)
+                else:
+                    return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), supplier=supplier_name, id=id, shop_id=shop_id, is_delete=False)
+            else:
+                if id is None:
+                    return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), shop_id=shop_id, is_delete=False)
+                else:
+                    return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=id, shop_id=shop_id, is_delete=False)
+        else:
+            return ListModel.objects.none()
+
+    def get_serializer_class(self):
+        if self.action in ['list']:
+            return serializers.FileRenderSerializer
+        else:
+            return self.http_method_not_allowed(request=self.request)
+
+    def get_lang(self, data):
+        lang = self.request.META.get('HTTP_LANGUAGE')
+        if lang:
+            if lang == 'zh-hans':
+                return FileRenderCN().render(data)
+            else:
+                return FileRenderEN().render(data)
+        else:
+            return FileRenderEN().render(data)
+
+    def list(self, request, *args, **kwargs):
+        from datetime import datetime
+        dt = datetime.now()
+        data = (
+            FileRenderSerializer(instance).data
+            for instance in self.filter_queryset(self.get_queryset())
+        )
+        renderer = self.get_lang(data)
+        response = StreamingHttpResponse(
+            renderer,
+            content_type="text/csv"
+        )
+        response['Content-Disposition'] = "attachment; filename='shopsku_{}.csv'".format(
+            str(dt.strftime('%Y%m%d%H%M%S%f')))
+        return response

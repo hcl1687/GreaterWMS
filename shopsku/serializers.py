@@ -4,7 +4,8 @@ from utils import datasolve
 from shop.serializers import ShopGetSerializer
 
 class ShopskuGetSerializer(serializers.ModelSerializer):
-    shopsku_code = serializers.CharField(read_only=True, required=False)
+    platform_id = serializers.CharField(read_only=True, required=False)
+    platform_sku = serializers.CharField(read_only=True, required=False)
     goods_code = serializers.CharField(read_only=True, required=False)
     supplier = serializers.CharField(read_only=True, required=False)
     creater = serializers.CharField(read_only=True, required=False)
@@ -22,7 +23,8 @@ class ShopskuGetSerializer(serializers.ModelSerializer):
 
 class ShopskuPostSerializer(serializers.ModelSerializer):
     openid = serializers.CharField(read_only=False, required=False, validators=[datasolve.openid_validate])
-    shopsku_code = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
+    platform_id = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
+    platform_sku = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     goods_code = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     supplier = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     creater = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
@@ -32,7 +34,8 @@ class ShopskuPostSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'create_time', 'update_time', ]
 
 class ShopskuUpdateSerializer(serializers.ModelSerializer):
-    shopsku_code = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
+    platform_id = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
+    platform_sku = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     goods_code = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     creater = serializers.CharField(read_only=True, required=False, validators=[datasolve.data_validate])
     class Meta:
@@ -41,7 +44,8 @@ class ShopskuUpdateSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'create_time', 'update_time', 'supplier' ]
 
 class ShopskuPartialUpdateSerializer(serializers.ModelSerializer):
-    shopsku_code = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
+    platform_id = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
+    platform_sku = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     goods_code = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     creater = serializers.CharField(read_only=True, required=False, validators=[datasolve.data_validate])
     class Meta:
@@ -52,7 +56,8 @@ class ShopskuPartialUpdateSerializer(serializers.ModelSerializer):
 class FileRenderSerializer(serializers.ModelSerializer):
     shop_name = serializers.CharField(source='shop.shop_name', read_only=False, required=True, validators=[datasolve.data_validate])
     shop_type = serializers.CharField(source='shop.shop_type', read_only=False, required=True, validators=[datasolve.data_validate])
-    shopsku_code = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
+    platform_id = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
+    platform_sku = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     goods_code = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     supplier = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     creater = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])

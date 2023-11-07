@@ -49,18 +49,19 @@ class APIViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         id = self.get_project()
+        shop_id = str(self.request.GET.get('shop_id'))
         if self.request.user:
             supplier_name = Staff.get_supplier_name(self.request.user)
             if supplier_name:
                 if id is None:
-                    return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), supplier=supplier_name, is_delete=False)
+                    return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), supplier=supplier_name, shop_id=shop_id, is_delete=False)
                 else:
-                    return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), supplier=supplier_name, id=id, is_delete=False)
+                    return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), supplier=supplier_name, id=id, shop_id=shop_id, is_delete=False)
             else:
                 if id is None:
-                    return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), is_delete=False)
+                    return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), shop_id=shop_id, is_delete=False)
                 else:
-                    return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=id, is_delete=False)
+                    return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=id, shop_id=shop_id, is_delete=False)
         else:
             return ListModel.objects.none()
 
@@ -94,7 +95,7 @@ class APIViewSet(viewsets.ModelViewSet):
 
         new_dict = {}
         for item in shopwarehouse_data:
-            id = item['shopwarehouse_code']
+            id = item['platform_id']
             new_dict[id] = item
 
         resp_data = []
@@ -137,7 +138,7 @@ class APIViewSet(viewsets.ModelViewSet):
         if warehouse_obj is None:
             raise APIException({"detail": "The warehouse does not exist"})
 
-        if ListModel.objects.filter(openid=data['openid'], shop=shop_id, shopwarehouse_code=data['shopwarehouse_code'], is_delete=False).exists():
+        if ListModel.objects.filter(openid=data['openid'], shop=shop_id, platform_id=data['platform_id'], is_delete=False).exists():
             raise APIException({"detail": "Data exists"})
         else:
             data['supplier'] = shop_supplier

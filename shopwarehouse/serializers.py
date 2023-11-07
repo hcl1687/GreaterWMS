@@ -5,8 +5,8 @@ from warehouse.serializers import WarehouseGetSerializer
 from shop.serializers import ShopGetSerializer
 
 class ShopwarehouseGetSerializer(serializers.ModelSerializer):
-    shopwarehouse_code = serializers.CharField(read_only=True, required=False)
-    shopwarehouse_name = serializers.CharField(read_only=True, required=False)
+    platform_id = serializers.CharField(read_only=True, required=False)
+    platform_name = serializers.CharField(read_only=True, required=False)
     supplier = serializers.CharField(read_only=True, required=False)
     creater = serializers.CharField(read_only=True, required=False)
     create_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
@@ -24,8 +24,8 @@ class ShopwarehouseGetSerializer(serializers.ModelSerializer):
 
 class ShopwarehousePostSerializer(serializers.ModelSerializer):
     openid = serializers.CharField(read_only=False, required=False, validators=[datasolve.openid_validate])
-    shopwarehouse_code = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
-    shopwarehouse_name = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
+    platform_id = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
+    platform_name = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     supplier = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     creater = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     class Meta:
@@ -34,8 +34,8 @@ class ShopwarehousePostSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'create_time', 'update_time', ]
 
 class ShopwarehouseUpdateSerializer(serializers.ModelSerializer):
-    shopwarehouse_code = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
-    shopwarehouse_name = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
+    platform_id = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
+    platform_name = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     creater = serializers.CharField(read_only=True, required=False, validators=[datasolve.data_validate])
     class Meta:
         model = ListModel
@@ -43,8 +43,8 @@ class ShopwarehouseUpdateSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'create_time', 'update_time', 'supplier' ]
 
 class ShopwarehousePartialUpdateSerializer(serializers.ModelSerializer):
-    shopwarehouse_code = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
-    shopwarehouse_name = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
+    platform_id = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
+    platform_name = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     creater = serializers.CharField(read_only=True, required=False, validators=[datasolve.data_validate])
     class Meta:
         model = ListModel

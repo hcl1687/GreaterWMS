@@ -62,6 +62,7 @@ INSTALLED_APPS = [
     'shoptype.apps.ShoptypeConfig',
     'shop.apps.ShopConfig',
     'shopwarehouse.apps.ShopwarehouseConfig',
+    'shopsku.apps.ShopskuConfig',
     'rest_framework',
     'django_filters',
     'corsheaders',

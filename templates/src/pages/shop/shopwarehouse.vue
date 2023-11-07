@@ -203,8 +203,8 @@ export default {
       _this.editid = e.id
       _this.editFormData = {
         id: e.sys_id,
-        shopwarehouse_code: '' + e.id,
-        shopwarehouse_name: e.name,
+        platform_id: '' + e.id,
+        platform_name: e.name,
         warehouse: e.sys_warehouse_id
       }
     },
@@ -232,8 +232,8 @@ export default {
         // create
         const data = {
           shop: +_this.shop_id,
-          shopwarehouse_code: _this.editFormData.shopwarehouse_code,
-          shopwarehouse_name: _this.editFormData.shopwarehouse_name,
+          platform_id: _this.editFormData.platform_id,
+          platform_name: _this.editFormData.platform_name,
           warehouse: _this.editFormData.warehouse
         }
         reqPromise = postauth(_this.pathname, data)

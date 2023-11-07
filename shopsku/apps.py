@@ -1,4 +1,4 @@
 from django.apps import AppConfig
 
-class ShopwarehouseConfig(AppConfig):
+class ShopskuConfig(AppConfig):
     name = 'shopsku'
