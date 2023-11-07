@@ -67,8 +67,8 @@ pip3 install --upgrade djangorestframework-simplejwt
 
 ## create admin
 ```bash
-python3 manage.py makemigrations
-python3 manage.py migrate
+python manage.py makemigrations
+python manage.py migrate
 python manage.py createsuperuser
 ```
 
