@@ -46,7 +46,7 @@
             <q-td key="shop_type" :props="props">{{ props.row.shop_type }}</q-td>
             <q-td key="create_time" :props="props">{{ props.row.create_time }}</q-td>
             <q-td key="update_time" :props="props">{{ props.row.update_time }}</q-td>
-            <q-td key="action" :props="props" style="width: 175px">
+            <q-td key="action" :props="props" style="width: 250px">
               <q-btn
                 round
                 flat
@@ -56,6 +56,16 @@
                 @click="showWarehouse(props.row)"
               >
                 <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ $t('shopwarehouse.shop_warehouse') }}</q-tooltip>
+              </q-btn>
+              <q-btn
+                round
+                flat
+                push
+                color="purple"
+                icon="info"
+                @click="showSku(props.row)"
+              >
+                <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ $t('shopsku.shop_sku') }}</q-tooltip>
               </q-btn>
               <q-btn
                 round
@@ -215,7 +225,7 @@ export default {
         { name: 'shop_type', label: this.$t('shoptype.shop_type'), field: 'shop_type', align: 'center' },
         { name: 'create_time', label: this.$t('createtime'), field: 'create_time', align: 'center' },
         { name: 'update_time', label: this.$t('updatetime'), field: 'update_time', align: 'center' },
-        { name: 'action', label: this.$t('action'), align: 'right' }
+        { name: 'action', label: this.$t('action'), align: 'center' }
       ],
       pagination: {
         page: 1,
@@ -590,6 +600,14 @@ export default {
     showWarehouse (e) {
       this.$router.push({
         name: 'shopwarehouse',
+        params: {
+          shop_id: e.id
+        }
+      })
+    },
+    showSku (e) {
+      this.$router.push({
+        name: 'shopsku',
         params: {
           shop_id: e.id
         }

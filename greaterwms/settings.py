@@ -303,7 +303,7 @@ LOGGING = {
             "encoding": "utf-8",
         },
         "console": {
-            "level": "DEBUG",
+            "level": "INFO",
             "class": "logging.StreamHandler",
             "formatter": "console",
         },

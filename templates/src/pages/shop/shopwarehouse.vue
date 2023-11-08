@@ -140,8 +140,8 @@ export default {
       columns: [
         { name: 'id', required: true, label: this.$t('shopwarehouse.id'), align: 'left', field: 'id' },
         { name: 'name', label: this.$t('shopwarehouse.name'), field: 'name', align: 'center' },
-        { name: 'sys_id', label: this.$t('shopwarehouse.sys_name'), field: 'sys_id', align: 'center' },
-        { name: 'action', label: this.$t('action'), align: 'right' }
+        { name: 'sys_name', label: this.$t('shopwarehouse.sys_name'), field: 'sys_name', align: 'center' },
+        { name: 'action', label: this.$t('action'), align: 'center' }
       ],
       pagination: {
         page: 1,
@@ -224,6 +224,7 @@ export default {
       if (_this.editFormData.id) {
         // edit
         const data = {
+          shop: +_this.shop_id,
           warehouse: _this.editFormData.warehouse
         }
         const editid = _this.editFormData.id

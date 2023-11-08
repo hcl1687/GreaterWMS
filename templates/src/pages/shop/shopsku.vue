@@ -32,28 +32,44 @@
         </template>
         <template v-slot:body="props">
           <q-tr :props="props">
-            <q-td key="platform_id" :props="props">{{ props.row.platform_id }}</q-td>
-            <q-td key="platform_name" :props="props">{{ props.row.platform_name }}</q-td>
+            <q-td key="shop_type" :props="props">{{ props.row.shop_type }}</q-td>
+            <q-td key="id" :props="props">{{ props.row.id }}</q-td>
+            <q-td key="platform_sku" :props="props">{{ props.row.platform_sku }}</q-td>
             <template v-if="props.row.id === editid">
               <q-td key="goods_code" :props="props">
                 <q-select
                   dense
                   outlined
                   square
-                  emit-value
+                  use-input
+                  hide-selected
+                  fill-input
                   v-model="editFormData.goods_code"
-                  :options="goods_list"
-                  transition-show="scale"
-                  transition-hide="scale"
-                  :label="$t('shopsku.goods_code')"
-                  :rules="[val => (val && val.length > 0) || getFieldRequiredMessage('goods_code')]"
-                />
+                  :label="$t('goods.view_goodslist.goods_code')"
+                  :options="options"
+                  @input-value="setOptions"
+                  @filter="filterFn"
+                  autofocus
+                >
+                  <template v-slot:no-option>
+                    <q-item><q-item-section class="text-grey">No results</q-item-section></q-item>
+                  </template>
+                  <template v-if="editFormData.goods_code" v-slot:append>
+                    <q-icon name="cancel" @click.stop="editFormData.goods_code = ''" class="cursor-pointer" />
+                  </template>
+                </q-select>
               </q-td>
             </template>
             <template v-else-if="props.row.id !== editid">
               <q-td key="goods_code" :props="props">{{ props.row.goods_code }}</q-td>
             </template>
-            <q-td key="image" :props="props">{{ props.row.image }}</q-td>
+            <q-td key="image" :props="props">
+              <q-img
+                :src="props.row.image"
+                spinner-color="white"
+                style="height: 140px; max-width: 150px"
+              />
+            </q-td>
             <q-td key="width" :props="props">{{ props.row.width }}</q-td>
             <q-td key="height" :props="props">{{ props.row.height }}</q-td>
             <q-td key="depth" :props="props">{{ props.row.depth }}</q-td>
@@ -103,30 +119,14 @@
     <template>
         <div v-show="max !== 0" class="q-pa-lg flex flex-center">
            <div>{{ total }} </div>
-          <q-pagination
-            v-model="current"
-            color="black"
-            :max="max"
-            :max-pages="6"
-            boundary-links
-            @click="getList()"
-          />
           <q-btn-group push>
-            <q-btn :label="$t('shopsku.previous')" icon="arrow_back_ios" :disable="curr_last_id_index === 0" @click="getList('pre')">
+            <q-btn :label="$t('shopsku.previous')" icon="arrow_back_ios" :disable="curr_last_id_index <= 0" @click="getList('pre')">
               <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ $t('shopsku.previous_tip') }}</q-tooltip>
             </q-btn>
-            <q-btn :label="$t('shopsku.next')" icon="arrow_forward_ios" :disable="curr_last_id_index = max - 1" @click="getList('next')">
+            <q-btn :label="$t('shopsku.next')" icon="arrow_forward_ios" :disable="curr_last_id_index >= max - 1" @click="getList('next')">
               <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ $t('shopsku.next_tip') }}</q-tooltip>
             </q-btn>
           </q-btn-group>
-          <div>
-            <input
-              v-model="paginationIpt"
-              @blur="changePageEnter"
-              @keyup.enter="changePageEnter"
-              style="width: 60px; text-align: center"
-            />
-          </div>
         </div>
         <div v-show="max === 0" class="q-pa-lg flex flex-center">
           <q-btn flat push color="dark" :label="$t('no_data')"></q-btn>
@@ -170,7 +170,8 @@ export default {
       table_list: [],
       goods_list: [],
       columns: [
-        { name: 'id', required: true, label: this.$t('shopsku.id'), align: 'left', field: 'id' },
+        { name: 'shop_type', label: this.$t('shoptype.shop_type'), align: 'left', field: 'shop_type' },
+        { name: 'id', required: true, label: this.$t('shopsku.id'), align: 'center', field: 'id' },
         { name: 'platform_sku', label: this.$t('shopsku.platform_sku'), field: 'platform_sku', align: 'center' },
         { name: 'goods_code', label: this.$t('shopsku.goods_code'), field: 'goods_code', align: 'center' },
         { name: 'image', label: this.$t('shopsku.image'), field: 'image', align: 'center' },
@@ -178,7 +179,7 @@ export default {
         { name: 'height', label: this.$t('shopsku.height'), field: 'height', align: 'center' },
         { name: 'depth', label: this.$t('shopsku.depth'), field: 'depth', align: 'center' },
         { name: 'weight', label: this.$t('shopsku.weight'), field: 'weight', align: 'center' },
-        { name: 'action', label: this.$t('action'), align: 'right' }
+        { name: 'action', label: this.$t('action'), align: 'center' }
       ],
       pagination: {
         page: 1,
@@ -193,10 +194,30 @@ export default {
       curr_last_id_index: 0,
       max: 0,
       total: 0,
-      shop_id: ''
+      shop_id: '',
+      options: [],
+      options1: [],
+      shopDetail: {}
     }
   },
   methods: {
+    getShopDetail (shop_id) {
+      if (!shop_id) {
+        return
+      }
+
+      getauth(`shop/${shop_id}?`, {})
+        .then(res => {
+          this.shopDetail = res
+        })
+        .catch(err => {
+          _this.$q.notify({
+            message: err.detail,
+            icon: 'close',
+            color: 'negative'
+          })
+        })
+    },
     getList (direction) {
       var _this = this
       _this.pathname + '?shop_id=' + _this.shop_id
@@ -208,7 +229,8 @@ export default {
       if (last_id_index < 0 || last_id_index >= _this.last_id_list.length) {
         return
       }
-      
+
+      const last_id = _this.last_id_list[last_id_index]
       getauth(`${_this.pathname}?shop_id=${_this.shop_id}&last_id=${last_id}`, {})
         .then(res => {
           _this.table_list = res.results
@@ -266,6 +288,7 @@ export default {
       if (_this.editFormData.sys_id) {
         // edit
         const data = {
+          shop: +_this.shop_id,
           goods_code: _this.editFormData.goods_code
         }
         const editid = _this.editFormData.sys_id
@@ -273,6 +296,7 @@ export default {
       } else {
         // create
         const data = {
+          shop: +_this.shop_id,
           platform_id: _this.editFormData.platform_id,
           platform_sku: _this.editFormData.platform_sku,
           goods_code: _this.editFormData.goods_code
@@ -343,7 +367,36 @@ export default {
     },
     getFieldRequiredMessage (field) {
       return this.$t('notice.field_required_error', { field })
-    }
+    },
+    setOptions (val) {
+      if (!val) {
+        this.editFormData.goods_code = ''
+      }
+      const needle = val.toLowerCase()
+      let goodsUrl = `goods/?goods_code__icontains=${needle}`
+      if (this.shopDetail.supplier) {
+        goodsUrl = `${goodsUrl}&supplier__iexact=${this.shopDetail.supplier}`
+      }
+      getauth(goodsUrl).then(res => {
+        const goodscodelist = []
+        for (let i = 0; i < res.results.length; i++) {
+          goodscodelist.push(res.results[i].goods_code)
+          if (res.results[i].goods_code === val) {
+            this.editFormData.goods_code = val
+          }
+        }
+        this.options1 = goodscodelist
+      })
+    },
+    filterFn (val, update, abort) {
+      if (val.length < 1) {
+        abort()
+        return
+      }
+      update(() => {
+        this.options = this.options1
+      })
+    },
   },
   created () {
     var _this = this
@@ -362,6 +415,7 @@ export default {
     }
     if (LocalStorage.has('auth')) {
       _this.authin = '1'
+      _this.getShopDetail(_this.shop_id)
       _this.getList()
     } else {
       _this.authin = '0'

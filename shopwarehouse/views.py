@@ -49,19 +49,19 @@ class APIViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         id = self.get_project()
-        shop_id = str(self.request.GET.get('shop_id'))
+        shop_id = str(self.request.GET.get('shop_id') or self.request.data.get('shop'))
         if self.request.user:
             supplier_name = Staff.get_supplier_name(self.request.user)
             if supplier_name:
                 if id is None:
                     return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), supplier=supplier_name, shop_id=shop_id, is_delete=False)
                 else:
-                    return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), supplier=supplier_name, id=id, shop_id=shop_id, is_delete=False)
+                    return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), supplier=supplier_name, id=id, is_delete=False)
             else:
                 if id is None:
                     return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), shop_id=shop_id, is_delete=False)
                 else:
-                    return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=id, shop_id=shop_id, is_delete=False)
+                    return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=id, is_delete=False)
         else:
             return ListModel.objects.none()
 

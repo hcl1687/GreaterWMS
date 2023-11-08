@@ -51,19 +51,19 @@ class APIViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         id = self.get_project()
-        shop_id = str(self.request.GET.get('shop_id'))
+        shop_id = str(self.request.GET.get('shop_id') or self.request.data.get('shop'))
         if self.request.user:
             supplier_name = Staff.get_supplier_name(self.request.user)
             if supplier_name:
                 if id is None:
                     return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), supplier=supplier_name, shop_id=shop_id, is_delete=False)
                 else:
-                    return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), supplier=supplier_name, id=id, shop_id=shop_id, is_delete=False)
+                    return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), supplier=supplier_name, id=id, is_delete=False)
             else:
                 if id is None:
                     return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), shop_id=shop_id, is_delete=False)
                 else:
-                    return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=id, shop_id=shop_id, is_delete=False)
+                    return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=id, is_delete=False)
         else:
             return ListModel.objects.none()
 
@@ -104,6 +104,8 @@ class APIViewSet(viewsets.ModelViewSet):
             new_dict[id] = item
 
         resp_data = {}
+        resp_data['previous'] = None
+        resp_data['next'] = None
         resp_data['count'] = seller_sku_resp.get('count', 0)
         resp_data['last_id'] = seller_sku_resp.get('last_id', '')
         resp_data['results'] = []
@@ -112,6 +114,7 @@ class APIViewSet(viewsets.ModelViewSet):
             item = {}
             seller_product_id = str(seller_item['platform_id'])
             seller_platform_sku = str(seller_item['platform_sku'])
+            item['shop_type'] = shop_obj.shop_type
             item['id'] = seller_product_id
             item['platform_id'] = seller_product_id
             item['platform_sku'] = seller_platform_sku
@@ -154,7 +157,7 @@ class APIViewSet(viewsets.ModelViewSet):
         if not goods_code:
             raise APIException({"detail": "The goods code does not exist"})
 
-        goods_obj = GoodsModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), goods_supplier=supplier_name, goods_code=goods_code, is_delete=False).first()
+        goods_obj = GoodsModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), goods_supplier=shop_supplier, goods_code=goods_code, is_delete=False).first()
         if goods_obj is None:
             raise APIException({"detail": "The goods does not exist"})
 
@@ -194,7 +197,7 @@ class APIViewSet(viewsets.ModelViewSet):
         if not goods_code:
             raise APIException({"detail": "The goods code does not exist"})
 
-        goods_obj = GoodsModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), goods_supplier=supplier_name, goods_code=goods_code, is_delete=False).first()
+        goods_obj = GoodsModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), goods_supplier=shop_supplier, goods_code=goods_code, is_delete=False).first()
         if goods_obj is None:
             raise APIException({"detail": "The goods does not exist"})
 
@@ -222,7 +225,7 @@ class APIViewSet(viewsets.ModelViewSet):
         if not goods_code:
             raise APIException({"detail": "The goods code does not exist"})
 
-        goods_obj = GoodsModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), goods_supplier=supplier_name, goods_code=goods_code, is_delete=False).first()
+        goods_obj = GoodsModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), goods_supplier=shop_supplier, goods_code=goods_code, is_delete=False).first()
         if goods_obj is None:
             raise APIException({"detail": "The goods does not exist"})
 
@@ -244,7 +247,9 @@ class APIViewSet(viewsets.ModelViewSet):
             qs.is_delete = True
             qs.save()
             serializer = self.get_serializer(qs, many=False)
-            headers = self.get_success_headers(serigoods_code
+            headers = self.get_success_headers(serializer.data)
+            return Response(serializer.data, status=200, headers=headers)
+
 class FileDownloadView(viewsets.ModelViewSet):
     renderer_classes = (FileRenderCN,) + tuple(api_settings.DEFAULT_RENDERER_CLASSES)
     filter_backends = [DjangoFilterBackend, OrderingFilter, ]
@@ -261,19 +266,19 @@ class FileDownloadView(viewsets.ModelViewSet):
 
     def get_queryset(self):
         id = self.get_project()
-        shop_id = str(self.request.GET.get('shop_id'))
+        shop_id = str(self.request.GET.get('shop_id') or self.request.data.get('shop'))
         if self.request.user:
             supplier_name = Staff.get_supplier_name(self.request.user)
             if supplier_name:
                 if id is None:
                     return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), supplier=supplier_name, shop_id=shop_id, is_delete=False)
                 else:
-                    return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), supplier=supplier_name, id=id, shop_id=shop_id, is_delete=False)
+                    return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), supplier=supplier_name, id=id, is_delete=False)
             else:
                 if id is None:
                     return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), shop_id=shop_id, is_delete=False)
                 else:
-                    return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=id, shop_id=shop_id, is_delete=False)
+                    return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=id, is_delete=False)
         else:
             return ListModel.objects.none()
 
