@@ -9,6 +9,8 @@
         :separator="separator"
         :loading="loading"
         :columns="columns"
+        selection="multiple"
+        :selected.sync="selected"
         hide-bottom
         :pagination.sync="pagination"
         no-data-label="No data"
@@ -30,8 +32,14 @@
             </q-btn>
           </q-btn-group>
         </template>
+        <template v-slot:header-selection="scope">
+          <q-checkbox v-model="scope.selected" />
+        </template>
         <template v-slot:body="props">
           <q-tr :props="props">
+            <q-td>
+              <q-checkbox v-model="props.selected" color="primary" />
+            </q-td>
             <q-td key="shop_type" :props="props">{{ props.row.shop_type }}</q-td>
             <q-td key="id" :props="props">{{ props.row.id }}</q-td>
             <q-td key="platform_sku" :props="props">{{ props.row.platform_sku }}</q-td>
@@ -169,6 +177,7 @@ export default {
       height: '',
       table_list: [],
       goods_list: [],
+      selected: [],
       columns: [
         { name: 'shop_type', label: this.$t('shoptype.shop_type'), align: 'left', field: 'shop_type' },
         { name: 'id', required: true, label: this.$t('shopsku.id'), align: 'center', field: 'id' },
