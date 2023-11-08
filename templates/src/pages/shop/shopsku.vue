@@ -25,31 +25,39 @@
             <q-btn :label="$t('refresh')" icon="refresh" @click="reFresh()">
               <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ $t('refreshtip') }}</q-tooltip>
             </q-btn>
+            <q-btn :label="$t('shopsku.init_bind')" icon="refresh" @click="initBind()">
+              <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ $t('shopsku.init_bind_tip') }}</q-tooltip>
+            </q-btn>
           </q-btn-group>
         </template>
         <template v-slot:body="props">
           <q-tr :props="props">
-            <q-td key="id" :props="props">{{ props.row.id }}</q-td>
-            <q-td key="name" :props="props">{{ props.row.name }}</q-td>
+            <q-td key="platform_id" :props="props">{{ props.row.platform_id }}</q-td>
+            <q-td key="platform_name" :props="props">{{ props.row.platform_name }}</q-td>
             <template v-if="props.row.id === editid">
-              <q-td key="sys_name" :props="props">
+              <q-td key="goods_code" :props="props">
                 <q-select
                   dense
                   outlined
                   square
                   emit-value
-                  v-model="editFormData.warehouse"
-                  :options="sys_warehouse_list"
+                  v-model="editFormData.goods_code"
+                  :options="goods_list"
                   transition-show="scale"
                   transition-hide="scale"
-                  :label="$t('shopwarehouse.sys_name')"
-                  :rules="[val => (val && val.length > 0) || getFieldRequiredMessage('sys_warehouse')]"
+                  :label="$t('shopsku.goods_code')"
+                  :rules="[val => (val && val.length > 0) || getFieldRequiredMessage('goods_code')]"
                 />
               </q-td>
             </template>
             <template v-else-if="props.row.id !== editid">
-              <q-td key="sys_name" :props="props">{{ props.row.sys_name }}</q-td>
+              <q-td key="goods_code" :props="props">{{ props.row.goods_code }}</q-td>
             </template>
+            <q-td key="image" :props="props">{{ props.row.image }}</q-td>
+            <q-td key="width" :props="props">{{ props.row.width }}</q-td>
+            <q-td key="height" :props="props">{{ props.row.height }}</q-td>
+            <q-td key="depth" :props="props">{{ props.row.depth }}</q-td>
+            <q-td key="weight" :props="props">{{ props.row.weight }}</q-td>
             <template v-if="!editMode">
               <q-td key="action" :props="props" style="width: 175px">
                 <q-btn
@@ -95,6 +103,30 @@
     <template>
         <div v-show="max !== 0" class="q-pa-lg flex flex-center">
            <div>{{ total }} </div>
+          <q-pagination
+            v-model="current"
+            color="black"
+            :max="max"
+            :max-pages="6"
+            boundary-links
+            @click="getList()"
+          />
+          <q-btn-group push>
+            <q-btn :label="$t('shopsku.previous')" icon="arrow_back_ios" :disable="curr_last_id_index === 0" @click="getList('pre')">
+              <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ $t('shopsku.previous_tip') }}</q-tooltip>
+            </q-btn>
+            <q-btn :label="$t('shopsku.next')" icon="arrow_forward_ios" :disable="curr_last_id_index = max - 1" @click="getList('next')">
+              <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ $t('shopsku.next_tip') }}</q-tooltip>
+            </q-btn>
+          </q-btn-group>
+          <div>
+            <input
+              v-model="paginationIpt"
+              @blur="changePageEnter"
+              @keyup.enter="changePageEnter"
+              style="width: 60px; text-align: center"
+            />
+          </div>
         </div>
         <div v-show="max === 0" class="q-pa-lg flex flex-center">
           <q-btn flat push color="dark" :label="$t('no_data')"></q-btn>
@@ -131,16 +163,21 @@ export default {
       openid: '',
       login_name: '',
       authin: '0',
-      pathname: 'shopwarehouse/',
+      pathname: 'shopsku/',
       separator: 'cell',
       loading: false,
       height: '',
       table_list: [],
-      sys_warehouse_list: [],
+      goods_list: [],
       columns: [
-        { name: 'id', required: true, label: this.$t('shopwarehouse.id'), align: 'left', field: 'id' },
-        { name: 'name', label: this.$t('shopwarehouse.name'), field: 'name', align: 'center' },
-        { name: 'sys_id', label: this.$t('shopwarehouse.sys_name'), field: 'sys_id', align: 'center' },
+        { name: 'id', required: true, label: this.$t('shopsku.id'), align: 'left', field: 'id' },
+        { name: 'platform_sku', label: this.$t('shopsku.platform_sku'), field: 'platform_sku', align: 'center' },
+        { name: 'goods_code', label: this.$t('shopsku.goods_code'), field: 'goods_code', align: 'center' },
+        { name: 'image', label: this.$t('shopsku.image'), field: 'image', align: 'center' },
+        { name: 'width', label: this.$t('shopsku.width'), field: 'width', align: 'center' },
+        { name: 'height', label: this.$t('shopsku.height'), field: 'height', align: 'center' },
+        { name: 'depth', label: this.$t('shopsku.depth'), field: 'depth', align: 'center' },
+        { name: 'weight', label: this.$t('shopsku.weight'), field: 'weight', align: 'center' },
         { name: 'action', label: this.$t('action'), align: 'right' }
       ],
       pagination: {
@@ -152,38 +189,43 @@ export default {
       editMode: false,
       deleteForm: false,
       deleteid: 0,
+      last_id_list: [''],
+      curr_last_id_index: 0,
       max: 0,
       total: 0,
       shop_id: ''
     }
   },
   methods: {
-    getSysWarehouseList () {
+    getList (direction) {
       var _this = this
-      getauth('warehouse/' + '?page=1', {})
+      _this.pathname + '?shop_id=' + _this.shop_id
+      const last_id_index = direction === 'next'
+        ? _this.curr_last_id_index + 1
+        : direction === 'pre'
+          ? _this.curr_last_id_index - 1
+          : _this.curr_last_id_index
+      if (last_id_index < 0 || last_id_index >= _this.last_id_list.length) {
+        return
+      }
+      
+      getauth(`${_this.pathname}?shop_id=${_this.shop_id}&last_id=${last_id}`, {})
         .then(res => {
-          _this.sys_warehouse_list = res.results.map(item => {
-            return {
-              label: item.warehouse_name,
-              value: item.id
+          _this.table_list = res.results
+          _this.total = res.count
+
+          _this.curr_last_id_index = last_id_index
+          _this.last_id_list[last_id_index+1] = res.last_id
+
+          if (res.count === 0) {
+            _this.max = 0
+          } else {
+            if (Math.ceil(res.count / 30) === 1) {
+              _this.max = 0
+            } else {
+              _this.max = Math.ceil(res.count / 30)
             }
-          })
-        })
-        .catch(err => {
-          _this.$q.notify({
-            message: err.detail,
-            icon: 'close',
-            color: 'negative'
-          })
-        })
-    },
-    getList () {
-      var _this = this
-      getauth(_this.pathname + '?shop_id=' + _this.shop_id, {})
-        .then(res => {
-          _this.table_list = res
-          _this.total = res.length
-          _this.max = 0
+          }
         })
         .catch(err => {
           _this.$q.notify({
@@ -202,18 +244,18 @@ export default {
       _this.editMode = true
       _this.editid = e.id
       _this.editFormData = {
-        id: e.sys_id,
+        sys_id: e.sys_id,
         platform_id: '' + e.id,
-        platform_name: e.name,
-        warehouse: e.sys_warehouse_id
+        platform_sku: e.platform_sku,
+        goods_code: e.goods_code
       }
     },
     editDataSubmit () {
       var _this = this
 
-      if (!_this.editFormData.warehouse) {
+      if (!_this.editFormData.goods_code) {
         _this.$q.notify({
-          message: _this.getFieldRequiredMessage('warehouse'),
+          message: _this.getFieldRequiredMessage('goods_code'),
           icon: 'close',
           color: 'negative'
         })
@@ -221,20 +263,19 @@ export default {
       }
 
       let reqPromise
-      if (_this.editFormData.id) {
+      if (_this.editFormData.sys_id) {
         // edit
         const data = {
-          warehouse: _this.editFormData.warehouse
+          goods_code: _this.editFormData.goods_code
         }
-        const editid = _this.editFormData.id
+        const editid = _this.editFormData.sys_id
         reqPromise = patchauth(_this.pathname + editid + '/', data)
       } else {
         // create
         const data = {
-          shop: +_this.shop_id,
           platform_id: _this.editFormData.platform_id,
-          platform_name: _this.editFormData.platform_name,
-          warehouse: _this.editFormData.warehouse
+          platform_sku: _this.editFormData.platform_sku,
+          goods_code: _this.editFormData.goods_code
         }
         reqPromise = postauth(_this.pathname, data)
       }
@@ -321,7 +362,6 @@ export default {
     }
     if (LocalStorage.has('auth')) {
       _this.authin = '1'
-      _this.getSysWarehouseList()
       _this.getList()
     } else {
       _this.authin = '0'

@@ -49,7 +49,11 @@ class OZON_API():
         product_resp = self._request(path='/v2/product/list', params=params)
         product_list = product_resp.get('result', {}).get('items', [])
         if len(product_list) == 0:
-            return product_resp
+            return {
+                'count': 0,
+                'last_id': '',
+                'items': []
+            }
 
         product_id_list = []
         for item in product_list:
@@ -94,7 +98,11 @@ class OZON_API():
                 item['depth'] = product_detail_dict.get('attr', {}).get('depth', 0)
                 item['weight'] = product_detail_dict.get('attr', {}).get('weight', 0)
 
-        return product_resp
+        return {
+            'count': product_resp.get('result', {}).get('total', 0),
+            'last_id': product_resp.get('result', {}).get('last_id', ''),
+            'items': product_resp.get('result', {}).get('items', []),
+        }
 
     def getOrders(self, params: dict) -> json:
         return self._request(path='/v3/posting/fbs/list', params=params)

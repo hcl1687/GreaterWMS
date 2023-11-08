@@ -12,7 +12,7 @@ from rest_framework import permissions
 from utils.staff import Staff
 from utils.seller_api import SELLER_API
 from shop.models import ListModel as ShopModel
-from warehouse.models import ListModel as WarehouseModel
+from goods.models import ListModel as GoodsModel
 from .files import FileRenderCN, FileRenderEN
 from rest_framework.settings import api_settings
 from django.http import StreamingHttpResponse
@@ -104,16 +104,17 @@ class APIViewSet(viewsets.ModelViewSet):
             new_dict[id] = item
 
         resp_data = {}
-        resp_data['total'] = seller_sku_resp.get('total', 0)
+        resp_data['count'] = seller_sku_resp.get('count', 0)
         resp_data['last_id'] = seller_sku_resp.get('last_id', '')
-        resp_data['items'] = []
-        resp_items = resp_data['items']
-        for seller_item in seller_sku_resp.get('result', {}).get('items', []):
+        resp_data['results'] = []
+        resp_items = resp_data['results']
+        for seller_item in seller_sku_resp.get('items', []):
             item = {}
             seller_product_id = str(seller_item['platform_id'])
+            seller_platform_sku = str(seller_item['platform_sku'])
             item['id'] = seller_product_id
             item['platform_id'] = seller_product_id
-            item['platform_sku'] = seller_item['platform_sku']
+            item['platform_sku'] = seller_platform_sku
             item['image'] = seller_item['image']
             item['width'] = seller_item['width']
             item['height'] = seller_item['height']
@@ -144,16 +145,20 @@ class APIViewSet(viewsets.ModelViewSet):
         supplier_name = Staff.get_supplier_name(self.request.user)
         if supplier_name and shop_supplier != supplier_name:
             raise APIException({"detail": "The shop is not belong to your supplier"})
+        
+        platform_id = data.get('platform_id', '')
+        if not platform_id:
+            raise APIException({"detail": "The platform id does not exist"})
 
-        warehouse_id = data.get('warehouse', '')
-        if not warehouse_id:
-            raise APIException({"detail": "The warehouse id does not exist"})
+        goods_code = data.get('goods_code', '')
+        if not goods_code:
+            raise APIException({"detail": "The goods code does not exist"})
 
-        warehouse_obj = WarehouseModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=warehouse_id, is_delete=False).first()
-        if warehouse_obj is None:
-            raise APIException({"detail": "The warehouse does not exist"})
+        goods_obj = GoodsModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), goods_supplier=supplier_name, goods_code=goods_code, is_delete=False).first()
+        if goods_obj is None:
+            raise APIException({"detail": "The goods does not exist"})
 
-        if ListModel.objects.filter(openid=data['openid'], shop=shop_id, shopwarehouse_code=data['shopwarehouse_code'], is_delete=False).exists():
+        if ListModel.objects.filter(openid=data['openid'], shop=shop_id, platform_id=platform_id, is_delete=False).exists():
             raise APIException({"detail": "Data exists"})
         else:
             data['supplier'] = shop_supplier
@@ -181,13 +186,17 @@ class APIViewSet(viewsets.ModelViewSet):
         if supplier_name and shop_supplier != supplier_name:
             raise APIException({"detail": "The shop is not belong to your supplier"})
 
-        warehouse_id = data.get('warehouse', '')
-        if not warehouse_id:
-            raise APIException({"detail": "The warehouse id does not exist"})
+        platform_id = data.get('platform_id', '')
+        if not platform_id:
+            raise APIException({"detail": "The platform id does not exist"})
 
-        warehouse_obj = WarehouseModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=warehouse_id, is_delete=False).first()
-        if warehouse_obj is None:
-            raise APIException({"detail": "The warehouse does not exist"})
+        goods_code = data.get('goods_code', '')
+        if not goods_code:
+            raise APIException({"detail": "The goods code does not exist"})
+
+        goods_obj = GoodsModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), goods_supplier=supplier_name, goods_code=goods_code, is_delete=False).first()
+        if goods_obj is None:
+            raise APIException({"detail": "The goods does not exist"})
 
         serializer = self.get_serializer(qs, data=data)
         serializer.is_valid(raise_exception=True)
@@ -209,11 +218,13 @@ class APIViewSet(viewsets.ModelViewSet):
             if supplier_name and shop_supplier != supplier_name:
                 raise APIException({"detail": "The shop is not belong to your supplier"})
 
-        warehouse_id = data.get('warehouse', '')
-        if warehouse_id:
-            warehouse_obj = WarehouseModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=warehouse_id, is_delete=False).first()
-            if warehouse_obj is None:
-                raise APIException({"detail": "The warehouse does not exist"})
+        goods_code = data.get('goods_code', '')
+        if not goods_code:
+            raise APIException({"detail": "The goods code does not exist"})
+
+        goods_obj = GoodsModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), goods_supplier=supplier_name, goods_code=goods_code, is_delete=False).first()
+        if goods_obj is None:
+            raise APIException({"detail": "The goods does not exist"})
 
         data = self.request.data
         serializer = self.get_serializer(qs, data=data, partial=True)
@@ -233,9 +244,7 @@ class APIViewSet(viewsets.ModelViewSet):
             qs.is_delete = True
             qs.save()
             serializer = self.get_serializer(qs, many=False)
-            headers = self.get_success_headers(serializer.data)
-            return Response(serializer.data, status=200, headers=headers)
-
+            headers = self.get_success_headers(serigoods_code
 class FileDownloadView(viewsets.ModelViewSet):
     renderer_classes = (FileRenderCN,) + tuple(api_settings.DEFAULT_RENDERER_CLASSES)
     filter_backends = [DjangoFilterBackend, OrderingFilter, ]
