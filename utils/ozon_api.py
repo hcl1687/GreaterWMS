@@ -92,6 +92,7 @@ class OZON_API():
                 product_detail_dict = product_dict.get(product_id)
                 item['platform_id'] = product_id
                 item['platform_sku'] = product_detail_dict.get('fbs_sku', '')
+                item['name'] = product_detail_dict.get('name', '')
                 item['image'] = product_detail_dict.get('primary_image', '')
                 item['width'] = product_detail_dict.get('attr', {}).get('width', 0)
                 item['height'] = product_detail_dict.get('attr', {}).get('height', 0)

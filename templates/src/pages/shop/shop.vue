@@ -13,10 +13,10 @@
               <q-route-tab name="shoptype" :label="$t('shoptype.shop_type')" icon="img:statics/staff/stafftype.png" :to="{ name: 'shoptype' }" exact/>
             </transition>
             <transition v-if="$route.name === 'shopwarehouse'" appear enter-active-class="animated zoomIn">
-              <q-route-tab name="shopwarehouse" :label="$t('shopwarehouse.shop_warehouse')" icon="img:statics/staff/stafftype.png" :to="{ name: 'shopwarehouse' }" exact/>
+              <q-route-tab name="shopwarehouse" :label="$t('shopwarehouse.shop_warehouse')" icon="warehouse" :to="{ name: 'shopwarehouse' }" exact/>
             </transition>
             <transition v-if="$route.name === 'shopsku'" appear enter-active-class="animated zoomIn">
-              <q-route-tab name="shopsku" :label="$t('shopsku.shop_sku')" icon="img:statics/staff/stafftype.png" :to="{ name: 'shopsku' }" exact/>
+              <q-route-tab name="shopsku" :label="$t('shopsku.shop_sku')" icon="category" :to="{ name: 'shopsku' }" exact/>
             </transition>
           </q-tabs>
         </div>

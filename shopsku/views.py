@@ -115,9 +115,11 @@ class APIViewSet(viewsets.ModelViewSet):
             seller_product_id = str(seller_item['platform_id'])
             seller_platform_sku = str(seller_item['platform_sku'])
             item['shop_type'] = shop_obj.shop_type
+            item['shop_name'] = shop_obj.shop_name
             item['id'] = seller_product_id
             item['platform_id'] = seller_product_id
             item['platform_sku'] = seller_platform_sku
+            item['name'] = seller_item['name']
             item['image'] = seller_item['image']
             item['width'] = seller_item['width']
             item['height'] = seller_item['height']

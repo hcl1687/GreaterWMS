@@ -52,7 +52,7 @@
                 flat
                 push
                 color="purple"
-                icon="info"
+                icon="warehouse"
                 @click="showWarehouse(props.row)"
               >
                 <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ $t('shopwarehouse.shop_warehouse') }}</q-tooltip>
@@ -62,7 +62,7 @@
                 flat
                 push
                 color="purple"
-                icon="info"
+                icon="category"
                 @click="showSku(props.row)"
               >
                 <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ $t('shopsku.shop_sku') }}</q-tooltip>

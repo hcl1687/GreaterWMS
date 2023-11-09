@@ -27,7 +27,7 @@
             <q-btn :label="$t('refresh')" icon="refresh" @click="reFresh()">
               <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ $t('refreshtip') }}</q-tooltip>
             </q-btn>
-            <q-btn :label="$t('shopsku.init_bind')" icon="refresh" @click="initBind()">
+            <q-btn :label="$t('shopsku.init_bind')" icon="refresh" :disable="selected.length === 0" @click="initBind()">
               <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ $t('shopsku.init_bind_tip') }}</q-tooltip>
             </q-btn>
           </q-btn-group>
@@ -40,8 +40,15 @@
             <q-td>
               <q-checkbox v-model="props.selected" color="primary" />
             </q-td>
-            <q-td key="shop_type" :props="props">{{ props.row.shop_type }}</q-td>
-            <q-td key="id" :props="props">{{ props.row.id }}</q-td>
+            <q-td key="image" :props="props">
+              <q-img
+                :src="props.row.image"
+                spinner-color="white"
+                style="height: 140px; max-width: 150px"
+              />
+            </q-td>
+            <q-td key="name" :props="props" style="max-width: 300px; white-space: normal;">{{ props.row.name }}</q-td>
+            <q-td key="shop_name" :props="props">{{ props.row.shop_name }}</q-td>
             <q-td key="platform_sku" :props="props">{{ props.row.platform_sku }}</q-td>
             <template v-if="props.row.id === editid">
               <q-td key="goods_code" :props="props">
@@ -71,13 +78,6 @@
             <template v-else-if="props.row.id !== editid">
               <q-td key="goods_code" :props="props">{{ props.row.goods_code }}</q-td>
             </template>
-            <q-td key="image" :props="props">
-              <q-img
-                :src="props.row.image"
-                spinner-color="white"
-                style="height: 140px; max-width: 150px"
-              />
-            </q-td>
             <q-td key="width" :props="props">{{ props.row.width }}</q-td>
             <q-td key="height" :props="props">{{ props.row.height }}</q-td>
             <q-td key="depth" :props="props">{{ props.row.depth }}</q-td>
@@ -163,6 +163,7 @@
 <script>
 import { getauth, postauth, patchauth, deleteauth, getfile } from 'boot/axios_request'
 import { date, exportFile, LocalStorage } from 'quasar'
+import { generateSku } from '../../utils/index'
 
 export default {
   name: 'Pageshopwarehouse',
@@ -179,11 +180,11 @@ export default {
       goods_list: [],
       selected: [],
       columns: [
-        { name: 'shop_type', label: this.$t('shoptype.shop_type'), align: 'left', field: 'shop_type' },
-        { name: 'id', required: true, label: this.$t('shopsku.id'), align: 'center', field: 'id' },
+        { name: 'image', label: this.$t('shopsku.image'), field: 'image', align: 'center' },
+        { name: 'name', required: true, label: this.$t('shopsku.name'), align: 'center', field: 'name' },
+        { name: 'shop_name', label: this.$t('shop.shop_name'), align: 'center', field: 'shop_name' },
         { name: 'platform_sku', label: this.$t('shopsku.platform_sku'), field: 'platform_sku', align: 'center' },
         { name: 'goods_code', label: this.$t('shopsku.goods_code'), field: 'goods_code', align: 'center' },
-        { name: 'image', label: this.$t('shopsku.image'), field: 'image', align: 'center' },
         { name: 'width', label: this.$t('shopsku.width'), field: 'width', align: 'center' },
         { name: 'height', label: this.$t('shopsku.height'), field: 'height', align: 'center' },
         { name: 'depth', label: this.$t('shopsku.depth'), field: 'depth', align: 'center' },
@@ -206,7 +207,8 @@ export default {
       shop_id: '',
       options: [],
       options1: [],
-      shopDetail: {}
+      shopDetail: {},
+      supplierDetail: {}
     }
   },
   methods: {
@@ -226,6 +228,21 @@ export default {
             color: 'negative'
           })
         })
+    },
+    async getSupplierId (name) {
+      if (!name) {
+        return
+      }
+
+      if (this.supplierDetail.supplier_name === name) {
+        return this.supplierDetail.id
+      }
+      const res = await getauth(`supplier/?supplier_name__exact=${name}`, {})
+      if (res && res.results && res.results.length > 0) {
+        return res.results[0].id || ''
+      }
+
+      return ''
     },
     getList (direction) {
       var _this = this
@@ -406,6 +423,85 @@ export default {
         this.options = this.options1
       })
     },
+    async initBind () {
+      const selected = this.selected
+      if (selected.length === 0) {
+        return
+      }
+
+      if (!this.shopDetail.supplier) {
+        this.$q.notify({
+          message: this.$t('shopsku.no_supplier_name'),
+          icon: 'close',
+          color: 'negative'
+        })
+        return
+      }
+
+      const supplier_id = await this.getSupplierId(this.shopDetail.supplier)
+      if (!supplier_id) {
+        this.$q.notify({
+          message: this.$t('shopsku.supplier_notfound'),
+          icon: 'close',
+          color: 'negative'
+        })
+        return
+      }
+
+      try {
+        for (let i = 0; i < selected.length; i++) {
+          const item = selected[i]
+          if (item.goods_code) {
+            continue
+          }
+
+          const goods_code = generateSku(supplier_id)
+          const data = {
+            creater: this.login_name,
+            goods_brand: '-',
+            goods_class: '-',
+            goods_code,
+            goods_color: '-',
+            goods_cost: 0,
+            goods_d: item['depth'],
+            goods_desc: item['name'],
+            goods_h: item['height'],
+            goods_origin: '-',
+            goods_price: 0,
+            goods_shape: '-',
+            goods_specs: '-',
+            goods_supplier: this.shopDetail.supplier,
+            goods_unit: '-',
+            goods_w: item['width'],
+            goods_weight: item['weight']
+          }
+          await postauth('goods/', data)
+
+          // bind
+          const shopskuData = {
+            shop: +this.shop_id,
+            platform_id: item.platform_id,
+            platform_sku: item.platform_sku,
+            goods_code
+          }
+          await postauth(this.pathname, shopskuData)
+        }
+
+        this.$q.notify({
+          message: this.$t('success_bind_sku'),
+          icon: 'check',
+          color: 'green'
+        })
+      } catch (e) {
+        this.$q.notify({
+          message: e.message,
+          icon: 'close',
+          color: 'negative'
+        })
+      } finally {
+        this.getList()
+      }
+    }
   },
   created () {
     var _this = this
