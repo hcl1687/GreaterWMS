@@ -1162,7 +1162,7 @@ export default {
   },
   mounted () {
     var _this = this
-    _this.warehouseOptionsGet()
+    // _this.warehouseOptionsGet()
     _this.link = localStorage.getItem('menulink')
     Bus.$on('needLogin', (val) => {
       _this.isLoggedIn()

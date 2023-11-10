@@ -40,7 +40,7 @@
             <q-td>
               <q-checkbox v-model="props.selected" color="primary" />
             </q-td>
-            <q-td key="image" :props="props">
+            <q-td key="image" :props="props" style="width: 150px;">
               <q-img
                 :src="props.row.image"
                 spinner-color="white"
