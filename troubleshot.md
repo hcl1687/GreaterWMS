@@ -60,6 +60,11 @@ location /media/ {
 }
 ```
 
+## deploy
+```bash
+docker-compose up -d
+```
+
 ## install djangorestframework-simplejwt
 ```bash
 pip3 install --upgrade djangorestframework-simplejwt
@@ -72,16 +77,32 @@ python manage.py migrate
 python manage.py createsuperuser
 ```
 
-- Run Backend:
-```shell
+## Run Backend:
+```bash
 cd GreaterWMS
 daphne -p 8008 greaterwms.asgi:application
 or
 daphne -b 0.0.0.0 -p 8008 greaterwms.asgi:application # lan
 ```
 
-- Run Frontend:
-```shell
+## Run Frontend:
+```bash
 cd templates
 quasar d
+```
+
+## uninstall docker-compose
+```bash
+cd GreaterWMS
+docker-compose stop
+docker-compose rm
+docker rmi backend-image-id
+docker rmi frondend-image-id
+```
+
+## post install
+```bash
+cd /usr/local/lib/python3.8/site-packages/asgihandler
+vim handler.py
+# replace url with 'your ip/'
 ```
