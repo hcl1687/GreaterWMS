@@ -487,7 +487,7 @@
             /></q-item-section>
             <q-item-section>{{ $t("menuItem.downloadcenter") }}</q-item-section>
           </q-item>
-          <q-separator/>
+          <!-- <q-separator/>
           <q-item
             clickable
             v-if="!isSupplier()"
@@ -502,7 +502,7 @@
               <q-icon name="warehouse"/>
             </q-item-section>
             <q-item-section>{{ $t("menuItem.cloudwarehouse") }}</q-item-section>
-          </q-item>
+          </q-item> -->
         </q-list>
       </q-scroll-area>
     </q-drawer>
