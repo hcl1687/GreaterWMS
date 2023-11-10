@@ -165,6 +165,103 @@ def register(request, *args, **kwargs):
                             data['access_token'] = str(refresh.access_token)
 
                             ret['data'] = data
+
+                            if data.get('staff_type') is None or data.get('openid') is None:
+                                # it's admin
+                                from binsize.models import ListModel as binsize
+                                binsize_data_list = [
+                                    binsize(openid=transaction_code,
+                                            bin_size='-',
+                                            bin_size_w=0,
+                                            bin_size_d=0,
+                                            bin_size_h=0,
+                                            creater=str(data['name'])
+                                            ),
+                                ]
+                                binsize.objects.bulk_create(binsize_data_list, batch_size=100)
+                                from binset.models import ListModel as binset
+                                bar_code1 = Md5.md5('BSI1')
+                                bar_code2 = Md5.md5('BSH1')
+                                bar_code3 = Md5.md5('BSD1')
+                                binset_data_list = [
+                                    binset(openid=transaction_code,
+                                        bin_name='BSI1',
+                                        bin_size='-',
+                                        bin_property="Inspection",
+                                        empty_label=True,
+                                        creater=str(data['name']),
+                                        bar_code=bar_code1
+                                        ),
+                                    binset(openid=transaction_code,
+                                        bin_name='BSH1',
+                                        bin_size='-',
+                                        bin_property="Holding",
+                                        empty_label=True,
+                                        creater=str(data['name']),
+                                        bar_code=bar_code2
+                                        ),
+                                    binset(openid=transaction_code,
+                                        bin_name='BSD1',
+                                        bin_size='-',
+                                        bin_property="Damage",
+                                        empty_label=True,
+                                        creater=str(data['name']),
+                                        bar_code=bar_code3
+                                        ),
+                                ]
+                                scanner.objects.create(openid=transaction_code, mode="BINSET",
+                                                    code='BSI1',
+                                                    bar_code=bar_code1)
+                                scanner.objects.create(openid=transaction_code, mode="BINSET",
+                                                    code='BSH1',
+                                                    bar_code=bar_code2)
+                                scanner.objects.create(openid=transaction_code, mode="BINSET",
+                                                    code='BSD1',
+                                                    bar_code=bar_code3)
+                                binset.objects.bulk_create(binset_data_list, batch_size=100)
+
+                                from goodsunit.models import ListModel as goodsunit
+                                demo_data = []
+                                demo_data.append(goodsunit(openid=transaction_code, goods_unit='-',
+                                                        creater=str(data['name'])))
+                                goodsunit.objects.bulk_create(demo_data, batch_size=100)
+                                from goodsclass.models import ListModel as goodsclass
+                                demo_data = []
+                                demo_data.append(goodsclass(openid=transaction_code, goods_class='-',
+                                                            creater=str(data['name'])))
+                                goodsclass.objects.bulk_create(demo_data, batch_size=100)
+                                from goodscolor.models import ListModel as goodscolor
+                                demo_data = []
+                                demo_data.append(goodscolor(openid=transaction_code, goods_color='-',
+                                                            creater=str(data['name'])))
+                                goodscolor.objects.bulk_create(demo_data, batch_size=100)
+                                from goodsbrand.models import ListModel as goodsbrand
+                                goodsbrand_data_list = []
+                                demo_data = goodsbrand(openid=transaction_code,
+                                                    goods_brand='-',
+                                                    creater=str(data['name'])
+                                                    )
+                                goodsbrand_data_list.append(demo_data)
+                                goodsbrand.objects.bulk_create(goodsbrand_data_list, batch_size=100)
+                                from goodsshape.models import ListModel as goodsshape
+                                demo_data = []
+                                demo_data.append(goodsshape(openid=transaction_code, goods_shape='-',
+                                                            creater=str(data['name'])))
+                                goodsshape.objects.bulk_create(demo_data, batch_size=100)
+                                from goodsspecs.models import ListModel as goodsspecs
+                                demo_data = []
+                                demo_data.append(goodsspecs(openid=transaction_code, goods_specs='-',
+                                                            creater=str(data['name'])))
+                                goodsspecs.objects.bulk_create(demo_data, batch_size=100)
+                                from goodsorigin.models import ListModel as goodsorigin
+                                goodsorigin_data_list = []
+                                demo_data = goodsorigin(openid=transaction_code,
+                                                        goods_origin='-',
+                                                        creater=str(data['name'])
+                                                        )
+                                goodsorigin_data_list.append(demo_data)
+                                goodsorigin.objects.bulk_create(goodsorigin_data_list, batch_size=100)
+
                             # from company.models import ListModel as company
                             # company.objects.create(openid=transaction_code,
                             #                        company_name='GreaterWMS',
