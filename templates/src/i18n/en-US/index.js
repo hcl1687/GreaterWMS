@@ -687,5 +687,20 @@ export default {
     id: 'ID',
     name: 'Name',
     sys_name: 'System Warehouse'
+  },
+  shopsku: {
+    shop_sku: 'Shop SKU',
+    init_bind: 'Init Bind',
+    init_bind_tip: 'Create new goods and then bind it',
+    image: 'Image',
+    name: 'Name',
+    platform_sku: 'Platform SKU',
+    goods_code: 'Goods Code',
+    no_supplier_name: 'No supplier name',
+    supplier_notfound: 'Supplier not found',
+    previous: 'Previous',
+    next: 'Next',
+    previous_tip: 'Go to previous page',
+    next_tip: 'Go to next page'
   }
 }

@@ -27,7 +27,7 @@
             <q-btn :label="$t('refresh')" icon="refresh" @click="reFresh()">
               <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ $t('refreshtip') }}</q-tooltip>
             </q-btn>
-            <q-btn :label="$t('shopsku.init_bind')" icon="refresh" :disable="selected.length === 0" @click="initBind()">
+            <q-btn :label="$t('shopsku.init_bind')" icon="link" :disable="selected.length === 0" @click="initBind()">
               <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ $t('shopsku.init_bind_tip') }}</q-tooltip>
             </q-btn>
           </q-btn-group>
@@ -163,7 +163,6 @@
 <script>
 import { getauth, postauth, patchauth, deleteauth, getfile } from 'boot/axios_request'
 import { date, exportFile, LocalStorage } from 'quasar'
-import { generateSku } from '../../utils/index'
 
 export default {
   name: 'Pageshopwarehouse',
@@ -185,10 +184,10 @@ export default {
         { name: 'shop_name', label: this.$t('shop.shop_name'), align: 'center', field: 'shop_name' },
         { name: 'platform_sku', label: this.$t('shopsku.platform_sku'), field: 'platform_sku', align: 'center' },
         { name: 'goods_code', label: this.$t('shopsku.goods_code'), field: 'goods_code', align: 'center' },
-        { name: 'width', label: this.$t('shopsku.width'), field: 'width', align: 'center' },
-        { name: 'height', label: this.$t('shopsku.height'), field: 'height', align: 'center' },
-        { name: 'depth', label: this.$t('shopsku.depth'), field: 'depth', align: 'center' },
-        { name: 'weight', label: this.$t('shopsku.weight'), field: 'weight', align: 'center' },
+        { name: 'width', label: this.$t('goods.view_goodslist.goods_w'), field: 'width', align: 'center' },
+        { name: 'height', label: this.$t('goods.view_goodslist.goods_h'), field: 'height', align: 'center' },
+        { name: 'depth', label: this.$t('goods.view_goodslist.goods_d'), field: 'depth', align: 'center' },
+        { name: 'weight', label: this.$t('goods.view_goodslist.goods_weight'), field: 'weight', align: 'center' },
         { name: 'action', label: this.$t('action'), align: 'center' }
       ],
       pagination: {
@@ -455,12 +454,11 @@ export default {
             continue
           }
 
-          const goods_code = generateSku(supplier_id)
           const data = {
             creater: this.login_name,
             goods_brand: '-',
             goods_class: '-',
-            goods_code,
+            goods_code: '',
             goods_color: '-',
             goods_cost: 0,
             goods_d: item['depth'],
@@ -475,14 +473,14 @@ export default {
             goods_w: item['width'],
             goods_weight: item['weight']
           }
-          await postauth('goods/', data)
+          const res = await postauth('goods/', data)
 
           // bind
           const shopskuData = {
             shop: +this.shop_id,
             platform_id: item.platform_id,
             platform_sku: item.platform_sku,
-            goods_code
+            goods_code: res.goods_code
           }
           await postauth(this.pathname, shopskuData)
         }

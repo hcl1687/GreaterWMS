@@ -688,5 +688,20 @@ export default {
     id: '平台仓库ID',
     name: '平台仓库',
     sys_name: '系统仓库'
+  },
+  shopsku: {
+    shop_sku: '店铺SKU',
+    init_bind: '初始绑定',
+    init_bind_tip: '创建新商品后再绑定',
+    image: '图片',
+    name: '名字',
+    platform_sku: '平台SKU',
+    goods_code: '系统SKU',
+    no_supplier_name: '没有供应商名字',
+    supplier_notfound: '供应商未找到',
+    previous: '前一页',
+    next: '下一页',
+    previous_tip: '跳转前一页',
+    next_tip: '跳转下一页'
   }
 }

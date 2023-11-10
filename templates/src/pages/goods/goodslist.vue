@@ -35,22 +35,7 @@
         </template>
         <template v-slot:body="props">
           <q-tr :props="props">
-            <template v-if="props.row.id === editid">
-              <q-td key="goods_code" :props="props">
-                <q-input
-                  dense
-                  outlined
-                  square
-                  v-model="editFormData.goods_code"
-                  :label="$t('goods.view_goodslist.goods_code')"
-                  autofocus
-                  :rules="[val => (val && val.length > 0) || error1]"
-                />
-              </q-td>
-            </template>
-            <template v-else-if="props.row.id !== editid">
-              <q-td key="goods_code" :props="props">{{ props.row.goods_code }}</q-td>
-            </template>
+            <q-td key="goods_code" :props="props">{{ props.row.goods_code }}</q-td>
             <template v-if="props.row.id === editid">
               <q-td key="goods_desc" :props="props">
                 <q-input
@@ -383,7 +368,7 @@
           </q-btn>
         </q-bar>
         <q-card-section style="max-height: 325px; width: 400px" class="scroll">
-          <q-input
+          <!-- <q-input
             dense
             outlined
             square
@@ -392,7 +377,7 @@
             autofocus
             :rules="[val => (val && val.length > 0) || error1]"
             @keyup.enter="newDataSubmit()"
-          />
+          /> -->
           <q-input
             dense
             outlined
@@ -863,7 +848,7 @@ export default {
       _this.table_list.forEach(i => {
         goodscodes.push(i.goods_code)
       })
-      if (goodscodes.indexOf(_this.newFormData.goods_code) === -1 && _this.newFormData.goods_code.length !== 0) {
+      if (goodscodes.indexOf(_this.newFormData.goods_code) === -1) {
         _this.newFormData.creater = _this.login_name
         postauth(_this.pathname, _this.newFormData)
           .then(res => {
@@ -887,12 +872,6 @@ export default {
       } else if (goodscodes.indexOf(_this.newFormData.goods_code) !== -1) {
         _this.$q.notify({
           message: _this.$t('notice.goodserror.goods_listerror'),
-          icon: 'close',
-          color: 'negative'
-        })
-      } else if (_this.newFormData.goods_code.length === 0) {
-        _this.$q.notify({
-          message: _this.$t('goods.view_goodslist.error1'),
           icon: 'close',
           color: 'negative'
         })

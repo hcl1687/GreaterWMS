@@ -25,6 +25,7 @@ from asn.models import AsnDetailModel
 from django.db.models import Q
 from rest_framework import permissions
 from utils.staff import Staff
+from django.utils import timezone
 
 class SannerGoodsTagView(viewsets.ModelViewSet):
 
@@ -179,6 +180,21 @@ class APIViewSet(viewsets.ModelViewSet):
         data['openid'] = self.request.META.get('HTTP_TOKEN')
         data['unit_volume'] = round(
             (float(data['goods_w']) * float(data['goods_d']) * float(data['goods_h'])) / 1000000000, 4)
+        
+        custom_goods_code = data.get('goods_code', '')
+        if not custom_goods_code:
+            qs_set = ListModel.objects.filter(openid=data['openid'])
+            order_day =str(timezone.now().strftime('%Y%m%d'))
+            if len(qs_set) > 0:
+                gc_last_code = qs_set.order_by('-id').first().goods_code
+                if str(gc_last_code[2:10]) == order_day:
+                    order_create_no = str(int(gc_last_code[10:]) + 1)
+                    data['goods_code'] = 'GC' + order_day + order_create_no
+                else:
+                    data['goods_code'] = 'GC' + order_day + '1'
+            else:
+                data['goods_code'] = 'GC' + order_day + '1'
+
         if ListModel.objects.filter(openid=data['openid'], goods_code=data['goods_code'], is_delete=False).exists():
             raise APIException({"detail": "Data Exists"})
         else:
