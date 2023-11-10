@@ -21,7 +21,7 @@
           }}</q-toolbar-title>
         </transition>
         <q-space />
-        <transition appear enter-active-class="animated zoomIn">
+        <!-- <transition appear enter-active-class="animated zoomIn">
           <q-btn
             v-show="lang !== 'zh-hans'"
             icon="img:statics/icons/IOS.png"
@@ -151,7 +151,7 @@
               </q-list>
             </q-menu>
           </q-btn>
-        </transition>
+        </transition> -->
         <transition appear enter-active-class="animated zoomIn">
           <q-btn
             round
