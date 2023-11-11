@@ -216,7 +216,7 @@ export default {
         return
       }
 
-      getauth(`shop/${shop_id}?`, {})
+      getauth(`shop/${shop_id}/?`, {})
         .then(res => {
           this.shopDetail = res
         })
