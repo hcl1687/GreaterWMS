@@ -13,5 +13,4 @@ bfg.jar
 greaterwms_server_access.log
 templates/web_start.sh
 templates/dist/
-templates/public/statics/baseurl.txt
 env/
