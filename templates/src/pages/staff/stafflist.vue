@@ -19,13 +19,13 @@
       >
         <template v-slot:top>
           <q-btn-group push>
-            <q-btn
+            <!-- <q-btn
               :label="$t('new')"
               icon="add"
               @click="newForm = true"
             >
               <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ $t('newtip') }}</q-tooltip>
-            </q-btn>
+            </q-btn> -->
             <q-btn :label="$t('refresh')" icon="refresh" @click="reFresh()">
               <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ $t('refreshtip') }}</q-tooltip>
             </q-btn>

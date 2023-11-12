@@ -62,7 +62,7 @@
                {{ props.row.update_time }}
              </q-td>
              <q-td key="action" :props="props" style="width: 50px">
-               <q-btn round flat push color="purple" icon="move_to_inbox" @click="MoveToBin(props.row)">
+               <q-btn round flat push color="purple" icon="move_to_inbox" :disable="isSupplier()" @click="MoveToBin(props.row)">
                  <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">
                    {{ $t('putaway') }}
                 </q-tooltip>
@@ -154,7 +154,7 @@
 
 <script>
 import { getauth, postauth } from 'boot/axios_request'
-import { SessionStorage } from 'quasar'
+import { SessionStorage, LocalStorage } from 'quasar'
 
 export default {
   name: 'Pagesorted',
@@ -371,7 +371,10 @@ export default {
           })
         })
       })
-    }
+    },
+    isSupplier () {
+      return LocalStorage.getItem('staff_type') === 'Supplier'
+    },
   },
   created () {
     var _this = this

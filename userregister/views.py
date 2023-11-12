@@ -101,7 +101,8 @@ def register(request, *args, **kwargs):
                             err_password_not_same['data'] = data['name']
                             return JsonResponse(err_password_not_same)
                         else:
-                            if data.get('staff_type') is None or data.get('openid') is None:
+                            if data.get('staff_type') is None and data.get('openid') is None:
+                                # create admin
                                 transaction_code = Md5.md5(data['name'])
                                 user = User.objects.create_user(username=str(data['name']),
                                                                 password=str(data['password1']))
@@ -124,7 +125,8 @@ def register(request, *args, **kwargs):
                                     os.makedirs(os.path.join(settings.BASE_DIR, 'media/' + transaction_code + "/linux"))
                                     os.makedirs(os.path.join(settings.BASE_DIR, 'media/' + transaction_code + "/darwin"))
                                 data['openid'] = transaction_code
-                            else:
+                            elif data.get('staff_type') and data.get('openid'):
+                                # create supplier
                                 if not StaffType.is_valid(str(data['staff_type'])):
                                     err_invalid_staff_type = FBMsg.err_invalid_staff_type()
                                     err_invalid_staff_type['ip'] = ip
@@ -146,13 +148,19 @@ def register(request, *args, **kwargs):
                                     user_id = staff.objects.filter(openid=str(data['openid']), staff_name=str(data['name']),
                                                         staff_type=str(data['staff_type']), check_code=check_code).first().id
                                     supplier.objects.create(openid=str(data['openid']),
-                                                            supplier_name='',
+                                                            supplier_name='S'+str(user_id),
                                                             supplier_city='',
                                                             supplier_address='',
                                                             supplier_contact='',
                                                             supplier_manager=str(data['name']),
                                                             creater=str(data['name'])
                                                             )
+                            else:
+                                err_no_openid_or_staff_type = FBMsg.err_no_openid_or_staff_type()
+                                err_no_openid_or_staff_type['ip'] = ip
+                                err_no_openid_or_staff_type['data'] = data['name']
+                                return JsonResponse(err_no_openid_or_staff_type)
+
                             ret = FBMsg.ret()
                             ret['ip'] = ip
                             data['name'] = str(data['name'])
@@ -166,7 +174,7 @@ def register(request, *args, **kwargs):
 
                             ret['data'] = data
 
-                            if data.get('staff_type') is None or data.get('openid') is None:
+                            if data.get('staff_type') is None and data.get('openid') is None:
                                 # it's admin
                                 from binsize.models import ListModel as binsize
                                 binsize_data_list = [

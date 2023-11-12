@@ -69,6 +69,7 @@
                 push
                 color="positive"
                 icon="img:statics/inbound/preloadstock.png"
+                :disable="isSupplier()"
                 @click="preloadData(props.row)"
               >
                 <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ $t('confirmdelivery') }}</q-tooltip>
@@ -79,6 +80,7 @@
                 push
                 color="positive"
                 icon="img:statics/inbound/presortstock.png"
+                :disable="isSupplier()"
                 @click="presortData(props.row)"
               >
                 <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ $t('finishloading') }}</q-tooltip>
@@ -89,6 +91,7 @@
                 push
                 color="purple"
                 icon="img:statics/inbound/sortstock.png"
+                :disable="isSupplier()"
                 @click="sortedData(props.row)"
               >
                 <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ $t('confirmsorted') }}</q-tooltip>
@@ -1420,7 +1423,10 @@ export default {
           })
         _this.viewForm = true
       })
-    }
+    },
+    isSupplier () {
+      return LocalStorage.getItem('staff_type') === 'Supplier'
+    },
   },
   created () {
     var _this = this
