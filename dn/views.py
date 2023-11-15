@@ -583,6 +583,7 @@ class DnNewOrderViewSet(viewsets.ModelViewSet):
                                                                     goods_code=str(
                                                                         dn_detail_list[i].goods_code)).first()
                         # Todo: If this dn has platform order, move stock from lock bin to normal bin.
+                        # Delete lock bin and save new normal bin id to shoporder
                         goods_qty_change.can_order_stock = goods_qty_change.can_order_stock - dn_detail_list[i].goods_qty
                         goods_qty_change.ordered_stock = goods_qty_change.ordered_stock + dn_detail_list[i].goods_qty
                         goods_qty_change.dn_stock = goods_qty_change.dn_stock - dn_detail_list[i].goods_qty
