@@ -582,6 +582,7 @@ class DnNewOrderViewSet(viewsets.ModelViewSet):
                         goods_qty_change = stocklist.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                                     goods_code=str(
                                                                         dn_detail_list[i].goods_code)).first()
+                        # Todo: If this dn has platform order, move stock from lock bin to normal bin.
                         goods_qty_change.can_order_stock = goods_qty_change.can_order_stock - dn_detail_list[i].goods_qty
                         goods_qty_change.ordered_stock = goods_qty_change.ordered_stock + dn_detail_list[i].goods_qty
                         goods_qty_change.dn_stock = goods_qty_change.dn_stock - dn_detail_list[i].goods_qty
@@ -1115,6 +1116,7 @@ class DnOrderReleaseViewSet(viewsets.ModelViewSet):
                     goods_qty_change = stocklist.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                                 goods_code=str(
                                                                     dn_detail_list[i].goods_code)).first()
+                    # Todo: if this dn has platform order, get the specific normal goods bin.
                     goods_bin_stock_list = stockbin.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                                    goods_code=str(dn_detail_list[i].goods_code),
                                                                    bin_property="Normal").order_by('id')
@@ -1646,6 +1648,7 @@ class DnPickedViewSet(viewsets.ModelViewSet):
                                                          dn_code=str(data['dn_code']),
                                                          customer=str(data['customer']),
                                                          goods_code=str(data['goodsData'][j].get('goods_code'))).first()
+                # Todo: if this dn has platform order, get the specific stock bin.
                 bin_qty_change = stockbin.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                          t_code=str(data['goodsData'][j].get('t_code'))).first()
                 pick_qty_change = PickingListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
@@ -1873,6 +1876,7 @@ class DnDispatchViewSet(viewsets.ModelViewSet):
                     if goods_qty_change.goods_qty == 0 and goods_qty_change.back_order_stock == 0:
                         goods_qty_change.delete()
                 for j in range(len(pick_qty_change)):
+                    # Todo: if this dn has platform order, get the specific stock bin.
                     bin_qty_change = stockbin.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                              goods_code=pick_qty_change[j].goods_code,
                                                              bin_name=pick_qty_change[j].bin_name,
