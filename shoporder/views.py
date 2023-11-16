@@ -16,6 +16,10 @@ from goods.models import ListModel as GoodsModel
 from .files import FileRenderCN, FileRenderEN
 from rest_framework.settings import api_settings
 from django.http import StreamingHttpResponse
+from shopwarehouse.models import ListModel as ShopwarehouseModal
+import json
+from shopsku.models import ListModel as ShopskuModel
+from stock.models import StockListModel, StockBinModel
 
 class APIViewSet(viewsets.ModelViewSet):
     """
@@ -51,17 +55,16 @@ class APIViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         id = self.get_project()
-        shop_id = str(self.request.GET.get('shop_id') or self.request.data.get('shop'))
         if self.request.user:
             supplier_name = Staff.get_supplier_name(self.request.user)
             if supplier_name:
                 if id is None:
-                    return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), supplier=supplier_name, shop_id=shop_id, is_delete=False)
+                    return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), supplier=supplier_name, is_delete=False)
                 else:
                     return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), supplier=supplier_name, id=id, is_delete=False)
             else:
                 if id is None:
-                    return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), shop_id=shop_id, is_delete=False)
+                    return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), is_delete=False)
                 else:
                     return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=id, is_delete=False)
         else:
@@ -79,90 +82,32 @@ class APIViewSet(viewsets.ModelViewSet):
         else:
             return self.http_method_not_allowed(request=self.request)
 
-    def list(self, request, *args, **kwargs):
-        shop_id = str(request.GET.get('shop_id'))
-        if not shop_id:
-            raise APIException({"detail": "The shop id does not exist"})
-        
-        shop_obj = ShopModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=shop_id).first()
-        if shop_obj is None:
-            raise APIException({"detail": "The shop does not exist"})
-
-        seller_api = SELLER_API(shop_id)
-        seller_sku_resp = seller_api.getProducts({
-            'last_id': request.GET.get('last_id', ''),
-            'limit': 30
-        })
-        shopsku_data = [
-            ShopskuGetSerializer(instance).data
-            for instance in self.get_queryset()
-        ]
-
-        new_dict = {}
-        for item in shopsku_data:
-            id = item['platform_id']
-            new_dict[id] = item
-
-        resp_data = {}
-        resp_data['previous'] = None
-        resp_data['next'] = None
-        resp_data['count'] = seller_sku_resp.get('count', 0)
-        resp_data['last_id'] = seller_sku_resp.get('last_id', '')
-        resp_data['results'] = []
-        resp_items = resp_data['results']
-        for seller_item in seller_sku_resp.get('items', []):
-            item = {}
-            seller_product_id = str(seller_item['platform_id'])
-            seller_platform_sku = str(seller_item['platform_sku'])
-            item['shop_type'] = shop_obj.shop_type
-            item['shop_name'] = shop_obj.shop_name
-            item['id'] = seller_product_id
-            item['platform_id'] = seller_product_id
-            item['platform_sku'] = seller_platform_sku
-            item['name'] = seller_item['name']
-            item['image'] = seller_item['image']
-            item['width'] = seller_item['width']
-            item['height'] = seller_item['height']
-            item['depth'] = seller_item['depth']
-            item['weight'] = seller_item['weight']
-            if seller_product_id in new_dict:
-                sys_item = new_dict[seller_product_id]
-                item['sys_id'] = sys_item['id']
-                item['goods_code'] = sys_item['goods_code']
-
-            resp_items.append(item)
-
-        return Response(resp_data, status=200)
-
     def create(self, request, *args, **kwargs):
         data = self.request.data
         data['openid'] = self.request.META.get('HTTP_TOKEN')
 
-        shop_id = data.get('shop', '')
+        shop_id = data.get('shop_id', '')
         if not shop_id:
             raise APIException({"detail": "The shop id does not exist"})
         
         shop_obj = ShopModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=shop_id, is_delete=False).first()
         if shop_obj is None:
             raise APIException({"detail": "The shop does not exist"})
+        
+        platform_warehouse_id = data.get('platform_warehouse_id', '')
+        if not platform_warehouse_id:
+            raise APIException({"detail": "The platform_warehouse_id does not exist"})
+
+        platform_warehouse_obj = ShopwarehouseModal.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), shop_id=shop_id, platform_id=platform_warehouse_id, is_delete=False).first()
+        if platform_warehouse_obj is None:
+            raise APIException({"detail": "The platform warehouse does not exist"})
 
         shop_supplier = shop_obj.supplier
         supplier_name = Staff.get_supplier_name(self.request.user)
         if supplier_name and shop_supplier != supplier_name:
             raise APIException({"detail": "The shop is not belong to your supplier"})
-        
+
         platform_id = data.get('platform_id', '')
-        if not platform_id:
-            raise APIException({"detail": "The platform id does not exist"})
-
-        goods_code = data.get('goods_code', '')
-        if not goods_code:
-            raise APIException({"detail": "The goods code does not exist"})
-
-        goods_obj = GoodsModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), goods_supplier=shop_supplier, goods_code=goods_code, is_delete=False).first()
-        if goods_obj is None:
-            raise APIException({"detail": "The goods does not exist"})
-
         if ListModel.objects.filter(openid=data['openid'], shop=shop_id, platform_id=platform_id, is_delete=False).exists():
             raise APIException({"detail": "Data exists"})
         else:
@@ -170,6 +115,42 @@ class APIViewSet(viewsets.ModelViewSet):
             data['creater'] = self.request.user.username
             serializer = self.get_serializer(data=data)
             serializer.is_valid(raise_exception=True)
+
+            # lock stock
+            try:
+                order_data = json.load(data.get('order_data', ''))
+            except json.JSONDecodeError:
+                raise APIException({"detail": "order_data decode error"})
+
+            # search goods_code
+            # check all products have stock
+            # collect available binset
+            stockbin_data = []
+            for item in order_data.get('products', []):
+                sku = item['sku']
+                shopsku_obj = ShopskuModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), shop_id=shop_id, goods_supplier=shop_supplier, platform_sku=sku, is_delete=False).first()
+                if shopsku_obj is None:
+                    raise APIException({"detail": "No goods_code for {}".format(sku)})
+
+                goods_code = shopsku_obj.goods_code
+                # chedk stock
+                goods_qty_change = StockListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
+                                                            goods_code=goods_code).first()
+                if goods_qty_change is None:
+                    raise APIException({"detail": "No stock for {}".format(sku)})
+                if goods_qty_change.can_order_stock < int(item.quantity):
+                    raise APIException({"detail": "No enough stock for {}".format(sku)})
+                # find available stock bin
+                goods_bin_stock_list = StockBinModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
+                                                               goods_code=goods_code,
+                                                               bin_property="Normal").order_by('id')
+                
+
+
+
+            for item in order_data.get('products', []):
+                # move to hold binset
+
             serializer.save()
             headers = self.get_success_headers(serializer.data)
             return Response(serializer.data, status=200, headers=headers)

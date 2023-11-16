@@ -9,6 +9,7 @@ def file_headers():
         'dn_code',
         'status',
         'order_data',
+        'order_time',
         'supplier',
         'create_time',
         'update_time'
@@ -21,8 +22,9 @@ def cn_data_header():
         ('platform_id', u'平台订单ID'),
         ('platform_warehouse_id', u'平台仓库ID'),
         ('dn_code', u'发货单单号'),
-        ('order_data', u'订单信息'),
         ('status', u'状态'),
+        ('order_data', u'订单信息'),
+        ('order_time', u'平台订单创建时间'),
         ('supplier', u'供应商'),
         ('create_time', u'创建时间'),
         ('update_time', u'更新时间')
@@ -35,8 +37,9 @@ def en_data_header():
         ('platform_id', u'Platform ID'),
         ('platform_warehouse_id', u'Platform Warehouse ID'),
         ('dn_code', u' DN Code'),
-        ('order_data', u'Order Data'),
         ('status', u'Status'),
+        ('order_data', u'Order Data'),
+        ('order_time', u'Platform Order Time'),
         ('supplier', u'Supplier'),
         ('create_time', u'Create Time'),
         ('update_time', u'Update Time')

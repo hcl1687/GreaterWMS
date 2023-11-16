@@ -7,8 +7,10 @@ class ListModel(models.Model):
     platform_warehouse_id = models.CharField(max_length=255, verbose_name="Platform Warehouse ID")
     dn_code = models.CharField(max_length=255, verbose_name="DN Code")
     order_data = models.CharField(max_length=8192, verbose_name="Order Data")
+    order_time = models.DateTimeField(auto_now=False, blank=False, null=False, verbose_name="Order Time")
     status = models.BigIntegerField(default=1, verbose_name="Status")
     shop = models.ForeignKey(ShopModel, on_delete=models.CASCADE, related_name='shopsku')
+    source_stockbin = models.ForeignKey(StockBinModel, on_delete=models.CASCADE, related_name='source_stockbin')
     stockbin = models.ForeignKey(StockBinModel, on_delete=models.CASCADE, related_name='stockbin')
     supplier = models.CharField(max_length=255, verbose_name="Supplier")
     openid = models.CharField(max_length=255, verbose_name="Openid")
@@ -21,4 +23,4 @@ class ListModel(models.Model):
         db_table = 'shoporder'
         verbose_name = 'Shop Order'
         verbose_name_plural = "Shop Order"
-        ordering = ['platform_id']
+        ordering = ['id']
