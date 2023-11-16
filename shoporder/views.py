@@ -20,6 +20,10 @@ from shopwarehouse.models import ListModel as ShopwarehouseModal
 import json
 from shopsku.models import ListModel as ShopskuModel
 from stock.models import StockListModel, StockBinModel
+from rest_framework.request import Request as DRFRequest
+from django.conf import settings
+from django.http import HttpRequest
+from stock.views import StockBinViewSet
 
 class APIViewSet(viewsets.ModelViewSet):
     """
@@ -144,13 +148,64 @@ class APIViewSet(viewsets.ModelViewSet):
                 goods_bin_stock_list = StockBinModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                                goods_code=goods_code,
                                                                bin_property="Normal").order_by('id')
-                
+                can_pick_qty = goods_qty_change.onhand_stock - \
+                                   goods_qty_change.inspect_stock - \
+                                   goods_qty_change.hold_stock - \
+                                   goods_qty_change.damage_stock - \
+                                   goods_qty_change.pick_stock
+                if can_pick_qty > 0 and int(item.quantity) <= can_pick_qty:
+                    for j in range(len(goods_bin_stock_list)):
+                        bin_can_pick_qty = goods_bin_stock_list[j].goods_qty - \
+                                                   goods_bin_stock_list[j].pick_qty
+                        if bin_can_pick_qty > 0 and  int(item.quantity) <= bin_can_pick_qty:
+                            stockbin_data_item = {
+                                'source_id': goods_bin_stock_list[j].id,
+                                'source_bin_name': goods_bin_stock_list[j].bin_name
+                            }
+                            stockbin_data.append(stockbin_data_item)
+                            break
+                else:
+                    raise APIException({"detail": "No enough pick stock for {}".format(sku)})
 
+            # move to hold binset
+            for i in range(order_data.get('products', [])):
+                item = order_data[i]
+                stockbin_data_item = stockbin_data[i]
+                request = HttpRequest()
+                request.method = 'POST'
+                request.path = 'stock/bin/{}/'.format(item['source_id'])
+                request.body = json.dump({
+                    'bin_name': stockbin_data_item['source_bin_name'],
+                    'move_to_bin': 'BSH1',
+                    'goods_code': goods_code,
+                    'move_qty': int(item.quantity)
+                })
+                request.META = {
+                    'SERVER_NAME': settings.INNER_URL[0],
+                    'SERVER_PORT': settings.INNER_URL[1],
+                    'CONTENT_TYPE': 'application/json',
+                    'HTTP_TOKEN': self.request.META.get('HTTP_TOKEN')
+                }
+                drf_request = DRFRequest(request)
+                drf_request.user = self.request.user
+                try:
+                    view = StockBinViewSet(
+                        kwargs={
+                            'pk': item['source_id']
+                        },
+                        request=drf_request
+                    )
+                    view.initial(drf_request)
+                    response = view.create(drf_request)
+                    json_response = json.loads(response.content)
+                    stockbin_data_item['target_id'] = json_response.stockbin_id
+                    stockbin_data_item['target_bin_name'] = json_response.stockbin_bin_name
+                except Exception as e:
+                    raise APIException({"detail": f'Cannot move bin from: {item["source_id"]} to BSH1'})
 
-
-            for item in order_data.get('products', []):
-                # move to hold binset
-
+            data['stockbin_data'] = json.dump(stockbin_data)
+            serializer = self.get_serializer(data=data)
+            serializer.is_valid(raise_exception=True)
             serializer.save()
             headers = self.get_success_headers(serializer.data)
             return Response(serializer.data, status=200, headers=headers)

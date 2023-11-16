@@ -163,7 +163,7 @@ class StockBinViewSet(viewsets.ModelViewSet):
                                 goods_qty_change.hold_stock = goods_qty_change.hold_stock + int(data['move_qty'])
                             else:
                                 pass
-                        StockBinModel.objects.create(openid=self.request.META.get('HTTP_TOKEN'),
+                        new_stock_bin = StockBinModel.objects.create(openid=self.request.META.get('HTTP_TOKEN'),
                                                      bin_name=str(data['move_to_bin']),
                                                      goods_code=str(data['goods_code']),
                                                      goods_desc=goods_qty_change.goods_desc,
@@ -173,6 +173,8 @@ class StockBinViewSet(viewsets.ModelViewSet):
                                                      t_code=Md5.md5(str(data['goods_code'])),
                                                      create_time=qs.create_time
                                                      )
+                        data['stockbin_id'] = new_stock_bin.id
+                        data['stockbin_bin_name'] = new_stock_bin.bin_name
                         if move_to_bin_detail.empty_label is True:
                             move_to_bin_detail.empty_label = False
                             move_to_bin_detail.save()
@@ -228,7 +230,7 @@ class StockBinViewSet(viewsets.ModelViewSet):
                                 goods_qty_change.hold_stock = goods_qty_change.hold_stock + int(data['move_qty'])
                             else:
                                 pass
-                        StockBinModel.objects.create(openid=self.request.META.get('HTTP_TOKEN'),
+                        new_stock_bin = StockBinModel.objects.create(openid=self.request.META.get('HTTP_TOKEN'),
                                                      bin_name=str(data['move_to_bin']),
                                                      goods_code=str(data['goods_code']),
                                                      goods_desc=goods_qty_change.goods_desc,
@@ -238,6 +240,8 @@ class StockBinViewSet(viewsets.ModelViewSet):
                                                      t_code=Md5.md5(str(data['goods_code'])),
                                                      create_time=qs.create_time
                                                      )
+                        data['stockbin_id'] = new_stock_bin.id
+                        data['stockbin_bin_name'] = new_stock_bin.bin_name
                         if move_to_bin_detail.empty_label is True:
                             move_to_bin_detail.empty_label = False
                             move_to_bin_detail.save()
@@ -337,7 +341,7 @@ class StockBinViewSet(viewsets.ModelViewSet):
                             goods_qty_change.hold_stock = goods_qty_change.hold_stock + int(data[j]['move_qty'])
                         else:
                             pass
-                    StockBinModel.objects.create(openid=self.request.META.get('HTTP_TOKEN'),
+                    new_stock_bin = StockBinModel.objects.create(openid=self.request.META.get('HTTP_TOKEN'),
                                                  bin_name=str(data[j]['move_to_bin']),
                                                  goods_code=str(data[j]['goods_code']),
                                                  goods_desc=goods_qty_change.goods_desc,
@@ -347,6 +351,8 @@ class StockBinViewSet(viewsets.ModelViewSet):
                                                  t_code=Md5.md5(str(data[j]['goods_code'])),
                                                  create_time=qs_project.create_time
                                                  )
+                    data['stockbin_id'] = new_stock_bin.id
+                    data['stockbin_bin_name'] = new_stock_bin.bin_name
                     if move_to_bin_detail.empty_label is True:
                         move_to_bin_detail.empty_label = False
                         move_to_bin_detail.save()
@@ -414,7 +420,7 @@ class StockBinViewSet(viewsets.ModelViewSet):
                             goods_qty_change.hold_stock = goods_qty_change.hold_stock + int(data[j]['move_qty'])
                         else:
                             pass
-                    StockBinModel.objects.create(openid=self.request.META.get('HTTP_TOKEN'),
+                    new_stock_bin =StockBinModel.objects.create(openid=self.request.META.get('HTTP_TOKEN'),
                                                  bin_name=str(data[j]['move_to_bin']),
                                                  goods_code=str(data[j]['goods_code']),
                                                  goods_desc=goods_qty_change.goods_desc,
@@ -424,6 +430,8 @@ class StockBinViewSet(viewsets.ModelViewSet):
                                                  t_code=Md5.md5(str(data[j]['goods_code'])),
                                                  create_time=qs_project.create_time
                                                  )
+                    data['stockbin_id'] = new_stock_bin.id
+                    data['stockbin_bin_name'] = new_stock_bin.bin_name
                     if move_to_bin_detail.empty_label is True:
                         move_to_bin_detail.empty_label = False
                         move_to_bin_detail.save()
