@@ -100,6 +100,8 @@ class StockBinViewSet(viewsets.ModelViewSet):
             raise APIException({"detail": "Cannot update data which not yours"})
         else:
             data = self.request.data
+            print('sssssss')
+            print(data)
             if 'bin_name' not in data and 'move_to_bin' not in data:
                 raise APIException({"detail": "Please Enter The Bin Name"})
             else:

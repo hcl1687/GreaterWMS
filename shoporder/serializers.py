@@ -2,13 +2,13 @@ from rest_framework import serializers
 from .models import ListModel
 from utils import datasolve
 from shop.serializers import ShopGetSerializer
-from stock.serializers import StockBinGetSerializer
 
 class ShoporderGetSerializer(serializers.ModelSerializer):
     platform_id = serializers.CharField(read_only=True, required=False)
     platform_warehouse_id = serializers.CharField(read_only=True, required=False)
     dn_code = serializers.CharField(read_only=True, required=False)
     order_data = serializers.CharField(read_only=True, required=False)
+    stockbin_data = serializers.CharField(read_only=True, required=False)
     order_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
     status = serializers.IntegerField(read_only=True, required=False)
     supplier = serializers.CharField(read_only=True, required=False)
@@ -23,7 +23,6 @@ class ShoporderGetSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         self.fields['shop'] =  ShopGetSerializer(read_only=True)
-        self.fields['stockbin'] =  StockBinGetSerializer(read_only=True)
         return super(ShoporderGetSerializer, self).to_representation(instance)
 
 class ShoporderPostSerializer(serializers.ModelSerializer):
@@ -31,6 +30,7 @@ class ShoporderPostSerializer(serializers.ModelSerializer):
     platform_warehouse_id = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     dn_code = serializers.CharField(read_only=False, required=False, validators=[datasolve.data_validate])
     order_data = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
+    stockbin_data = serializers.CharField(read_only=False, required=False, validators=[datasolve.data_validate])
     openid = serializers.CharField(read_only=False, required=False, validators=[datasolve.openid_validate])
     supplier = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     creater = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
@@ -44,6 +44,7 @@ class ShoporderUpdateSerializer(serializers.ModelSerializer):
     platform_warehouse_id = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     dn_code = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     order_data = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
+    stockbin_data = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     creater = serializers.CharField(read_only=True, required=False, validators=[datasolve.data_validate])
     class Meta:
         model = ListModel
@@ -55,6 +56,7 @@ class ShoporderPartialUpdateSerializer(serializers.ModelSerializer):
     platform_warehouse_id = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     dn_code = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     order_data = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
+    stockbin_data = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     creater = serializers.CharField(read_only=True, required=False, validators=[datasolve.data_validate])
     class Meta:
         model = ListModel
@@ -68,6 +70,7 @@ class FileRenderSerializer(serializers.ModelSerializer):
     platform_warehouse_id = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     dn_code = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     order_data = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
+    stockbin_data = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     order_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
     status = serializers.IntegerField(read_only=False, required=False)
     supplier = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])

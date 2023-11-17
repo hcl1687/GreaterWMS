@@ -7,7 +7,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.response import Response
 from .filter import Filter
 from rest_framework.exceptions import APIException
-from .serializers import ShopskuGetSerializer, FileRenderSerializer
+from .serializers import FileRenderSerializer
 from rest_framework import permissions
 from utils.staff import Staff
 from utils.seller_api import SELLER_API
@@ -24,6 +24,7 @@ from rest_framework.request import Request as DRFRequest
 from django.conf import settings
 from django.http import HttpRequest
 from stock.views import StockBinViewSet
+from dateutil import parser
 
 class APIViewSet(viewsets.ModelViewSet):
     """
@@ -90,7 +91,12 @@ class APIViewSet(viewsets.ModelViewSet):
         data = self.request.data
         data['openid'] = self.request.META.get('HTTP_TOKEN')
 
-        shop_id = data.get('shop_id', '')
+        try:
+            data['order_time'] = parser.parse(data['order_time'])
+        except parser.ParserError:
+            raise APIException({"detail": "order_time parse error"})
+
+        shop_id = data.get('shop', '')
         if not shop_id:
             raise APIException({"detail": "The shop id does not exist"})
         
@@ -112,7 +118,7 @@ class APIViewSet(viewsets.ModelViewSet):
             raise APIException({"detail": "The shop is not belong to your supplier"})
 
         platform_id = data.get('platform_id', '')
-        if ListModel.objects.filter(openid=data['openid'], shop=shop_id, platform_id=platform_id, is_delete=False).exists():
+        if ListModel.objects.filter(openid=data['openid'], shop_id=shop_id, platform_id=platform_id, is_delete=False).exists():
             raise APIException({"detail": "Data exists"})
         else:
             data['supplier'] = shop_supplier
@@ -122,7 +128,7 @@ class APIViewSet(viewsets.ModelViewSet):
 
             # lock stock
             try:
-                order_data = json.load(data.get('order_data', ''))
+                order_data = json.loads(data.get('order_data', ''))
             except json.JSONDecodeError:
                 raise APIException({"detail": "order_data decode error"})
 
@@ -132,7 +138,7 @@ class APIViewSet(viewsets.ModelViewSet):
             stockbin_data = []
             for item in order_data.get('products', []):
                 sku = item['sku']
-                shopsku_obj = ShopskuModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), shop_id=shop_id, goods_supplier=shop_supplier, platform_sku=sku, is_delete=False).first()
+                shopsku_obj = ShopskuModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), shop_id=shop_id, supplier=shop_supplier, platform_sku=sku, is_delete=False).first()
                 if shopsku_obj is None:
                     raise APIException({"detail": "No goods_code for {}".format(sku)})
 
@@ -142,8 +148,9 @@ class APIViewSet(viewsets.ModelViewSet):
                                                             goods_code=goods_code).first()
                 if goods_qty_change is None:
                     raise APIException({"detail": "No stock for {}".format(sku)})
-                if goods_qty_change.can_order_stock < int(item.quantity):
+                if goods_qty_change.can_order_stock < int(item['quantity']):
                     raise APIException({"detail": "No enough stock for {}".format(sku)})
+                
                 # find available stock bin
                 goods_bin_stock_list = StockBinModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                                goods_code=goods_code,
@@ -153,32 +160,36 @@ class APIViewSet(viewsets.ModelViewSet):
                                    goods_qty_change.hold_stock - \
                                    goods_qty_change.damage_stock - \
                                    goods_qty_change.pick_stock
-                if can_pick_qty > 0 and int(item.quantity) <= can_pick_qty:
+                if can_pick_qty > 0 and int(item['quantity']) <= can_pick_qty:
+                    has_bin = False
                     for j in range(len(goods_bin_stock_list)):
                         bin_can_pick_qty = goods_bin_stock_list[j].goods_qty - \
                                                    goods_bin_stock_list[j].pick_qty
-                        if bin_can_pick_qty > 0 and  int(item.quantity) <= bin_can_pick_qty:
+                        if bin_can_pick_qty > 0 and  int(item['quantity']) <= bin_can_pick_qty:
                             stockbin_data_item = {
                                 'source_id': goods_bin_stock_list[j].id,
                                 'source_bin_name': goods_bin_stock_list[j].bin_name
                             }
                             stockbin_data.append(stockbin_data_item)
+                            has_bin = True
                             break
+                    if not has_bin:
+                        raise APIException({"detail": "No enough pick stock in a bin for {}".format(sku)})
                 else:
                     raise APIException({"detail": "No enough pick stock for {}".format(sku)})
 
             # move to hold binset
-            for i in range(order_data.get('products', [])):
-                item = order_data[i]
+            for i in range(len(order_data.get('products', []))):
+                item = order_data.get('products', [])[i]
                 stockbin_data_item = stockbin_data[i]
                 request = HttpRequest()
                 request.method = 'POST'
-                request.path = 'stock/bin/{}/'.format(item['source_id'])
-                request.body = json.dump({
+                request.path = 'stock/bin/{}/'.format(stockbin_data_item['source_id'])
+                request._body = json.dumps({
                     'bin_name': stockbin_data_item['source_bin_name'],
                     'move_to_bin': 'BSH1',
                     'goods_code': goods_code,
-                    'move_qty': int(item.quantity)
+                    'move_qty': int(item['quantity'])
                 })
                 request.META = {
                     'SERVER_NAME': settings.INNER_URL[0],
@@ -186,24 +197,28 @@ class APIViewSet(viewsets.ModelViewSet):
                     'CONTENT_TYPE': 'application/json',
                     'HTTP_TOKEN': self.request.META.get('HTTP_TOKEN')
                 }
-                drf_request = DRFRequest(request)
-                drf_request.user = self.request.user
+                request.user = self.request.user
+
                 try:
-                    view = StockBinViewSet(
-                        kwargs={
-                            'pk': item['source_id']
-                        },
-                        request=drf_request
-                    )
-                    view.initial(drf_request)
-                    response = view.create(drf_request)
+                    print('tttttt0.0')
+                    view = StockBinViewSet.as_view({
+                        'post': 'create'
+                    })
+                    pk = stockbin_data_item['source_id']
+                    print('tttttt0')
+                    print(request.path)
+                    response = view(request, pk).render()
+                    print('tttttt1')
+                    print(response.content)
                     json_response = json.loads(response.content)
                     stockbin_data_item['target_id'] = json_response.stockbin_id
                     stockbin_data_item['target_bin_name'] = json_response.stockbin_bin_name
                 except Exception as e:
-                    raise APIException({"detail": f'Cannot move bin from: {item["source_id"]} to BSH1'})
+                    print('tttttt')
+                    print(e)
+                    raise APIException({"detail": f'Cannot move bin from: {stockbin_data_item["source_id"]} to BSH1'})
 
-            data['stockbin_data'] = json.dump(stockbin_data)
+            data['stockbin_data'] = json.dumps(stockbin_data)
             serializer = self.get_serializer(data=data)
             serializer.is_valid(raise_exception=True)
             serializer.save()
