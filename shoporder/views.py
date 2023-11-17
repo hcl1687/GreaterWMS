@@ -10,7 +10,6 @@ from rest_framework.exceptions import APIException
 from .serializers import FileRenderSerializer
 from rest_framework import permissions
 from utils.staff import Staff
-from utils.seller_api import SELLER_API
 from shop.models import ListModel as ShopModel
 from goods.models import ListModel as GoodsModel
 from .files import FileRenderCN, FileRenderEN
@@ -20,11 +19,9 @@ from shopwarehouse.models import ListModel as ShopwarehouseModal
 import json
 from shopsku.models import ListModel as ShopskuModel
 from stock.models import StockListModel, StockBinModel
-from rest_framework.request import Request as DRFRequest
 from django.conf import settings
-from django.http import HttpRequest
-from stock.views import StockBinViewSet
 from dateutil import parser
+import requests
 
 class APIViewSet(viewsets.ModelViewSet):
     """
@@ -136,6 +133,7 @@ class APIViewSet(viewsets.ModelViewSet):
             # check all products have stock
             # collect available binset
             stockbin_data = []
+            products_goods_code = []
             for item in order_data.get('products', []):
                 sku = item['sku']
                 shopsku_obj = ShopskuModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), shop_id=shop_id, supplier=shop_supplier, platform_sku=sku, is_delete=False).first()
@@ -143,6 +141,7 @@ class APIViewSet(viewsets.ModelViewSet):
                     raise APIException({"detail": "No goods_code for {}".format(sku)})
 
                 goods_code = shopsku_obj.goods_code
+                products_goods_code.append(goods_code)
                 # chedk stock
                 goods_qty_change = StockListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                             goods_code=goods_code).first()
@@ -182,41 +181,26 @@ class APIViewSet(viewsets.ModelViewSet):
             for i in range(len(order_data.get('products', []))):
                 item = order_data.get('products', [])[i]
                 stockbin_data_item = stockbin_data[i]
-                request = HttpRequest()
-                request.method = 'POST'
-                request.path = 'stock/bin/{}/'.format(stockbin_data_item['source_id'])
-                request._body = json.dumps({
+                product_goods_code = products_goods_code[i]
+                url = f'{settings.INNER_URL}/stock/bin/{stockbin_data_item["source_id"]}/'
+                req_data = {
                     'bin_name': stockbin_data_item['source_bin_name'],
-                    'move_to_bin': 'BSH1',
-                    'goods_code': goods_code,
+                    'move_to_bin': settings.DEFAULT_HOLDING_BIN,
+                    'goods_code': product_goods_code,
                     'move_qty': int(item['quantity'])
-                })
-                request.META = {
-                    'SERVER_NAME': settings.INNER_URL[0],
-                    'SERVER_PORT': settings.INNER_URL[1],
-                    'CONTENT_TYPE': 'application/json',
-                    'HTTP_TOKEN': self.request.META.get('HTTP_TOKEN')
                 }
-                request.user = self.request.user
+                headers = {
+                    'Authorization': self.request.headers['Authorization'],
+                    'token': self.request.META.get('HTTP_TOKEN'),
+                }
 
                 try:
-                    print('tttttt0.0')
-                    view = StockBinViewSet.as_view({
-                        'post': 'create'
-                    })
-                    pk = stockbin_data_item['source_id']
-                    print('tttttt0')
-                    print(request.path)
-                    response = view(request, pk).render()
-                    print('tttttt1')
-                    print(response.content)
+                    response = requests.post(url, json=req_data, headers=headers)
                     json_response = json.loads(response.content)
-                    stockbin_data_item['target_id'] = json_response.stockbin_id
-                    stockbin_data_item['target_bin_name'] = json_response.stockbin_bin_name
+                    stockbin_data_item['target_id'] = json_response['stockbin_id']
+                    stockbin_data_item['target_bin_name'] = json_response['stockbin_bin_name']
                 except Exception as e:
-                    print('tttttt')
-                    print(e)
-                    raise APIException({"detail": f'Cannot move bin from: {stockbin_data_item["source_id"]} to BSH1'})
+                    raise APIException({"detail": f'Cannot move bin from: {stockbin_data_item["source_id"]} to {settings.DEFAULT_HOLDING_BIN}'})
 
             data['stockbin_data'] = json.dumps(stockbin_data)
             serializer = self.get_serializer(data=data)
