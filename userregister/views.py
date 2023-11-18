@@ -269,6 +269,28 @@ def register(request, *args, **kwargs):
                                                         )
                                 goodsorigin_data_list.append(demo_data)
                                 goodsorigin.objects.bulk_create(goodsorigin_data_list, batch_size=100)
+                                from customer.models import ListModel as customer
+                                customer_data_list = []
+                                demo_data = customer(openid=transaction_code,
+                                                        customer_name='-',
+                                                        customer_city='-',
+                                                        customer_address='-',
+                                                        customer_contact='-',
+                                                        customer_manager='-',
+                                                        creater=str(data['name'])
+                                                        )
+                                customer_data_list.append(demo_data)
+                                customer.objects.bulk_create(customer_data_list, batch_size=100)
+                                from driver.models import ListModel as driver
+                                driver_data_list = []
+                                demo_data = driver(openid=transaction_code,
+                                                    driver_name='-',
+                                                    license_plate='-',
+                                                    contact='0',
+                                                    creater=str(data['name'])
+                                                    )
+                                driver_data_list.append(demo_data)
+                                driver.objects.bulk_create(driver_data_list, batch_size=100)
 
                             # from company.models import ListModel as company
                             # company.objects.create(openid=transaction_code,

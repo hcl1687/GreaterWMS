@@ -22,6 +22,7 @@ from stock.models import StockListModel, StockBinModel
 from django.conf import settings
 from dateutil import parser
 import requests
+import copy
 
 class APIViewSet(viewsets.ModelViewSet):
     """
@@ -86,6 +87,7 @@ class APIViewSet(viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         data = self.request.data
+        original_data = copy.deepcopy(data)
         data['openid'] = self.request.META.get('HTTP_TOKEN')
 
         try:
@@ -115,128 +117,85 @@ class APIViewSet(viewsets.ModelViewSet):
             raise APIException({"detail": "The shop is not belong to your supplier"})
 
         platform_id = data.get('platform_id', '')
-        if ListModel.objects.filter(openid=data['openid'], shop_id=shop_id, platform_id=platform_id, is_delete=False).exists():
-            raise APIException({"detail": "Data exists"})
+        is_exists = ListModel.objects.filter(openid=data['openid'], shop_id=shop_id, platform_id=platform_id, is_delete=False).exists()
+        # status: 1: awaiting_packaging; 2: awaiting_deliver; 3: delivering; 4: cancelled; 5: delivered;
+        status = int(data.get('status', 1))
+        if is_exists:
+            # raise APIException({"detail": "Data exists"})
+            return Response({"detail": "Data exists"}, status=200)
+        elif status != 1 and status != 2:
+            return Response({"detail": "Not awaiting_packaging or awaiting_deliver data"}, status=200)
         else:
             data['supplier'] = shop_supplier
             data['creater'] = self.request.user.username
             serializer = self.get_serializer(data=data)
             serializer.is_valid(raise_exception=True)
 
-            # lock stock
-            try:
-                order_data = json.loads(data.get('order_data', ''))
-            except json.JSONDecodeError:
-                raise APIException({"detail": "order_data decode error"})
-
-            # search goods_code
-            # check all products have stock
-            # collect available binset
-            stockbin_data = []
-            products_goods_code = []
-            for item in order_data.get('products', []):
-                sku = item['sku']
-                shopsku_obj = ShopskuModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), shop_id=shop_id, supplier=shop_supplier, platform_sku=sku, is_delete=False).first()
-                if shopsku_obj is None:
-                    raise APIException({"detail": "No goods_code for {}".format(sku)})
-
-                goods_code = shopsku_obj.goods_code
-                products_goods_code.append(goods_code)
-                # chedk stock
-                goods_qty_change = StockListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
-                                                            goods_code=goods_code).first()
-                if goods_qty_change is None:
-                    raise APIException({"detail": "No stock for {}".format(sku)})
-                if goods_qty_change.can_order_stock < int(item['quantity']):
-                    raise APIException({"detail": "No enough stock for {}".format(sku)})
-                
-                # find available stock bin
-                goods_bin_stock_list = StockBinModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
-                                                               goods_code=goods_code,
-                                                               bin_property="Normal").order_by('id')
-                can_pick_qty = goods_qty_change.onhand_stock - \
-                                   goods_qty_change.inspect_stock - \
-                                   goods_qty_change.hold_stock - \
-                                   goods_qty_change.damage_stock - \
-                                   goods_qty_change.pick_stock
-                if can_pick_qty > 0 and int(item['quantity']) <= can_pick_qty:
-                    has_bin = False
-                    for j in range(len(goods_bin_stock_list)):
-                        bin_can_pick_qty = goods_bin_stock_list[j].goods_qty - \
-                                                   goods_bin_stock_list[j].pick_qty
-                        if bin_can_pick_qty > 0 and  int(item['quantity']) <= bin_can_pick_qty:
-                            stockbin_data_item = {
-                                'source_id': goods_bin_stock_list[j].id,
-                                'source_bin_name': goods_bin_stock_list[j].bin_name
-                            }
-                            stockbin_data.append(stockbin_data_item)
-                            has_bin = True
-                            break
-                    if not has_bin:
-                        raise APIException({"detail": "No enough pick stock in a bin for {}".format(sku)})
-                else:
-                    raise APIException({"detail": "No enough pick stock for {}".format(sku)})
-
-            # move to hold binset
-            for i in range(len(order_data.get('products', []))):
-                item = order_data.get('products', [])[i]
-                stockbin_data_item = stockbin_data[i]
-                product_goods_code = products_goods_code[i]
-                url = f'{settings.INNER_URL}/stock/bin/{stockbin_data_item["source_id"]}/'
-                req_data = {
-                    'bin_name': stockbin_data_item['source_bin_name'],
-                    'move_to_bin': settings.DEFAULT_HOLDING_BIN,
-                    'goods_code': product_goods_code,
-                    'move_qty': int(item['quantity'])
-                }
-                headers = {
-                    'Authorization': self.request.headers['Authorization'],
-                    'token': self.request.META.get('HTTP_TOKEN'),
-                }
-
-                try:
-                    response = requests.post(url, json=req_data, headers=headers)
-                    json_response = json.loads(response.content)
-                    stockbin_data_item['target_id'] = json_response['stockbin_id']
-                    stockbin_data_item['target_bin_name'] = json_response['stockbin_bin_name']
-                except Exception as e:
-                    raise APIException({"detail": f'Cannot move bin from: {stockbin_data_item["source_id"]} to {settings.DEFAULT_HOLDING_BIN}'})
-
-            data['stockbin_data'] = json.dumps(stockbin_data)
+            self.handle_awaiting_packing(data, shop_id, shop_supplier)
             serializer = self.get_serializer(data=data)
             serializer.is_valid(raise_exception=True)
             serializer.save()
+
+            if status == 2:
+                # handle awaiting_deliver data
+                url = f'{settings.INNER_URL}/shoporder/bin/{serializer.data["id"]}/'
+                req_data = original_data
+                headers = {
+                    'Authorization': self.request.headers['Authorization'],
+                    'Token': self.request.META.get('HTTP_TOKEN'),
+                }
+
+                try:
+                    requests.put(url, json=req_data, headers=headers)
+                except Exception as e:
+                    raise APIException({"detail": f'Handle awaiting_deliver data failed after holding stock'})
             headers = self.get_success_headers(serializer.data)
             return Response(serializer.data, status=200, headers=headers)
 
     def update(self, request, pk):
         qs = self.get_object()
-        data = self.request.data
-
-        shop_id = data.get('shop', '')
-        if not shop_id:
-            raise APIException({"detail": "The shop id does not exist"})
+        if qs.openid != self.request.META.get('HTTP_TOKEN'):
+            raise APIException({"detail": "Cannot update data which not yours"})
         
-        shop_obj = ShopModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=shop_id, is_delete=False).first()
+        if qs.status != 1:
+            raise APIException({"detail": "This Shop order does not in awaiting_packaging Status"})
+
+        data = self.request.data
+        data['openid'] = self.request.META.get('HTTP_TOKEN')
+
+        try:
+            data['order_time'] = parser.parse(data['order_time'])
+        except parser.ParserError:
+            raise APIException({"detail": "order_time parse error"})
+
+        shop_obj = qs.shop
+        shop_id = shop_obj.id
         if shop_obj is None:
             raise APIException({"detail": "The shop does not exist"})
+        
+        platform_warehouse_id = data.get('platform_warehouse_id', '')
+        if not platform_warehouse_id:
+            raise APIException({"detail": "The platform_warehouse_id does not exist"})
 
-        shop_supplier = shop_obj.supplier
+        platform_warehouse_obj = ShopwarehouseModal.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), shop_id=shop_id, platform_id=platform_warehouse_id, is_delete=False).first()
+        if platform_warehouse_obj is None:
+            raise APIException({"detail": "The platform warehouse does not exist"})
+
+        shop_supplier = qs.supplier
         supplier_name = Staff.get_supplier_name(self.request.user)
         if supplier_name and shop_supplier != supplier_name:
             raise APIException({"detail": "The shop is not belong to your supplier"})
-
-        platform_id = data.get('platform_id', '')
-        if not platform_id:
-            raise APIException({"detail": "The platform id does not exist"})
-
-        goods_code = data.get('goods_code', '')
-        if not goods_code:
-            raise APIException({"detail": "The goods code does not exist"})
-
-        goods_obj = GoodsModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), goods_supplier=shop_supplier, goods_code=goods_code, is_delete=False).first()
-        if goods_obj is None:
-            raise APIException({"detail": "The goods does not exist"})
+        
+        # status: 1: awaiting_packaging; 2: awaiting_deliver; 3: delivering; 4: cancelled; 5: delivered;
+        status = int(data.get('status', 1))
+        if status == 2:
+            self.handle_awaiting_deliver(data, shop_id, shop_supplier)
+        elif status == 3:
+            pass
+        elif status == 4:
+            pass
+        else:
+            return Response({"detail": "Not awaiting_deliver or delivering or cancelled data"}, status=200)
 
         serializer = self.get_serializer(qs, data=data)
         serializer.is_valid(raise_exception=True)
@@ -246,25 +205,28 @@ class APIViewSet(viewsets.ModelViewSet):
 
     def partial_update(self, request, pk):
         qs = self.get_object()
+        if qs.openid != self.request.META.get('HTTP_TOKEN'):
+            raise APIException({"detail": "Cannot partial_update data which not yours"})
+
         data = self.request.data
+        data['openid'] = self.request.META.get('HTTP_TOKEN')
 
-        shop_id = data.get('shop', '')
-        if shop_id:
-            shop_obj = ShopModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=shop_id, is_delete=False).first()
-            if shop_obj is None:
-                raise APIException({"detail": "The shop does not exist"})
-            shop_supplier = shop_obj.supplier
-            supplier_name = Staff.get_supplier_name(self.request.user)
-            if supplier_name and shop_supplier != supplier_name:
-                raise APIException({"detail": "The shop is not belong to your supplier"})
+        shop_obj = qs.shop
+        shop_id = shop_obj.id
+        if shop_obj is None:
+            raise APIException({"detail": "The shop does not exist"})
 
-        goods_code = data.get('goods_code', '')
-        if not goods_code:
-            raise APIException({"detail": "The goods code does not exist"})
+        shop_supplier = qs.supplier
+        supplier_name = Staff.get_supplier_name(self.request.user)
+        if supplier_name and shop_supplier != supplier_name:
+            raise APIException({"detail": "The shop is not belong to your supplier"})
 
-        goods_obj = GoodsModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), goods_supplier=shop_supplier, goods_code=goods_code, is_delete=False).first()
-        if goods_obj is None:
-            raise APIException({"detail": "The goods does not exist"})
+        # status: 1: awaiting_packaging; 2: awaiting_deliver; 3: delivering; 4: cancelled; 5: delivered;
+        status = int(data.get('status', 1))
+        if status == 5:
+            self.handle_delivered(data, shop_id, shop_supplier)
+        else:
+            return Response({"detail": "Not delivered data"}, status=200)
 
         data = self.request.data
         serializer = self.get_serializer(qs, data=data, partial=True)
@@ -286,6 +248,153 @@ class APIViewSet(viewsets.ModelViewSet):
             serializer = self.get_serializer(qs, many=False)
             headers = self.get_success_headers(serializer.data)
             return Response(serializer.data, status=200, headers=headers)
+    
+    def handle_awaiting_packing(self, data, shop_id, shop_supplier):
+        # hold stock
+        try:
+            order_data = json.loads(data.get('order_data', ''))
+        except json.JSONDecodeError:
+            raise APIException({"detail": "order_data decode error"})
+
+        # search goods_code
+        # check all products have stock
+        # collect available binset
+        stockbin_data = []
+        products_goods_code = []
+        for item in order_data.get('products', []):
+            sku = item['sku']
+            shopsku_obj = ShopskuModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), shop_id=shop_id, supplier=shop_supplier, platform_sku=sku, is_delete=False).first()
+            if shopsku_obj is None:
+                raise APIException({"detail": "No goods_code for {}".format(sku)})
+
+            goods_code = shopsku_obj.goods_code
+            products_goods_code.append(goods_code)
+            # chedk stock
+            goods_qty_change = StockListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
+                                                        goods_code=goods_code).first()
+            if goods_qty_change is None:
+                raise APIException({"detail": "No stock for {}".format(sku)})
+            if goods_qty_change.can_order_stock < int(item['quantity']):
+                raise APIException({"detail": "No enough stock for {}".format(sku)})
+            
+            # find available stock bin
+            goods_bin_stock_list = StockBinModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
+                                                            goods_code=goods_code,
+                                                            bin_property="Normal").order_by('id')
+            can_pick_qty = goods_qty_change.onhand_stock - \
+                                goods_qty_change.inspect_stock - \
+                                goods_qty_change.hold_stock - \
+                                goods_qty_change.damage_stock - \
+                                goods_qty_change.pick_stock
+            if can_pick_qty > 0 and int(item['quantity']) <= can_pick_qty:
+                has_bin = False
+                for j in range(len(goods_bin_stock_list)):
+                    bin_can_pick_qty = goods_bin_stock_list[j].goods_qty - \
+                                                goods_bin_stock_list[j].pick_qty
+                    if bin_can_pick_qty > 0 and  int(item['quantity']) <= bin_can_pick_qty:
+                        stockbin_data_item = {
+                            'sku': sku,
+                            'goods_code': goods_code,
+                            'source_id': goods_bin_stock_list[j].id,
+                            'source_bin_name': goods_bin_stock_list[j].bin_name
+                        }
+                        stockbin_data.append(stockbin_data_item)
+                        has_bin = True
+                        break
+                if not has_bin:
+                    raise APIException({"detail": "No enough pick stock in a bin for {}".format(sku)})
+            else:
+                raise APIException({"detail": "No enough pick stock for {}".format(sku)})
+
+        # move to hold binset
+        for i in range(len(order_data.get('products', []))):
+            item = order_data.get('products', [])[i]
+            stockbin_data_item = stockbin_data[i]
+            product_goods_code = products_goods_code[i]
+            url = f'{settings.INNER_URL}/stock/bin/{stockbin_data_item["source_id"]}/'
+            req_data = {
+                'bin_name': stockbin_data_item['source_bin_name'],
+                'move_to_bin': settings.DEFAULT_HOLDING_BIN,
+                'goods_code': product_goods_code,
+                'move_qty': int(item['quantity'])
+            }
+            headers = {
+                'Authorization': self.request.headers['Authorization'],
+                'Token': self.request.META.get('HTTP_TOKEN'),
+            }
+
+            try:
+                response = requests.post(url, json=req_data, headers=headers)
+                json_response = json.loads(response.content)
+                stockbin_data_item['target_id'] = json_response['stockbin_id']
+                stockbin_data_item['target_bin_name'] = json_response['stockbin_bin_name']
+            except Exception as e:
+                raise APIException({"detail": f'Cannot move bin from: {stockbin_data_item["source_id"]} to {settings.DEFAULT_HOLDING_BIN}'})
+
+        data['stockbin_data'] = json.dumps(stockbin_data)
+        return data
+
+    def handle_awaiting_deliver(self, data, shop_id, shop_supplier):
+        # create DN
+        try:
+            order_data = json.loads(data.get('order_data', ''))
+        except json.JSONDecodeError:
+            raise APIException({"detail": "order_data decode error"})
+
+        # collect goods_code and goods_qty
+        goods_codes = []
+        goods_qty = []
+        for item in order_data.get('products', []):
+            sku = item['sku']
+            quantity = int(item['quantity'])
+            shopsku_obj = ShopskuModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), shop_id=shop_id, supplier=shop_supplier, platform_sku=sku, is_delete=False).first()
+            if shopsku_obj is None:
+                raise APIException({"detail": "No goods_code for {}".format(sku)})
+
+            goods_code = shopsku_obj.goods_code
+            goods_codes.append(goods_code)
+            goods_qty.append(quantity)
+
+        # create DN
+        url = f'{settings.INNER_URL}/dn/list/'
+        req_data = {
+            'creater': self.request.user.username,
+        }
+        headers = {
+            'Authorization': self.request.headers['Authorization'],
+            'Token': self.request.META.get('HTTP_TOKEN'),
+        }
+        try:
+            response = requests.post(url, json=req_data, headers=headers)
+            json_response = json.loads(response.content)
+            dn_code = json_response['dn_code']
+        except Exception as e:
+            raise APIException({"detail": f'Cannot create dn list'})
+
+        # create DN detail
+        url = f'{settings.INNER_URL}/dn/detail/'
+        req_data = {
+            'creater': self.request.user.username,
+            'customer': '-',
+            'dn_code': dn_code,
+            'goods_code': goods_codes,
+            'goods_qty': goods_qty
+        }
+        headers = {
+            'Authorization': self.request.headers['Authorization'],
+            'Token': self.request.META.get('HTTP_TOKEN'),
+            'Operator': str(self.request.user.id)
+        }
+        try:
+            requests.post(url, json=req_data, headers=headers)
+        except Exception as e:
+            raise APIException({"detail": f'Cannot create dn detail'})
+
+        data['dn_code'] = dn_code
+        return data
+
+    def handle_delivered(data, shop_id, shop_supplier):
+        return data
 
 class FileDownloadView(viewsets.ModelViewSet):
     renderer_classes = (FileRenderCN,) + tuple(api_settings.DEFAULT_RENDERER_CLASSES)

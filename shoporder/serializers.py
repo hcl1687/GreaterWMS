@@ -44,7 +44,7 @@ class ShoporderUpdateSerializer(serializers.ModelSerializer):
     platform_warehouse_id = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     dn_code = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     order_data = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
-    stockbin_data = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
+    stockbin_data = serializers.CharField(read_only=False, required=False, validators=[datasolve.data_validate])
     creater = serializers.CharField(read_only=True, required=False, validators=[datasolve.data_validate])
     class Meta:
         model = ListModel
@@ -55,8 +55,8 @@ class ShoporderPartialUpdateSerializer(serializers.ModelSerializer):
     platform_id = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     platform_warehouse_id = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     dn_code = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
-    order_data = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
-    stockbin_data = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
+    order_data = serializers.CharField(read_only=False, required=False, validators=[datasolve.data_validate])
+    stockbin_data = serializers.CharField(read_only=False, required=False, validators=[datasolve.data_validate])
     creater = serializers.CharField(read_only=True, required=False, validators=[datasolve.data_validate])
     class Meta:
         model = ListModel
