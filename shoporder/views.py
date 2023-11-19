@@ -23,6 +23,9 @@ from django.conf import settings
 from dateutil import parser
 import requests
 import copy
+from utils.seller_api import SELLER_API
+from .status import Status, Handle_Status
+from datetime import datetime
 
 class APIViewSet(viewsets.ModelViewSet):
     """
@@ -85,14 +88,24 @@ class APIViewSet(viewsets.ModelViewSet):
         else:
             return self.http_method_not_allowed(request=self.request)
 
+    # def list(self, request, *args, **kwargs):
+    #     data = [
+    #         serializers.ShoporderGetSerializer(instance).data
+    #         for instance in self.filter_queryset(self.get_queryset())
+    #     ]
+
+    #     print(json.dumps(data))
+    #     return Response(data, status=200)
+
     def create(self, request, *args, **kwargs):
         data = self.request.data
         original_data = copy.deepcopy(data)
         data['openid'] = self.request.META.get('HTTP_TOKEN')
 
+        # data['order_time'] is timestamp
         try:
-            data['order_time'] = parser.parse(data['order_time'])
-        except parser.ParserError:
+            data['order_time'] = datetime.fromtimestamp(data['order_time'])
+        except Exception:
             raise APIException({"detail": "order_time parse error"})
 
         shop_id = data.get('shop', '')
@@ -119,11 +132,11 @@ class APIViewSet(viewsets.ModelViewSet):
         platform_id = data.get('platform_id', '')
         is_exists = ListModel.objects.filter(openid=data['openid'], shop_id=shop_id, platform_id=platform_id, is_delete=False).exists()
         # status: 1: awaiting_packaging; 2: awaiting_deliver; 3: delivering; 4: cancelled; 5: delivered;
-        status = int(data.get('status', 1))
+        status = data.get('status')
         if is_exists:
             # raise APIException({"detail": "Data exists"})
             return Response({"detail": "Data exists"}, status=200)
-        elif status != 1 and status != 2:
+        elif status != Status.Awaiting_Review and status != Status.Awaiting_Deliver:
             return Response({"detail": "Not awaiting_packaging or awaiting_deliver data"}, status=200)
         else:
             data['supplier'] = shop_supplier
@@ -131,14 +144,18 @@ class APIViewSet(viewsets.ModelViewSet):
             serializer = self.get_serializer(data=data)
             serializer.is_valid(raise_exception=True)
 
-            self.handle_awaiting_packing(data, shop_id, shop_supplier)
+            try:
+                self.handle_awaiting_packing(data, shop_id, shop_supplier)
+            except APIException as e:
+                data['handle_status'] = Handle_Status.Abnormal
+                data['handle_message'] = e.detail['detail']
             serializer = self.get_serializer(data=data)
             serializer.is_valid(raise_exception=True)
             serializer.save()
 
             if status == 2:
                 # handle awaiting_deliver data
-                url = f'{settings.INNER_URL}/shoporder/bin/{serializer.data["id"]}/'
+                url = f'{settings.INNER_URL}/shoporder/{serializer.data["id"]}/'
                 req_data = original_data
                 headers = {
                     'Authorization': self.request.headers['Authorization'],
@@ -146,8 +163,12 @@ class APIViewSet(viewsets.ModelViewSet):
                 }
 
                 try:
-                    requests.put(url, json=req_data, headers=headers)
+                    response = requests.put(url, json=req_data, headers=headers)
+                    json_response = json.loads(response.content)
+                    if json_response['status_code'] != 200:
+                        print(json_response.content)
                 except Exception as e:
+                    print(e)
                     raise APIException({"detail": f'Handle awaiting_deliver data failed after holding stock'})
             headers = self.get_success_headers(serializer.data)
             return Response(serializer.data, status=200, headers=headers)
@@ -157,15 +178,16 @@ class APIViewSet(viewsets.ModelViewSet):
         if qs.openid != self.request.META.get('HTTP_TOKEN'):
             raise APIException({"detail": "Cannot update data which not yours"})
         
-        if qs.status != 1:
-            raise APIException({"detail": "This Shop order does not in awaiting_packaging Status"})
+        if qs.status != Status.Awaiting_Review:
+            raise APIException({"detail": "This Shop order does not in Awaiting Review Status"})
 
         data = self.request.data
         data['openid'] = self.request.META.get('HTTP_TOKEN')
 
+        # data['order_time'] is timestamp
         try:
-            data['order_time'] = parser.parse(data['order_time'])
-        except parser.ParserError:
+            data['order_time'] = datetime.fromtimestamp(data['order_time'])
+        except Exception:
             raise APIException({"detail": "order_time parse error"})
 
         shop_obj = qs.shop
@@ -187,12 +209,16 @@ class APIViewSet(viewsets.ModelViewSet):
             raise APIException({"detail": "The shop is not belong to your supplier"})
         
         # status: 1: awaiting_packaging; 2: awaiting_deliver; 3: delivering; 4: cancelled; 5: delivered;
-        status = int(data.get('status', 1))
-        if status == 2:
-            self.handle_awaiting_deliver(data, shop_id, shop_supplier)
-        elif status == 3:
+        status = data.get('status', Status.Awaiting_Review)
+        if status == Status.Awaiting_Deliver:
+            try:
+                self.handle_awaiting_deliver(data, shop_id, shop_supplier)
+            except APIException as e:
+                data['handle_status'] = Handle_Status.Abnormal
+                data['handle_message'] = e.detail['detail']
+        elif status == Status.Delivering:
             pass
-        elif status == 4:
+        elif status == Status.Cancelled:
             pass
         else:
             return Response({"detail": "Not awaiting_deliver or delivering or cancelled data"}, status=200)
@@ -224,7 +250,11 @@ class APIViewSet(viewsets.ModelViewSet):
         # status: 1: awaiting_packaging; 2: awaiting_deliver; 3: delivering; 4: cancelled; 5: delivered;
         status = int(data.get('status', 1))
         if status == 5:
-            self.handle_delivered(data, shop_id, shop_supplier)
+            try:
+                self.handle_delivered(data, shop_id, shop_supplier)
+            except APIException as e:
+                data['handle_status'] = Handle_Status.Abnormal
+                data['handle_message'] = e.detail['detail']
         else:
             return Response({"detail": "Not delivered data"}, status=200)
 
@@ -276,7 +306,7 @@ class APIViewSet(viewsets.ModelViewSet):
                 raise APIException({"detail": "No stock for {}".format(sku)})
             if goods_qty_change.can_order_stock < int(item['quantity']):
                 raise APIException({"detail": "No enough stock for {}".format(sku)})
-            
+
             # find available stock bin
             goods_bin_stock_list = StockBinModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                             goods_code=goods_code,
@@ -329,6 +359,7 @@ class APIViewSet(viewsets.ModelViewSet):
                 stockbin_data_item['target_id'] = json_response['stockbin_id']
                 stockbin_data_item['target_bin_name'] = json_response['stockbin_bin_name']
             except Exception as e:
+                print(e)
                 raise APIException({"detail": f'Cannot move bin from: {stockbin_data_item["source_id"]} to {settings.DEFAULT_HOLDING_BIN}'})
 
         data['stockbin_data'] = json.dumps(stockbin_data)
@@ -369,6 +400,7 @@ class APIViewSet(viewsets.ModelViewSet):
             json_response = json.loads(response.content)
             dn_code = json_response['dn_code']
         except Exception as e:
+            print(e)
             raise APIException({"detail": f'Cannot create dn list'})
 
         # create DN detail
@@ -386,15 +418,223 @@ class APIViewSet(viewsets.ModelViewSet):
             'Operator': str(self.request.user.id)
         }
         try:
-            requests.post(url, json=req_data, headers=headers)
+            response = requests.post(url, json=req_data, headers=headers)
+            json_response = json.loads(response.content)
+            if json_response['status_code'] != 200:
+                print(json_response.content)
         except Exception as e:
+            print(e)
             raise APIException({"detail": f'Cannot create dn detail'})
 
         data['dn_code'] = dn_code
         return data
 
+    def handle_delivering(data, shop_id, shop_supplier):
+        return data
+
     def handle_delivered(data, shop_id, shop_supplier):
         return data
+
+class ShoporderInitViewSet(viewsets.ModelViewSet):
+    """
+        retrieve:
+            Response a data list（get）
+    """
+    pagination_class = MyPageNumberPagination
+    filter_backends = [DjangoFilterBackend, OrderingFilter, ]
+    ordering_fields = ['id', "create_time", "update_time", ]
+    filter_class = Filter
+    permission_classes = (permissions.DjangoModelPermissions,)
+
+    def get_project(self):
+        try:
+            id = self.kwargs.get('pk')
+            return id
+        except:
+            return None
+
+    def get_queryset(self):
+        id = self.get_project()
+        if self.request.user:
+            supplier_name = Staff.get_supplier_name(self.request.user)
+            if supplier_name:
+                if id is None:
+                    return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), supplier=supplier_name, is_delete=False)
+                else:
+                    return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), supplier=supplier_name, id=id, is_delete=False)
+            else:
+                if id is None:
+                    return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), is_delete=False)
+                else:
+                    return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=id, is_delete=False)
+        else:
+            return ListModel.objects.none()
+
+    def get_serializer_class(self):
+        if self.action in ['create']:
+            return serializers.ShoporderPartialUpdateSerializer
+        else:
+            return self.http_method_not_allowed(request=self.request)
+
+    def create(self, request, *args, **kwargs):
+        data = self.request.data
+        # timestamp
+        since = data.get('since')
+        # timestamp
+        to = data.get('to')
+
+        shop_list = ShopModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), is_delete=False)
+
+        # init Awaiting_Review order
+        for shop in shop_list:
+            status = Status.Awaiting_Review
+            shop_id = shop.id
+            self.handle_shoporder(shop_id, since=since, to=to, status=status)
+        # init Awaiting_Deliver order
+        for shop in shop_list:
+            status = Status.Awaiting_Deliver
+            shop_id = shop.id
+            self.handle_shoporder(shop_id, since=since, to=to, status=status)
+
+        return Response({"detail": "done"}, status=200)
+
+    def handle_shoporder(self, shop_id, **args):
+        seller_api = SELLER_API(shop_id)
+        offset = 0
+        while True:
+            params = {
+                'offset': offset,
+                'status':args['status'],
+                'since': args['since'],
+                'to': args['to']
+            }
+            seller_resp = seller_api.get_orders(params)
+            for item in seller_resp.get('items', []):
+                item['shop'] = shop_id
+                url = f'{settings.INNER_URL}/shoporder/'
+                req_data = item
+                headers = {
+                    'Authorization': self.request.headers['Authorization'],
+                    'Token': self.request.META.get('HTTP_TOKEN'),
+                }
+
+                try:
+                    response = requests.post(url, json=req_data, headers=headers)
+                    json_response = json.loads(response.content)
+                    if json_response['status_code'] != 200:
+                        print(json_response.content)
+                except Exception as e:
+                    print(e)
+                    print(f'init Awaiting_Review order failed')
+
+            if seller_resp is None:
+                break
+            if not seller_resp.get('has_next', False):
+                break
+            offset = seller_resp['next']
+
+class ShoporderUpdateViewSet(viewsets.ModelViewSet):
+    """
+        retrieve:
+            Response a data list（get）
+    """
+    pagination_class = MyPageNumberPagination
+    filter_backends = [DjangoFilterBackend, OrderingFilter, ]
+    ordering_fields = ['id', "create_time", "update_time", ]
+    filter_class = Filter
+    permission_classes = (permissions.DjangoModelPermissions,)
+
+    def get_project(self):
+        try:
+            id = self.kwargs.get('pk')
+            return id
+        except:
+            return None
+
+    def get_queryset(self):
+        id = self.get_project()
+        if self.request.user:
+            supplier_name = Staff.get_supplier_name(self.request.user)
+            if supplier_name:
+                if id is None:
+                    return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), supplier=supplier_name, is_delete=False)
+                else:
+                    return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), supplier=supplier_name, id=id, is_delete=False)
+            else:
+                if id is None:
+                    return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), is_delete=False)
+                else:
+                    return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=id, is_delete=False)
+        else:
+            return ListModel.objects.none()
+
+    def get_serializer_class(self):
+        if self.action in ['create']:
+            return serializers.ShoporderPartialUpdateSerializer
+        else:
+            return self.http_method_not_allowed(request=self.request)
+
+    def create(self, request, *args, **kwargs):
+        data = self.request.data
+        # timestamp
+        since = data.get('since')
+        # timestamp
+        to = data.get('to')
+
+        shop_list = ShopModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), is_delete=False)
+
+        # update Awaiting_Deliver order
+        for shop in shop_list:
+            status = Status.Awaiting_Deliver
+            shop_id = shop.id
+            self.handle_shoporder(shop_id, since=since, to=to, status=status)
+        # init Delivering order
+        for shop in shop_list:
+            status = Status.Delivering
+            shop_id = shop.id
+            self.handle_shoporder(shop_id, since=since, to=to, status=status)
+        # init Cancelled order
+        for shop in shop_list:
+            status = Status.Cancelled
+            shop_id = shop.id
+            self.handle_shoporder(shop_id, since=since, to=to, status=status)
+
+        return Response({"detail": "done"}, status=200)
+
+    def handle_shoporder(self, shop_id, **args):
+        seller_api = SELLER_API(shop_id)
+        offset = 0
+        while True:
+            params = {
+                'offset': offset,
+                'status':args['status'],
+                'since': args['since'],
+                'to': args['to']
+            }
+            seller_resp = seller_api.get_orders(params)
+            for item in seller_resp.get('items', []):
+                item['shop'] = shop_id
+                url = f'{settings.INNER_URL}/shoporder/'
+                req_data = item
+                headers = {
+                    'Authorization': self.request.headers['Authorization'],
+                    'Token': self.request.META.get('HTTP_TOKEN'),
+                }
+
+                try:
+                    response = requests.put(url, json=req_data, headers=headers)
+                    json_response = json.loads(response.content)
+                    if json_response['status_code'] != 200:
+                        print(json_response.content)
+                except Exception as e:
+                    print(e)
+                    print(f'update Awaiting_Review order failed')
+
+            if seller_resp is None:
+                break
+            if not seller_resp.get('has_next', False):
+                break
+            offset = seller_resp['next']
 
 class FileDownloadView(viewsets.ModelViewSet):
     renderer_classes = (FileRenderCN,) + tuple(api_settings.DEFAULT_RENDERER_CLASSES)

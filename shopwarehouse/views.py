@@ -87,7 +87,7 @@ class APIViewSet(viewsets.ModelViewSet):
             raise APIException({"detail": "The shop does not exist"})
 
         seller_api = SELLER_API(shop_id)
-        seller_warehouse_list = seller_api.getWarehouses()
+        seller_warehouse_list = seller_api.get_warehouses()
         shopwarehouse_data = [
             ShopwarehouseGetSerializer(instance).data
             for instance in self.get_queryset()

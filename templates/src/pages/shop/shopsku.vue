@@ -128,10 +128,10 @@
         <div v-show="max !== 0" class="q-pa-lg flex flex-center">
            <div>{{ total }} </div>
           <q-btn-group push>
-            <q-btn :label="$t('shopsku.previous')" icon="arrow_back_ios" :disable="curr_last_id_index <= 0" @click="getList('pre')">
+            <q-btn :label="$t('shopsku.previous')" icon="arrow_back_ios" :disable="curr_last_id_index <= 0" @click="handlePre()">
               <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ $t('shopsku.previous_tip') }}</q-tooltip>
             </q-btn>
-            <q-btn :label="$t('shopsku.next')" icon="arrow_forward_ios" :disable="curr_last_id_index >= max - 1" @click="getList('next')">
+            <q-btn :label="$t('shopsku.next')" icon="arrow_forward_ios" :disable="curr_last_id_index >= max - 1" @click="handleNext()">
               <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ $t('shopsku.next_tip') }}</q-tooltip>
             </q-btn>
           </q-btn-group>
@@ -192,7 +192,7 @@ export default {
       ],
       pagination: {
         page: 1,
-        rowsPerPage: '30'
+        rowsPerPage: '100'
       },
       editid: 0,
       editFormData: {},
@@ -499,6 +499,14 @@ export default {
       } finally {
         this.getList()
       }
+    },
+    handlePre () {
+      this.selected = []
+      this.getList('pre')
+    },
+    handleNext () {
+      this.selected = []
+      this.getList('next')
     }
   },
   created () {

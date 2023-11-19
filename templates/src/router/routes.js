@@ -328,6 +328,17 @@ const routes = [{
       ]
     },
     {
+      path: 'order',
+      name: 'order',
+      component: () => import('pages/order/order.vue'),
+      children: [{
+        path: 'all',
+        name: 'order_all',
+        component: () => import('pages/order/all.vue')
+      }
+      ]
+    },
+    {
       path: 'driver',
       name: 'driver',
       component: () => import('pages/driverlist/driver.vue'),

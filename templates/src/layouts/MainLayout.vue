@@ -427,6 +427,20 @@
           </q-item>
           <q-item
             clickable
+            :to="{ name: 'order_all' }"
+            @click="linkChange('order')"
+            v-ripple
+            exact
+            :active="link === 'order' && link !== ''"
+            :class="{ 'my-menu-link': link === 'order' && link !== '' }"
+          >
+            <q-item-section avatar
+              ><q-icon name="store"
+            /></q-item-section>
+            <q-item-section>{{ $t("menuItem.order") }}</q-item-section>
+          </q-item>
+          <q-item
+            clickable
             :to="{ name: 'shoplist' }"
             @click="linkChange('shop')"
             v-ripple

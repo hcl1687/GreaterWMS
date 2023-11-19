@@ -9,5 +9,7 @@ re_path(r'^(?P<pk>\d+)/$', views.APIViewSet.as_view({
     'put': 'update',
     'patch': 'partial_update',
     'delete': 'destroy'
-}), name="shoporder")
+}), name="shoporder"),
+path(r'init/', views.ShoporderInitViewSet.as_view({"post": "create"}), name="shoporderinit"),
+path(r'update/', views.ShoporderUpdateViewSet.as_view({"post": "create"}), name="shoporderupdate"),
 ]

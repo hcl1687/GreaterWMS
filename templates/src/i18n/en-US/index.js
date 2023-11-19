@@ -73,7 +73,8 @@ export default {
     uploadcenter: 'Upload Center',
     downloadcenter: 'Download Center',
     cloudwarehouse: 'Warehouse Interconnection',
-    shop: 'Shop'
+    shop: 'Shop',
+    order: 'Order'
   },
   contact: 'Contact',
   sendmessage: 'Send A Message',
@@ -702,5 +703,25 @@ export default {
     next: 'Next',
     previous_tip: 'Go to previous page',
     next_tip: 'Go to next page'
+  },
+  order: {
+    all: 'All',
+    fetch_order: 'Fetch orders',
+    fetch_order_tip: 'Fetch awaiting review and awaiting deliver orders from platform',
+    quantity: 'Quantity',
+    platform_id: 'Platform ID',
+    platform_warehouse_id: 'Platform Warehouse ID',
+    posting_number: 'Platform Posting Number',
+    order_time: 'Platform Order Time',
+    status: 'Status',
+    handle_status: 'Handle Status',
+    handle_message: 'Handle Message',
+    awaiting_review: 'Awaiting Review',
+    awaiting_deliver: 'Awaiting Deliver',
+    delivering: 'Delivering',
+    cancelled: 'Cancelled',
+    delivered: 'Delivered',
+    normal: 'Normal',
+    abnormal: 'Abnormal'
   }
 }

@@ -101,7 +101,9 @@ def register(request, *args, **kwargs):
                             err_password_not_same['data'] = data['name']
                             return JsonResponse(err_password_not_same)
                         else:
+                            is_admin = False
                             if data.get('staff_type') is None and data.get('openid') is None:
+                                is_admin = True
                                 # create admin
                                 transaction_code = Md5.md5(data['name'])
                                 user = User.objects.create_user(username=str(data['name']),
@@ -174,7 +176,7 @@ def register(request, *args, **kwargs):
 
                             ret['data'] = data
 
-                            if data.get('staff_type') is None and data.get('openid') is None:
+                            if is_admin:
                                 # it's admin
                                 from binsize.models import ListModel as binsize
                                 binsize_data_list = [

@@ -12,18 +12,26 @@ class SELLER_API():
 
         shop_obj = ListModel.objects.filter(id=shop_id).first()
         if shop_obj:
-            shop_data = json.loads(shop_obj.shop_data)
+            try:
+                shop_data = json.loads(shop_obj.shop_data)
+            except json.JSONDecodeError:
+                print("shop_data decode error")
             if shop_data:
                 self._api_data = shop_data
                 if shop_obj.shop_type == 'OZON':
                     self._api = OZON_API(shop_data=shop_data)
 
-    def getWarehouses(self) -> json:
-        return self._api.getWarehouses()
+    def get_warehouses(self) -> json:
+        if self._api is None:
+            return None
+        return self._api.get_warehouses()
 
-    def getProducts(self, params: dict) -> json:
-        return self._api.getProducts(params=params)
+    def get_products(self, params: dict) -> json:
+        if self._api is None:
+            return None
+        return self._api.get_products(params=params)
 
-    def getOrders(self, params: dict) -> json:
-        return self._api.getOrders(params=params)
-
+    def get_orders(self, params: dict) -> json:
+        if self._api is None:
+            return None
+        return self._api.get_orders(params=params)

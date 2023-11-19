@@ -68,7 +68,8 @@ export default {
     uploadcenter: '上传中心',
     downloadcenter: '下载中心',
     cloudwarehouse: '万仓互联',
-    shop: '店铺管理'
+    shop: '店铺管理',
+    order: '订单管理'
   },
   contact: '立即沟通',
   sendmessage: '给他发一条消息',
@@ -703,5 +704,25 @@ export default {
     next: '下一页',
     previous_tip: '跳转前一页',
     next_tip: '跳转下一页'
+  },
+  order: {
+    all: '所有',
+    fetch_order: '抓取订单',
+    fetch_order_tip: '抓取待审核和待出库的平台订单',
+    quantity: '数量',
+    platform_id: '平台ID',
+    platform_warehouse_id: '平台仓库ID',
+    posting_number: '平台发货单号',
+    order_time: '平台下单时间',
+    status: '状态',
+    handle_status: '处理状态',
+    handle_message: '处理消息',
+    awaiting_review: '待审核',
+    awaiting_deliver: '待出库',
+    delivering: '已出库',
+    cancelled: '已取消',
+    delivered: '已完成',
+    normal: '正常',
+    abnormal: '异常'
   }
 }

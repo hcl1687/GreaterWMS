@@ -4,6 +4,9 @@ from supplier.models import ListModel as SupplierModel
 import logging
 import requests
 import json
+from datetime import datetime
+from dateutil.relativedelta import relativedelta
+from shoporder.status import Status
 
 class OZON_API():
     def __init__(self, shop_data: dict):
@@ -37,10 +40,10 @@ class OZON_API():
             if self._logger:
                 self._logger.exception('{}'.format(e))
             return None
-    def getWarehouses(self) -> json:
+    def get_warehouses(self) -> json:
         return self._request(path='/v1/warehouse/list')
 
-    def getProducts(self, params: dict) -> json:
+    def get_products(self, params: dict) -> json:
         if not params:
             params = {
                 'last_id': '',
@@ -105,6 +108,87 @@ class OZON_API():
             'items': product_resp.get('result', {}).get('items', []),
         }
 
-    def getOrders(self, params: dict) -> json:
-        return self._request(path='/v3/posting/fbs/list', params=params)
+    def get_orders(self, params: dict) -> json:
+        default_now = datetime.now()
+        default_since = default_now + relativedelta(days=-300)
+        default_now = default_now.strftime ("%Y-%m-%dT%H:%M:%SZ")
+        default_since = default_since.strftime ("%Y-%m-%dT%H:%M:%SZ")
+        if not params:
+            _params = {
+                'offset': 0,
+                'limit': 50,
+                'filter': {
+                    'since': default_since,
+                    'to': default_now,
+                    'status': ''
+                }
+            }
+        else:
+            status = self.toPlatformStatus(params['status'])
+            _params = {
+                'offset': params.get('offset', 0),
+                'limit': params.get('limit', 50),
+                'filter': {
+                    'since': default_since,
+                    'to': default_now,
+                    'status': status
+                }
+            }
+
+            # params.since params.to are timestamp
+            since = params['since']
+            to = params['to']
+            if since:
+                since = datetime.fromtimestamp(since).strftime ("%Y-%m-%dT%H:%M:%SZ")
+                _params['filter']['since'] = since
+            if to:
+                to = datetime.fromtimestamp(to).strftime ("%Y-%m-%dT%H:%M:%SZ")
+                _params['filter']['to'] = to
+
+        print(json.dumps(_params))
+        order_resp = self._request(path='/v3/posting/fbs/list', params=_params)
+        order_list = order_resp.get('result', {}).get('postings', [])
+
+        order_dict = {
+            'has_next': order_resp.get('result', {}).get('has_next', False),
+            'next': _params['offset'] + _params['limit'],
+            'items': []
+        }
+
+        for item in order_list:
+            order_item = {
+                'platform_id': item['order_id'],
+                'platform_warehouse_id': item.get('delivery_method', {}).get('warehouse_id'),
+                'posting_number': item['posting_number'],
+                'order_time': datetime.timestamp(datetime.strptime(item['in_process_at'], "%Y-%m-%dT%H:%M:%SZ")),
+                'status': self.toSystemStatus(item['status']),
+                'order_data': json.dumps(item)
+            }
+            order_dict['items'].append(order_item)
+
+        return order_dict
+    
+    def toPlatformStatus(self, status):
+        if status == Status.Awaiting_Review:
+            return 'awaiting_packaging'
+        elif status == Status.Awaiting_Deliver:
+            return 'awaiting_deliver'
+        elif status == Status.Delivering:
+            return 'delivering'
+        elif status == Status.Cancelled:
+            return 'cancelled'
+        else:
+            return ''
+
+    def toSystemStatus(self, status):
+        if status == 'awaiting_packaging':
+            return Status.Awaiting_Review
+        elif status == 'awaiting_deliver':
+            return Status.Awaiting_Deliver
+        elif status == 'delivering':
+            return Status.Delivering
+        elif status == 'cancelled':
+            return Status.Cancelled
+        else:
+            return Status.Other
 

@@ -89,9 +89,9 @@ class APIViewSet(viewsets.ModelViewSet):
             raise APIException({"detail": "The shop does not exist"})
 
         seller_api = SELLER_API(shop_id)
-        seller_sku_resp = seller_api.getProducts({
+        seller_sku_resp = seller_api.get_products({
             'last_id': request.GET.get('last_id', ''),
-            'limit': 30
+            'limit': 100
         })
         shopsku_data = [
             ShopskuGetSerializer(instance).data
