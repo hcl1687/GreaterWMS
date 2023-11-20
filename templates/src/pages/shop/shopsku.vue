@@ -126,7 +126,7 @@
     </transition>
     <template>
         <div v-show="max !== 0" class="q-pa-lg flex flex-center">
-           <div>{{ total }} </div>
+           <div style="margin-right: 5px;">{{ total }} </div>
           <q-btn-group push>
             <q-btn :label="$t('shopsku.previous')" icon="arrow_back_ios" :disable="curr_last_id_index <= 0" @click="handlePre()">
               <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ $t('shopsku.previous_tip') }}</q-tooltip>

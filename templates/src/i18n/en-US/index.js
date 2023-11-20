@@ -706,7 +706,7 @@ export default {
   },
   order: {
     all: 'All',
-    fetch_order: 'Fetch orders',
+    fetch_order: 'Fetch new orders',
     fetch_order_tip: 'Fetch awaiting review and awaiting deliver orders from platform',
     quantity: 'Quantity',
     platform_id: 'Platform ID',

@@ -707,7 +707,7 @@ export default {
   },
   order: {
     all: '所有',
-    fetch_order: '抓取订单',
+    fetch_order: '抓取新订单',
     fetch_order_tip: '抓取待审核和待出库的平台订单',
     quantity: '数量',
     platform_id: '平台ID',
