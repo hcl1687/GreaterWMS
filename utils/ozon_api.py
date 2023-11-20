@@ -156,13 +156,23 @@ class OZON_API():
         }
 
         for item in order_list:
+            products = item.get('products', [])
+            order_products = []
+            for product in products:
+                order_products.append({
+                    'name': product.get('name', ''),
+                    'sku': product.get('sku', 0),
+                    'quantity': product.get('quantity', 0)
+                })
+
             order_item = {
                 'platform_id': item['order_id'],
                 'platform_warehouse_id': item.get('delivery_method', {}).get('warehouse_id'),
                 'posting_number': item['posting_number'],
                 'order_time': datetime.timestamp(datetime.strptime(item['in_process_at'], "%Y-%m-%dT%H:%M:%SZ")),
                 'status': self.toSystemStatus(item['status']),
-                'order_data': json.dumps(item)
+                'order_data': json.dumps(item),
+                'order_products': json.dumps(order_products)
             }
             order_dict['items'].append(order_item)
 

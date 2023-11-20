@@ -88,14 +88,10 @@ class APIViewSet(viewsets.ModelViewSet):
         else:
             return self.http_method_not_allowed(request=self.request)
 
-    # def list(self, request, *args, **kwargs):
-    #     data = [
-    #         serializers.ShoporderGetSerializer(instance).data
-    #         for instance in self.filter_queryset(self.get_queryset())
-    #     ]
-
-    #     print(json.dumps(data))
-    #     return Response(data, status=200)
+    def list(self, request, *args, **kwargs):
+        data = super().list(request=request).data
+        # add extra info to data here
+        return Response(data, status=200)
 
     def create(self, request, *args, **kwargs):
         data = self.request.data
@@ -164,9 +160,10 @@ class APIViewSet(viewsets.ModelViewSet):
 
                 try:
                     response = requests.put(url, json=req_data, headers=headers)
-                    json_response = json.loads(response.content)
-                    if json_response['status_code'] != 200:
-                        print(json_response.content)
+                    if response.status_code != 200:
+                        # response.content: { status_code: 5xx, detial: 'xxx' }
+                        json_response = json.loads(response.get('content'))
+                        print(json_response.content.decode('UTF-8'))
                 except Exception as e:
                     print(e)
                     raise APIException({"detail": f'Handle awaiting_deliver data failed after holding stock'})
@@ -214,6 +211,7 @@ class APIViewSet(viewsets.ModelViewSet):
             try:
                 self.handle_awaiting_deliver(data, shop_id, shop_supplier)
             except APIException as e:
+                print(e)
                 data['handle_status'] = Handle_Status.Abnormal
                 data['handle_message'] = e.detail['detail']
         elif status == Status.Delivering:
@@ -282,22 +280,23 @@ class APIViewSet(viewsets.ModelViewSet):
     def handle_awaiting_packing(self, data, shop_id, shop_supplier):
         # hold stock
         try:
-            order_data = json.loads(data.get('order_data', ''))
+            order_products = json.loads(data.get('order_products', ''))
         except json.JSONDecodeError:
-            raise APIException({"detail": "order_data decode error"})
+            raise APIException({"detail": "order_products decode error"})
 
         # search goods_code
         # check all products have stock
         # collect available binset
         stockbin_data = []
         products_goods_code = []
-        for item in order_data.get('products', []):
+        for item in order_products:
             sku = item['sku']
             shopsku_obj = ShopskuModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), shop_id=shop_id, supplier=shop_supplier, platform_sku=sku, is_delete=False).first()
             if shopsku_obj is None:
                 raise APIException({"detail": "No goods_code for {}".format(sku)})
 
             goods_code = shopsku_obj.goods_code
+            item['goods_code'] = goods_code
             products_goods_code.append(goods_code)
             # chedk stock
             goods_qty_change = StockListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
@@ -337,8 +336,8 @@ class APIViewSet(viewsets.ModelViewSet):
                 raise APIException({"detail": "No enough pick stock for {}".format(sku)})
 
         # move to hold binset
-        for i in range(len(order_data.get('products', []))):
-            item = order_data.get('products', [])[i]
+        for i in range(len(order_products)):
+            item = order_products[i]
             stockbin_data_item = stockbin_data[i]
             product_goods_code = products_goods_code[i]
             url = f'{settings.INNER_URL}/stock/bin/{stockbin_data_item["source_id"]}/'
@@ -368,14 +367,14 @@ class APIViewSet(viewsets.ModelViewSet):
     def handle_awaiting_deliver(self, data, shop_id, shop_supplier):
         # create DN
         try:
-            order_data = json.loads(data.get('order_data', ''))
+            order_products = json.loads(data.get('order_products', ''))
         except json.JSONDecodeError:
-            raise APIException({"detail": "order_data decode error"})
+            raise APIException({"detail": "order_products decode error"})
 
         # collect goods_code and goods_qty
         goods_codes = []
         goods_qty = []
-        for item in order_data.get('products', []):
+        for item in order_products:
             sku = item['sku']
             quantity = int(item['quantity'])
             shopsku_obj = ShopskuModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), shop_id=shop_id, supplier=shop_supplier, platform_sku=sku, is_delete=False).first()
@@ -419,9 +418,10 @@ class APIViewSet(viewsets.ModelViewSet):
         }
         try:
             response = requests.post(url, json=req_data, headers=headers)
-            json_response = json.loads(response.content)
-            if json_response['status_code'] != 200:
-                print(json_response.content)
+            if response.status_code != 200:
+                # response.content: { status_code: 5xx, detial: 'xxx' }
+                json_response = json.loads(response.get('content'))
+                print(json_response.content.decode('UTF-8'))
         except Exception as e:
             print(e)
             raise APIException({"detail": f'Cannot create dn detail'})
@@ -496,7 +496,7 @@ class ShoporderInitViewSet(viewsets.ModelViewSet):
             shop_id = shop.id
             self.handle_shoporder(shop_id, since=since, to=to, status=status)
 
-        return Response({"detail": "done"}, status=200)
+        return Response({"detail": "success"}, status=200)
 
     def handle_shoporder(self, shop_id, **args):
         seller_api = SELLER_API(shop_id)
@@ -520,9 +520,10 @@ class ShoporderInitViewSet(viewsets.ModelViewSet):
 
                 try:
                     response = requests.post(url, json=req_data, headers=headers)
-                    json_response = json.loads(response.content)
-                    if json_response['status_code'] != 200:
-                        print(json_response.content)
+                    if response.status_code != 200:
+                        # response.content: { status_code: 5xx, detial: 'xxx' }
+                        json_response = json.loads(response.get('content'))
+                        print(json_response.content.decode('UTF-8'))
                 except Exception as e:
                     print(e)
                     print(f'init Awaiting_Review order failed')
@@ -599,7 +600,7 @@ class ShoporderUpdateViewSet(viewsets.ModelViewSet):
             shop_id = shop.id
             self.handle_shoporder(shop_id, since=since, to=to, status=status)
 
-        return Response({"detail": "done"}, status=200)
+        return Response({"detail": "success"}, status=200)
 
     def handle_shoporder(self, shop_id, **args):
         seller_api = SELLER_API(shop_id)
@@ -623,9 +624,10 @@ class ShoporderUpdateViewSet(viewsets.ModelViewSet):
 
                 try:
                     response = requests.put(url, json=req_data, headers=headers)
-                    json_response = json.loads(response.content)
-                    if json_response['status_code'] != 200:
-                        print(json_response.content)
+                    if response.status_code != 200:
+                        # response.content: { status_code: 5xx, detial: 'xxx' }
+                        json_response = json.loads(response.get('content'))
+                        print(json_response.content.decode('UTF-8'))
                 except Exception as e:
                     print(e)
                     print(f'update Awaiting_Review order failed')
