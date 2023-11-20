@@ -435,7 +435,7 @@
             :class="{ 'my-menu-link': link === 'order' && link !== '' }"
           >
             <q-item-section avatar
-              ><q-icon name="store"
+              ><q-icon name="receipt_long"
             /></q-item-section>
             <q-item-section>{{ $t("menuItem.order") }}</q-item-section>
           </q-item>

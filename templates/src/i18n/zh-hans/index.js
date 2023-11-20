@@ -723,6 +723,7 @@ export default {
     cancelled: '已取消',
     delivered: '已完成',
     normal: '正常',
-    abnormal: '异常'
+    abnormal: '异常',
+    normal_delete_tip: '正常订单不能删除'
   }
 }

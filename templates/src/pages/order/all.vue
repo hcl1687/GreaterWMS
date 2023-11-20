@@ -21,7 +21,7 @@
           <q-btn-group push>
             <q-btn
               :label="$t('order.fetch_order')"
-              icon="add"
+              icon="system_update_alt"
               @click="fetchOrder()"
             >
               <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ $t('order.fetch_order_tip') }}</q-tooltip>
@@ -49,8 +49,8 @@
             <q-td key="posting_number" :props="props">{{ props.row.posting_number }}</q-td>
             <q-td key="dn_code" :props="props">{{ props.row.dn_code }}</q-td>
             <q-td key="order_time" :props="props">{{ props.row.order_time }}</q-td>
-            <q-td key="status" :props="props">{{ props.row.status }}</q-td>
-            <q-td key="handle_status" :props="props">{{ props.row.handle_status }}</q-td>
+            <q-td key="status" :props="props">{{ getStatusMsg(props.row.status) }}</q-td>
+            <q-td key="handle_status" :props="props">{{ getHandleStatusMsg(props.row.handle_status) }}</q-td>
             <q-td key="handle_message" :props="props">{{ props.row.handle_message }}</q-td>
             <q-td key="supplier" :props="props">{{ props.row.supplier }}</q-td>
             <q-td key="creater" :props="props">{{ props.row.creater }}</q-td>
@@ -66,6 +66,17 @@
                 @click="viewData(props.row)"
               >
                 <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ $t('printthisasn') }}</q-tooltip>
+              </q-btn>
+              <q-btn
+                round
+                flat
+                push
+                color="dark"
+                icon="delete"
+                :disable="props.row.handle_status !== 2"
+                @click="deleteData(props.row)"
+              >
+                <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ props.row.handle_status !== 2 ? $t('order.normal_delete_tip') : $t('delete') }}</q-tooltip>
               </q-btn>
             </q-td>
           </q-tr>
@@ -99,13 +110,14 @@
     <q-dialog v-model="viewForm">
       <q-card id="printMe">
         <q-bar class="bg-light-blue-10 text-white rounded-borders" style="height: 50px">
-          <div>{{ viewdn }}</div>
+          <div>{{ viewNumber }}</div>
           <q-space />
           {{ $t('outbound.dn') }}
         </q-bar>
         <q-markup-table>
           <thead>
             <tr>
+              <th class="text-left">{{ $t('shopsku.name') }}</th>
               <th class="text-left">{{ $t('goods.view_goodslist.goods_code') }}</th>
               <th class="text-left">{{ $t('shopsku.platform_sku') }}</th>
               <th class="text-right">{{ $t('order.quantity') }}</th>
@@ -114,8 +126,9 @@
           </thead>
           <tbody>
             <tr v-for="(view, index) in products_table" :key="index">
+              <td class="text-left">{{ view.name }}</td>
               <td class="text-left">{{ view.goods_code }}</td>
-              <td class="text-right">{{ view.platform_sku }}</td>
+              <td class="text-right">{{ view.sku }}</td>
               <td class="text-right">{{ view.quantity }}</td>
               <td class="text-right"></td>
             </tr>
@@ -124,12 +137,28 @@
       </q-card>
       <div style="float: right; padding: 15px 15px 15px 0"><q-btn color="primary" icon="print" v-print="printObj">print</q-btn></div>
     </q-dialog>
+    <q-dialog v-model="deleteForm">
+      <q-card class="shadow-24">
+        <q-bar class="bg-light-blue-10 text-white rounded-borders" style="height: 50px">
+          <div>{{ $t('delete') }}</div>
+          <q-space />
+          <q-btn dense flat icon="close" v-close-popup>
+            <q-tooltip content-class="bg-amber text-black shadow-4">{{ $t('index.close') }}</q-tooltip>
+          </q-btn>
+        </q-bar>
+        <q-card-section style="max-height: 325px; width: 400px" class="scroll">{{ $t('deletetip') }}</q-card-section>
+        <div style="float: right; padding: 15px 15px 15px 0">
+          <q-btn color="white" text-color="black" style="margin-right: 25px" @click="deleteDataCancel()">{{ $t('cancel') }}</q-btn>
+          <q-btn color="primary" @click="deleteDataSubmit()">{{ $t('submit') }}</q-btn>
+        </div>
+      </q-card>
+    </q-dialog>
   </div>
 </template>
 <router-view />
 
 <script>
-import { getauth, postauth } from 'boot/axios_request'
+import { getauth, postauth, deleteauth } from 'boot/axios_request'
 import { LocalStorage } from 'quasar'
 
 export default {
@@ -178,7 +207,10 @@ export default {
       current: 1,
       max: 0,
       total: 0,
-      paginationIpt: 1
+      paginationIpt: 1,
+      viewNumber: '',
+      deleteForm: false,
+      deleteid: 0,
     }
   },
   methods: {
@@ -199,27 +231,6 @@ export default {
               }
             }
             res.results.forEach(item => {
-              if (item.status === 1) {
-                item.status = _this.$t('order.awaiting_review')
-              } else if (item.status === 2) {
-                item.status = _this.$t('order.awaiting_deliver')
-              } else if (item.status === 3) {
-                item.status = _this.$t('order.delivering')
-              } else if (item.status === 4) {
-                item.status = _this.$t('order.cancelled')
-              } else if (item.status === 5) {
-                item.status = _this.$t('order.delivered')
-              } else {
-                item.status = 'N/A'
-              }
-
-              if (item.handle_status === 1) {
-                item.handle_status = _this.$t('order.normal')
-              } else if (item.handle_status === 2) {
-                item.handle_status = _this.$t('order.abnormal')
-              } else {
-                item.handle_status = 'N/A'
-              }
               _this.table_list.push(item)
             })
             _this.pathname_previous = res.previous
@@ -264,27 +275,6 @@ export default {
               }
             }
             res.results.forEach(item => {
-              if (item.status === 1) {
-                item.status = _this.$t('order.awaiting_review')
-              } else if (item.status === 2) {
-                item.status = _this.$t('order.awaiting_deliver')
-              } else if (item.status === 3) {
-                item.status = _this.$t('order.delivering')
-              } else if (item.status === 4) {
-                item.status = _this.$t('order.cancelled')
-              } else if (item.status === 5) {
-                item.status = _this.$t('order.delivered')
-              } else {
-                item.status = 'N/A'
-              }
-
-              if (item.handle_status === 1) {
-                item.handle_status = _this.$t('order.normal')
-              } else if (item.handle_status === 2) {
-                item.handle_status = _this.$t('order.abnormal')
-              } else {
-                item.handle_status = 'N/A'
-              }
               _this.table_list.push(item)
             })
             _this.pathname_previous = res.previous
@@ -307,27 +297,6 @@ export default {
           .then(res => {
             _this.table_list = []
             res.results.forEach(item => {
-              if (item.status === 1) {
-                item.status = _this.$t('order.awaiting_review')
-              } else if (item.status === 2) {
-                item.status = _this.$t('order.awaiting_deliver')
-              } else if (item.status === 3) {
-                item.status = _this.$t('order.delivering')
-              } else if (item.status === 4) {
-                item.status = _this.$t('order.cancelled')
-              } else if (item.status === 5) {
-                item.status = _this.$t('order.delivered')
-              } else {
-                item.status = 'N/A'
-              }
-
-              if (item.handle_status === 1) {
-                item.handle_status = _this.$t('order.normal')
-              } else if (item.handle_status === 2) {
-                item.handle_status = _this.$t('order.abnormal')
-              } else {
-                item.handle_status = 'N/A'
-              }
               _this.table_list.push(item)
             })
             _this.pathname_previous = res.previous
@@ -350,27 +319,6 @@ export default {
           .then(res => {
             _this.table_list = []
             res.results.forEach(item => {
-              if (item.status === 1) {
-                item.status = _this.$t('order.awaiting_review')
-              } else if (item.status === 2) {
-                item.status = _this.$t('order.awaiting_deliver')
-              } else if (item.status === 3) {
-                item.status = _this.$t('order.delivering')
-              } else if (item.status === 4) {
-                item.status = _this.$t('order.cancelled')
-              } else if (item.status === 5) {
-                item.status = _this.$t('order.delivered')
-              } else {
-                item.status = 'N/A'
-              }
-
-              if (item.handle_status === 1) {
-                item.handle_status = _this.$t('order.normal')
-              } else if (item.handle_status === 2) {
-                item.handle_status = _this.$t('order.abnormal')
-              } else {
-                item.handle_status = 'N/A'
-              }
               _this.table_list.push(item)
             })
             _this.pathname_previous = res.previous
@@ -395,9 +343,57 @@ export default {
       this.listNumber = number
     },
     viewData (e) {
-      this.products_table = e.products
-      this.view = e.posting_number
+      const order_products = JSON.parse(e.order_products)
+      const stockbin_data = JSON.parse(e.stockbin_data)
+      for(let i = 0; i < order_products.length; i++) {
+        const item = order_products[i]
+        const sItem = stockbin_data[i]
+        item['goods_code'] = sItem.goods_code || ''
+      }
+      this.products_table = order_products
+      this.viewNumber = e.posting_number
       this.viewForm = true
+    },
+    deleteData (e) {
+      var _this = this
+      if (e.handle_status !== 2) {
+        _this.$q.notify({
+          message: _this.$t('order.normal_delete_tip'),
+          icon: 'close',
+          color: 'negative'
+        })
+      } else {
+        _this.deleteForm = true
+        _this.deleteid = e.id
+      }
+    },
+    deleteDataSubmit () {
+      var _this = this
+      deleteauth(_this.pathname + '' + _this.deleteid + '/')
+        .then(res => {
+          _this.table_list = []
+          _this.deleteDataCancel()
+          _this.getList()
+          if (!res.detail) {
+            _this.$q.notify({
+              message: 'Success Delete',
+              icon: 'check',
+              color: 'green'
+            })
+          }
+        })
+        .catch(err => {
+          _this.$q.notify({
+            message: err.detail,
+            icon: 'close',
+            color: 'negative'
+          })
+        })
+    },
+    deleteDataCancel () {
+      var _this = this
+      _this.deleteForm = false
+      _this.deleteid = 0
     },
     isSupplier () {
       return LocalStorage.getItem('staff_type') === 'Supplier'
@@ -407,6 +403,36 @@ export default {
       this.current = 1;
       this.paginationIpt = 1;
       this.getList()
+    },
+    getStatusMsg (status) {
+      let msg = ''
+      if (status === 1) {
+        msg = this.$t('order.awaiting_review')
+      } else if (status === 2) {
+        msg = this.$t('order.awaiting_deliver')
+      } else if (status === 3) {
+        msg = this.$t('order.delivering')
+      } else if (status === 4) {
+        msg = this.$t('order.cancelled')
+      } else if (status === 5) {
+        msg = this.$t('order.delivered')
+      } else {
+        msg = 'N/A'
+      }
+
+      return msg
+    },
+    getHandleStatusMsg (status) {
+      let msg = ''
+      if (status === 1) {
+        msg = this.$t('order.normal')
+      } else if (status === 2) {
+        msg = this.$t('order.abnormal')
+      } else {
+        msg = 'N/A'
+      }
+
+      return msg
     }
   },
   created () {

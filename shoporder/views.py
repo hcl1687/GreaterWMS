@@ -145,11 +145,13 @@ class APIViewSet(viewsets.ModelViewSet):
             except APIException as e:
                 data['handle_status'] = Handle_Status.Abnormal
                 data['handle_message'] = e.detail['detail']
+
+            data['status'] = Status.Awaiting_Review
             serializer = self.get_serializer(data=data)
             serializer.is_valid(raise_exception=True)
             serializer.save()
 
-            if status == 2:
+            if data.get('handle_status', Handle_Status.Normal) == Handle_Status.Normal and status == Status.Awaiting_Deliver:
                 # handle awaiting_deliver data
                 url = f'{settings.INNER_URL}/shoporder/{serializer.data["id"]}/'
                 req_data = original_data
@@ -158,15 +160,15 @@ class APIViewSet(viewsets.ModelViewSet):
                     'Token': self.request.META.get('HTTP_TOKEN'),
                 }
 
-                try:
-                    response = requests.put(url, json=req_data, headers=headers)
-                    if response.status_code != 200:
-                        # response.content: { status_code: 5xx, detial: 'xxx' }
-                        json_response = json.loads(response.get('content'))
-                        print(json_response.content.decode('UTF-8'))
-                except Exception as e:
-                    print(e)
+                response = requests.put(url, json=req_data, headers=headers)
+                json_response = json.loads(response.content.decode('UTF-8'))
+                json_response_status = json_response.get('status_code')
+                if response.status_code != 200 or (json_response_status and json_response_status != 200):
+                    # response.content: { status_code: 5xx, detial: 'xxx' }
+                    print(json_response)
                     raise APIException({"detail": f'Handle awaiting_deliver data failed after holding stock'})
+
+
             headers = self.get_success_headers(serializer.data)
             return Response(serializer.data, status=200, headers=headers)
 
@@ -175,6 +177,9 @@ class APIViewSet(viewsets.ModelViewSet):
         if qs.openid != self.request.META.get('HTTP_TOKEN'):
             raise APIException({"detail": "Cannot update data which not yours"})
         
+        if qs.handle_status != Handle_Status.Normal:
+            raise APIException({"detail": "This Shop order is abnormal"})
+
         if qs.status != Status.Awaiting_Review:
             raise APIException({"detail": "This Shop order does not in Awaiting Review Status"})
 
@@ -296,7 +301,6 @@ class APIViewSet(viewsets.ModelViewSet):
                 raise APIException({"detail": "No goods_code for {}".format(sku)})
 
             goods_code = shopsku_obj.goods_code
-            item['goods_code'] = goods_code
             products_goods_code.append(goods_code)
             # chedk stock
             goods_qty_change = StockListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
@@ -352,14 +356,16 @@ class APIViewSet(viewsets.ModelViewSet):
                 'Token': self.request.META.get('HTTP_TOKEN'),
             }
 
-            try:
-                response = requests.post(url, json=req_data, headers=headers)
-                json_response = json.loads(response.content)
-                stockbin_data_item['target_id'] = json_response['stockbin_id']
-                stockbin_data_item['target_bin_name'] = json_response['stockbin_bin_name']
-            except Exception as e:
-                print(e)
+            response = requests.post(url, json=req_data, headers=headers)
+            json_response = json.loads(response.content.decode('UTF-8'))
+            json_response_status = json_response.get('status_code')
+            if response.status_code != 200 or (json_response_status and json_response_status != 200):
+                # response.content: { status_code: 5xx, detial: 'xxx' }
+                print(json_response)
                 raise APIException({"detail": f'Cannot move bin from: {stockbin_data_item["source_id"]} to {settings.DEFAULT_HOLDING_BIN}'})
+
+            stockbin_data_item['target_id'] = json_response['stockbin_id']
+            stockbin_data_item['target_bin_name'] = json_response['stockbin_bin_name']
 
         data['stockbin_data'] = json.dumps(stockbin_data)
         return data
@@ -394,13 +400,15 @@ class APIViewSet(viewsets.ModelViewSet):
             'Authorization': self.request.headers['Authorization'],
             'Token': self.request.META.get('HTTP_TOKEN'),
         }
-        try:
-            response = requests.post(url, json=req_data, headers=headers)
-            json_response = json.loads(response.content)
-            dn_code = json_response['dn_code']
-        except Exception as e:
-            print(e)
+
+        response = requests.post(url, json=req_data, headers=headers)
+        json_response = json.loads(response.content.decode('UTF-8'))
+        json_response_status = json_response.get('status_code')
+        if response.status_code != 200 or (json_response_status and json_response_status != 200):
+            # response.content: { status_code: 5xx, detial: 'xxx' }
+            print(json_response)
             raise APIException({"detail": f'Cannot create dn list'})
+        dn_code = json_response['dn_code']
 
         # create DN detail
         url = f'{settings.INNER_URL}/dn/detail/'
@@ -416,14 +424,12 @@ class APIViewSet(viewsets.ModelViewSet):
             'Token': self.request.META.get('HTTP_TOKEN'),
             'Operator': str(self.request.user.id)
         }
-        try:
-            response = requests.post(url, json=req_data, headers=headers)
-            if response.status_code != 200:
-                # response.content: { status_code: 5xx, detial: 'xxx' }
-                json_response = json.loads(response.get('content'))
-                print(json_response.content.decode('UTF-8'))
-        except Exception as e:
-            print(e)
+
+        response = requests.post(url, json=req_data, headers=headers)
+        json_response = json.loads(response.content.decode('UTF-8'))
+        if response.status_code != 200 or (json_response_status and json_response_status != 200):
+            # response.content: { status_code: 5xx, detial: 'xxx' }
+            print(json_response)
             raise APIException({"detail": f'Cannot create dn detail'})
 
         data['dn_code'] = dn_code
@@ -518,14 +524,12 @@ class ShoporderInitViewSet(viewsets.ModelViewSet):
                     'Token': self.request.META.get('HTTP_TOKEN'),
                 }
 
-                try:
-                    response = requests.post(url, json=req_data, headers=headers)
-                    if response.status_code != 200:
-                        # response.content: { status_code: 5xx, detial: 'xxx' }
-                        json_response = json.loads(response.get('content'))
-                        print(json_response.content.decode('UTF-8'))
-                except Exception as e:
-                    print(e)
+                response = requests.post(url, json=req_data, headers=headers)
+                json_response = json.loads(response.content.decode('UTF-8'))
+                json_response_status = json_response.get('status_code')
+                if response.status_code != 200 or (json_response_status and json_response_status != 200):
+                    # response.content: { status_code: 5xx, detial: 'xxx' }
+                    print(json_response)
                     print(f'init Awaiting_Review order failed')
 
             if seller_resp is None:
@@ -622,14 +626,12 @@ class ShoporderUpdateViewSet(viewsets.ModelViewSet):
                     'Token': self.request.META.get('HTTP_TOKEN'),
                 }
 
-                try:
-                    response = requests.put(url, json=req_data, headers=headers)
-                    if response.status_code != 200:
-                        # response.content: { status_code: 5xx, detial: 'xxx' }
-                        json_response = json.loads(response.get('content'))
-                        print(json_response.content.decode('UTF-8'))
-                except Exception as e:
-                    print(e)
+                response = requests.put(url, json=req_data, headers=headers)
+                json_response = json.loads(response.content.decode('UTF-8'))
+                json_response_status = json_response.get('status_code')
+                if response.status_code != 200 or (json_response_status and json_response_status != 200):
+                    # response.content: { status_code: 5xx, detial: 'xxx' }
+                    print(json_response)
                     print(f'update Awaiting_Review order failed')
 
             if seller_resp is None:
