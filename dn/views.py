@@ -133,13 +133,68 @@ class DnListViewSet(viewsets.ModelViewSet):
         else:
             if qs.dn_status == 1:
                 qs.is_delete = True
+                shoporder_obj = ShoporderModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), dn_code=qs.dn_code, is_delete=False).first()
+                if shoporder_obj:
+                    try:
+                        stockbin_data = json.loads(shoporder_obj.stockbin_data)
+                    except json.JSONDecodeError:
+                        raise APIException({"detail": "stockbin_data decode error"})
+
                 dn_detail_list = DnDetailModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), dn_code=qs.dn_code,
                                               dn_status=1, is_delete=False)
                 for i in range(len(dn_detail_list)):
+                    # Todo: If this dn has platform order, move holding bin to normal bin
+                    if shoporder_obj:
+                        stockbin_data_items = [item for item in stockbin_data if item['goods_code'] == dn_detail_list[i].goods_code]
+                        if len(stockbin_data_items) == 0:
+                            raise APIException({"detail": f'stockbin_data_items is empty'})
+                        stockbin_data_item = stockbin_data_items[0]
+                        # get hold stock bin
+                        hold_stockbin_obj = stockbin.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
+                                                            id=stockbin_data_item['target_id']).first()
+                        if hold_stockbin_obj.goods_code != dn_detail_list[i].goods_code:
+                            raise APIException({"detail": f'stock bin\'s goods_code: {hold_stockbin_obj.goods_code} mismatch dn detail\'s: {dn_detail_list[i].goods_code}'})
+                        # move holding stock to normal bin
+                        url = f'{settings.INNER_URL}/stock/bin/{stockbin_data_item["target_id"]}/'
+                        req_data = {
+                            'bin_name': stockbin_data_item['target_bin_name'],
+                            'move_to_bin': stockbin_data_item['source_bin_name'],
+                            'goods_code': hold_stockbin_obj.goods_code,
+                            'move_qty': hold_stockbin_obj.goods_qty
+                        }
+                        headers = {
+                            'Authorization': self.request.headers['Authorization'],
+                            'Token': self.request.META.get('HTTP_TOKEN'),
+                        }
+
+                        try:
+                            response = requests.post(url, json=req_data, headers=headers)
+                            json_response = json.loads(response.content)
+                            # merge new source stock bin to origin stock bin
+                            print(json_response['stockbin_id'])
+                            print(json_response['stockbin_bin_name'])
+                            # clear target_id and target_bin_name
+                            stockbin_data_item['target_id'] = ''
+                            stockbin_data_item['target_bin_name'] = ''
+                            is_stockbin_data_changed = True
+                        except Exception as e:
+                            raise APIException({"detail": f'Cannot move bin from: {hold_stockbin_obj.id} to {stockbin_data_item["source_bin_name"]}'})
+                        # delete hold bin
+                        hold_stockbin_obj.delete()
+
                     goods_qty_change = stocklist.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                                 goods_code=str(dn_detail_list[i].goods_code)).first()
                     goods_qty_change.dn_stock = goods_qty_change.dn_stock - int(dn_detail_list[i].goods_qty)
                     goods_qty_change.save()
+
+                # update shoporder
+                if shoporder_obj and is_stockbin_data_changed:
+                    partial_data = {
+                        'stockbin_data': json.dumps(stockbin_data)
+                    }
+                    serializer = ShoporderPartialUpdateSerializer(shoporder_obj, data=partial_data, partial=True)
+                    serializer.is_valid(raise_exception=True)
+                    serializer.save()
                 dn_detail_list.update(is_delete=True)
                 qs.save()
                 return Response({"detail": "success"}, status=200)
@@ -561,6 +616,8 @@ class DnNewOrderViewSet(viewsets.ModelViewSet):
     def get_serializer_class(self):
         if self.action in ['create']:
             return serializers.DNListPartialUpdateSerializer
+        if self.action in ['destroy']:
+            return serializers.DNListGetSerializer
         else:
             return self.http_method_not_allowed(request=self.request)
 
@@ -591,9 +648,6 @@ class DnNewOrderViewSet(viewsets.ModelViewSet):
                                                      goods_code=str(dn_detail_list[i].goods_code),
                                                      goods_desc=goods_detail.goods_desc,
                                                      supplier=goods_detail.goods_supplier)
-                        goods_qty_change = stocklist.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
-                                                                    goods_code=str(
-                                                                        dn_detail_list[i].goods_code)).first()
                         # Todo: If this dn has platform order, move stock from lock bin to normal bin.
                         # Delete lock bin and save new normal bin id to shoporder
                         if shoporder_obj:
@@ -630,6 +684,9 @@ class DnNewOrderViewSet(viewsets.ModelViewSet):
                             # delete hold bin
                             hold_stockbin_obj.delete()
 
+                        goods_qty_change = stocklist.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
+                                                                                            goods_code=str(
+                                                                                                dn_detail_list[i].goods_code)).first()
                         goods_qty_change.can_order_stock = goods_qty_change.can_order_stock - dn_detail_list[i].goods_qty
                         goods_qty_change.ordered_stock = goods_qty_change.ordered_stock + dn_detail_list[i].goods_qty
                         goods_qty_change.dn_stock = goods_qty_change.dn_stock - dn_detail_list[i].goods_qty
@@ -655,6 +712,84 @@ class DnNewOrderViewSet(viewsets.ModelViewSet):
             else:
                 raise APIException({"detail": "This DN Status Is Not Pre Order"})
 
+    def destroy(self, request, pk):
+        qs = self.get_object()
+        if qs.openid != self.request.META.get('HTTP_TOKEN'):
+            raise APIException({"detail": "Cannot delete data which not yours"})
+        else:
+            if qs.dn_status == 2:
+                dn_detail_list = DnDetailModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), dn_code=qs.dn_code,
+                                                              dn_status=2, is_delete=False)
+                shoporder_obj = ShoporderModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), dn_code=qs.dn_code, is_delete=False).first()
+                is_stockbin_data_changed = False
+                if shoporder_obj:
+                    try:
+                        stockbin_data = json.loads(shoporder_obj.stockbin_data)
+                    except json.JSONDecodeError:
+                        raise APIException({"detail": "stockbin_data decode error"})
+                if dn_detail_list.exists():
+                    qs.dn_status = 1
+                    for i in range(len(dn_detail_list)):
+                        # Todo: If this dn has platform order, move stock from normal bin to lock bin.
+                        # Delete normal bin and save lock bin id to shoporder
+                        if shoporder_obj:
+                            stockbin_data_items = [item for item in stockbin_data if item['goods_code'] == dn_detail_list[i].goods_code]
+                            if len(stockbin_data_items) == 0:
+                                raise APIException({"detail": f'stockbin_data_items is empty'})
+                            stockbin_data_item = stockbin_data_items[0]
+                            # get normal stock bin
+                            normal_stockbin_obj = stockbin.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
+                                                               id=stockbin_data_item['target_id']).first()
+                            if normal_stockbin_obj.goods_code != dn_detail_list[i].goods_code:
+                                raise APIException({"detail": f'stock bin\'s goods_code: {normal_stockbin_obj.goods_code} mismatch dn detail\'s: {dn_detail_list[i].goods_code}'})
+                            # move normal stock to holding bin
+                            url = f'{settings.INNER_URL}/stock/bin/{stockbin_data_item["target_id"]}/'
+                            req_data = {
+                                'bin_name': stockbin_data_item['target_bin_name'],
+                                'move_to_bin': settings.DEFAULT_HOLDING_BIN,
+                                'goods_code': normal_stockbin_obj.goods_code,
+                                'move_qty': normal_stockbin_obj.goods_qty
+                            }
+                            headers = {
+                                'Authorization': self.request.headers['Authorization'],
+                                'Token': self.request.META.get('HTTP_TOKEN'),
+                            }
+
+                            try:
+                                response = requests.post(url, json=req_data, headers=headers)
+                                json_response = json.loads(response.content)
+                                stockbin_data_item['target_id'] = json_response['stockbin_id']
+                                stockbin_data_item['target_bin_name'] = json_response['stockbin_bin_name']
+                                is_stockbin_data_changed = True
+                            except Exception as e:
+                                raise APIException({"detail": f'Cannot move bin from: {normal_stockbin_obj.id} to {settings.DEFAULT_HOLDING_BIN}'})
+                            # delete normal bin
+                            normal_stockbin_obj.delete()
+
+                        goods_qty_change = stocklist.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
+                                                                    goods_code=str(
+                                                                        dn_detail_list[i].goods_code)).first()
+                        goods_qty_change.can_order_stock = goods_qty_change.can_order_stock + dn_detail_list[i].goods_qty
+                        goods_qty_change.ordered_stock = goods_qty_change.ordered_stock - dn_detail_list[i].goods_qty
+                        goods_qty_change.dn_stock = goods_qty_change.dn_stock + dn_detail_list[i].goods_qty
+                        goods_qty_change.save()
+
+                    # update shoporder
+                    if shoporder_obj and is_stockbin_data_changed:
+                        partial_data = {
+                            'stockbin_data': json.dumps(stockbin_data)
+                        }
+                        serializer = ShoporderPartialUpdateSerializer(shoporder_obj, data=partial_data, partial=True)
+                        serializer.is_valid(raise_exception=True)
+                        serializer.save()
+                    dn_detail_list.update(dn_status=1)
+                    qs.save()
+                    return Response({"Detail": "success"}, status=200)
+                else:
+                    raise APIException({"detail": "Please Enter The DN Detail"})
+            else:
+                raise APIException({"detail": "This DN Status Is Not Ordered"})
+
 class DnOrderReleaseViewSet(viewsets.ModelViewSet):
     """
         retrieve:
@@ -679,7 +814,7 @@ class DnOrderReleaseViewSet(viewsets.ModelViewSet):
             if id is None:
                 return DnListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), dn_status=2, is_delete=False).order_by('create_time')
             else:
-                return DnListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), dn_status=2, id=id, is_delete=False)
+                return DnListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=id, is_delete=False)
         else:
             return DnListModel.objects.none()
 
@@ -1187,7 +1322,7 @@ class DnOrderReleaseViewSet(viewsets.ModelViewSet):
                         stockbin_data_item = stockbin_data_items[0]
                         # get target stock bin
                         normal_stockbin_obj = stockbin.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
-                                                            id=stockbin_data_item['target_id'], bin_property="Normal").first()
+                                                            id=stockbin_data_item['target_id']).first()
                         if normal_stockbin_obj is None:
                             raise APIException({"detail": f'stock bin {stockbin_data_item["target_id"]} not exists'})
                         if normal_stockbin_obj.goods_code != dn_detail_list[i].goods_code:
@@ -1600,6 +1735,71 @@ class DnOrderReleaseViewSet(viewsets.ModelViewSet):
             else:
                 raise APIException({"detail": "This Order Does Not in Release Status"})
 
+    def destroy(self, request, pk):
+        qs = self.get_object()
+        if qs.openid != self.request.META.get('HTTP_TOKEN'):
+            raise APIException({"detail": "Cannot Release Order Data Which Not Yours"})
+        else:
+            if qs.dn_status == 3:
+                dn_detail_list = DnDetailModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
+                                                              dn_code=qs.dn_code,
+                                                              dn_status=3, is_delete=False)
+                shoporder_obj = ShoporderModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), dn_code=qs.dn_code, is_delete=False).first()
+                if shoporder_obj:
+                    try:
+                        stockbin_data = json.loads(shoporder_obj.stockbin_data)
+                    except json.JSONDecodeError:
+                        raise APIException({"detail": "stockbin_data decode error"})
+
+                for i in range(len(dn_detail_list)):
+                    goods_qty_change = stocklist.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
+                                                                goods_code=str(
+                                                                    dn_detail_list[i].goods_code)).first()
+                    # Todo: if this dn has platform order, get the specific normal goods bin.
+                    if shoporder_obj:
+                        stockbin_data_items = [item for item in stockbin_data if item['goods_code'] == dn_detail_list[i].goods_code]
+                        if len(stockbin_data_items) == 0:
+                            raise APIException({"detail": f'stockbin_data_items is empty'})
+                        stockbin_data_item = stockbin_data_items[0]
+                        # get target stock bin
+                        normal_stockbin_obj = stockbin.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
+                                                            id=stockbin_data_item['target_id']).first()
+                        if normal_stockbin_obj is None:
+                            raise APIException({"detail": f'stock bin {stockbin_data_item["target_id"]} not exists'})
+                        if normal_stockbin_obj.goods_code != dn_detail_list[i].goods_code:
+                            raise APIException({"detail": f'stock bin\'s goods_code: {normal_stockbin_obj.goods_code} mismatch dn detail\'s: {dn_detail_list[i].goods_code}'})
+                        goods_bin_stock_list = [normal_stockbin_obj]
+                    else:
+                        goods_bin_stock_list = stockbin.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
+                                                                    goods_code=str(dn_detail_list[i].goods_code),
+                                                                    bin_property="Normal").order_by('id')
+
+                    for j in range(len(goods_bin_stock_list)):
+                        picking_item = PickingListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
+                                                                        dn_code=str(dn_detail_list[i].dn_code),
+                                                                        bin_name=goods_bin_stock_list[j].bin_name,
+                                                                        goods_code=str(dn_detail_list[i].goods_code)).first()
+                        goods_bin_stock_list[j].pick_qty = goods_bin_stock_list[
+                                                                        j].pick_qty - picking_item.pick_qty
+                        if qs.back_order_label is True:
+                            goods_qty_change.can_order_stock = goods_qty_change.can_order_stock + picking_item.pick_qty
+                            goods_qty_change.back_order_stock = goods_qty_change.back_order_stock + picking_item.pick_qty
+                        goods_qty_change.ordered_stock = goods_qty_change.ordered_stock + picking_item.pick_qty
+                        goods_qty_change.pick_stock = goods_qty_change.pick_stock - picking_item.pick_qty
+
+                        dn_detail_list[i].pick_qty = dn_detail_list[i].pick_qty - picking_item.pick_qty
+                        dn_detail_list[i].dn_status = 2
+                        dn_detail_list[i].save()
+                        goods_bin_stock_list[j].save()
+                        goods_qty_change.save()
+                        picking_item.delete()
+
+                qs.dn_status = 2
+                qs.save()
+                return Response({"detail": "success"}, status=200)
+            else:
+                raise APIException({"detail": "This Order Does Not in Release Status"})
+
 class DnPickingListViewSet(viewsets.ModelViewSet):
     """
         retrieve:
@@ -1694,6 +1894,8 @@ class DnPickedViewSet(viewsets.ModelViewSet):
     def get_serializer_class(self):
         if self.action in ['create', 'update']:
             return serializers.DNListUpdateSerializer
+        if self.action in ['destroy']:
+            return serializers.DNListGetSerializer
         else:
             return self.http_method_not_allowed(request=self.request)
 
@@ -1743,7 +1945,7 @@ class DnPickedViewSet(viewsets.ModelViewSet):
 
                     # get target stock bin
                     normal_stockbin_obj = stockbin.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
-                                                        id=stockbin_data_item['target_id'], bin_property="Normal").first()
+                                                        id=stockbin_data_item['target_id']).first()
                     if normal_stockbin_obj is None:
                         raise APIException({"detail": f'stock bin {stockbin_data_item["target_id"]} not exists'})
                     if normal_stockbin_obj.goods_code != goods_code:
@@ -1913,6 +2115,89 @@ class DnPickedViewSet(viewsets.ModelViewSet):
                     dn_detail.save()
             return Response({"Detail": "success"}, status=200)
 
+    def destroy(self, request, pk):
+        qs = self.get_object()
+        if qs.dn_status != 4:
+            raise APIException({"detail": "This dn Status Not Picked"})
+        else:
+            picking_list = PickingListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
+                                                                  dn_code=str(qs.dn_code))
+            qs.dn_status = 3
+            staff_name = staff.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
+                                              id=self.request.META.get('HTTP_OPERATOR')).first().staff_name
+
+            shoporder_obj = ShoporderModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), dn_code=qs.dn_code, is_delete=False).first()
+            if shoporder_obj:
+                try:
+                    stockbin_data = json.loads(shoporder_obj.stockbin_data)
+                except json.JSONDecodeError:
+                    raise APIException({"detail": "stockbin_data decode error"})
+
+            for picking_item in picking_list:
+                goods_qty_change = stocklist.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
+                                                            goods_code=picking_item.goods_code).first()
+                dn_detail = DnDetailModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
+                                                         dn_code=picking_item.dn_code,
+                                                         goods_code=picking_item.goods_code).first()
+                # Todo: if this dn has platform order, get the specific stock bin.
+                if shoporder_obj:
+                    goods_code = picking_item.goods_code
+                    stockbin_data_items = [item for item in stockbin_data if item['goods_code'] == goods_code]
+                    if len(stockbin_data_items) == 0:
+                        raise APIException({"detail": f'stockbin_data_items is empty'})
+                    stockbin_data_item = stockbin_data_items[0]
+
+                    # get target stock bin
+                    normal_stockbin_obj = stockbin.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
+                                                        id=stockbin_data_item['target_id']).first()
+                    if normal_stockbin_obj is None:
+                        raise APIException({"detail": f'stock bin {stockbin_data_item["target_id"]} not exists'})
+                    if normal_stockbin_obj.goods_code != goods_code:
+                        raise APIException({"detail": f'stock bin\'s goods_code: {normal_stockbin_obj.goods_code} mismatch dn detail\'s: {goods_code}'})
+                    bin_qty_change = normal_stockbin_obj
+                else:
+                    bin_qty_change = stockbin.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
+                                                            t_code=picking_item.t_code).first()
+
+                qtychangerecorder.objects.create(openid=self.request.META.get('HTTP_TOKEN'),
+                                                 mode_code=dn_detail.dn_code,
+                                                 bin_name=bin_qty_change.bin_name,
+                                                 goods_code=bin_qty_change.goods_code,
+                                                 goods_desc=bin_qty_change.goods_desc,
+                                                 goods_qty=0 + int(picking_item.picked_qty),
+                                                 store_code=bin_qty_change.t_code,
+                                                 creater=str(staff_name)
+                                                 )
+                cur_date = timezone.now().date()
+                bin_stock = stockbin.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
+                                                    bin_name=bin_qty_change.bin_name,
+                                                    goods_code=bin_qty_change.goods_code,
+                                                    ).aggregate(sum=Sum('goods_qty'))["sum"]
+                cycle_qty = bin_stock + int(picking_item.picked_qty)
+                cyclecount.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
+                                          bin_name=bin_qty_change.bin_name,
+                                          goods_code=bin_qty_change.goods_code,
+                                          create_time__gte=cur_date).update(goods_qty=cycle_qty)
+                goods_qty_change.onhand_stock = goods_qty_change.onhand_stock + int(picking_item.picked_qty)
+                goods_qty_change.pick_stock = goods_qty_change.pick_stock + int(picking_item.picked_qty)
+                goods_qty_change.picked_stock = goods_qty_change.picked_stock - int(picking_item.picked_qty)
+                
+                bin_qty_change.goods_qty = bin_qty_change.goods_qty + int(picking_item.picked_qty)
+                bin_qty_change.pick_qty = bin_qty_change.pick_qty + int(picking_item.picked_qty)
+                bin_qty_change.picked_qty = bin_qty_change.picked_qty - int(picking_item.picked_qty)
+                goods_qty_change.save()
+                bin_qty_change.save()
+                dn_detail.picked_qty = dn_detail.picked_qty - int(picking_item.picked_qty)
+                dn_detail.pick_qty = dn_detail.pick_qty + int(picking_item.picked_qty)
+                picking_item.picked_qty = 0
+                picking_item.picking_status = 0
+                picking_item.save()
+                dn_detail.dn_status = 3
+                dn_detail.save()
+            if DnDetailModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), dn_code=qs.dn_code, dn_status=4).exists() is False:
+                qs.save()
+            return Response({"Detail": "success"}, status=200)
+
 class DnDispatchViewSet(viewsets.ModelViewSet):
     """
         create:
@@ -1995,7 +2280,7 @@ class DnDispatchViewSet(viewsets.ModelViewSet):
                         stockbin_data_item = stockbin_data_items[0]
                         # get target stock bin
                         normal_stockbin_obj = stockbin.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
-                                                            id=stockbin_data_item['target_id'], bin_property="Normal").first()
+                                                            id=stockbin_data_item['target_id']).first()
                         if normal_stockbin_obj is None:
                             raise APIException({"detail": f'stock bin {stockbin_data_item["target_id"]} not exists'})
                         if normal_stockbin_obj.goods_code != goods_code:

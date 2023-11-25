@@ -19,10 +19,12 @@ re_path(r'^viewprint/(?P<pk>\d+)/$', views.DnViewPrintViewSet.as_view({
 }), name="dnviewprint_1"),
 re_path(r'^neworder/(?P<pk>\d+)/$', views.DnNewOrderViewSet.as_view({
     'post': 'create',
+    'delete': 'destroy'
 }), name="preloadid_1"),
 path(r'orderrelease/', views.DnOrderReleaseViewSet.as_view({"post": "create"}), name="orderrelease"),
 re_path(r'^orderrelease/(?P<pk>\d+)/$', views.DnOrderReleaseViewSet.as_view({
     'put': 'update',
+    'delete': 'destroy'
 }), name="orderrelease_1"),
 path(r'pickinglistfilter/', views.DnPickingListFilterViewSet.as_view({"get": "list"}), name="pickinglistfilter"),
 re_path(r'^pickinglist/(?P<pk>\d+)/$', views.DnPickingListViewSet.as_view({
@@ -31,7 +33,8 @@ re_path(r'^pickinglist/(?P<pk>\d+)/$', views.DnPickingListViewSet.as_view({
 path(r'picked/', views.DnPickedViewSet.as_view({'put': 'update'}), name="picked"),
 re_path(r'^picked/(?P<pk>\d+)/$', views.DnPickedViewSet.as_view({
     'post': 'create',
-    'put': 'update'
+    'put': 'update',
+    'delete': 'destroy'
 }), name="picked_1"),
 re_path(r'^dispatch/(?P<pk>\d+)/$', views.DnDispatchViewSet.as_view({
     'post': 'create',
