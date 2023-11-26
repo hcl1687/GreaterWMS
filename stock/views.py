@@ -91,6 +91,8 @@ class StockBinViewSet(viewsets.ModelViewSet):
             return serializers.StockBinGetSerializer
         elif self.action in ['create', 'update']:
             return serializers.StockBinPostSerializer
+        elif self.action in ['partial_update']:
+            return serializers.StockBinPartialUpdateSerializer
         else:
             return self.http_method_not_allowed(request=self.request)
 
@@ -447,6 +449,34 @@ class StockBinViewSet(viewsets.ModelViewSet):
                     pass
         headers = self.get_success_headers(data)
         return Response(data, status=200, headers=headers)
+
+    def partial_update(self, request, pk):
+        qs = self.get_object()
+        if qs.openid != self.request.META.get('HTTP_TOKEN'):
+            raise APIException({"detail": "Cannot update data which not yours"})
+        else:
+            data = self.request.data
+            if 'merged_stockbin' not in data:
+                raise APIException({"detail": "Please Enter The Merged Stock Bin ID"})
+            else:
+                merged_stockbin = StockBinModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
+                                                        id=data['merged_stockbin']).first()
+                if merged_stockbin is None:
+                    raise APIException({"detail": "The merge to stock bin not exists"})
+                if merged_stockbin.bin_property != qs.bin_property:
+                    raise APIException({"detail": "The two stock bins have different bin_property"})
+                if merged_stockbin.goods_code != qs.goods_code:
+                    raise APIException({"detail": "The two stock bins have different goods_code"})
+                if merged_stockbin.bin_name != qs.bin_name:
+                    raise APIException({"detail": "The two stock bins have different bin_name"})
+                
+                qs.goods_qty = qs.goods_qty + merged_stockbin.goods_qty
+                qs.pick_qty = qs.pick_qty + merged_stockbin.pick_qty
+                qs.picked_qty = qs.picked_qty + merged_stockbin.picked_qty
+                merged_stockbin.delete()
+                qs.save()
+
+                return Response({"detail": "success"}, status=200)
 
 class FileListDownloadView(viewsets.ModelViewSet):
     renderer_classes = (FileListRenderCN, ) + tuple(api_settings.DEFAULT_RENDERER_CLASSES)

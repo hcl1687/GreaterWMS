@@ -167,20 +167,39 @@ class DnListViewSet(viewsets.ModelViewSet):
                             'Token': self.request.META.get('HTTP_TOKEN'),
                         }
 
-                        try:
-                            response = requests.post(url, json=req_data, headers=headers)
-                            json_response = json.loads(response.content)
-                            # merge new source stock bin to origin stock bin
-                            print(json_response['stockbin_id'])
-                            print(json_response['stockbin_bin_name'])
-                            # clear target_id and target_bin_name
-                            stockbin_data_item['target_id'] = ''
-                            stockbin_data_item['target_bin_name'] = ''
-                            is_stockbin_data_changed = True
-                        except Exception as e:
+                        response = requests.post(url, json=req_data, headers=headers)
+                        json_response = json.loads(response.content.decode('UTF-8'))
+                        json_response_status = json_response.get('status_code')
+                        if response.status_code != 200 or (json_response_status and json_response_status != 200):
+                            # response.content: { status_code: 5xx, detial: 'xxx' }
+                            print(json_response)
                             raise APIException({"detail": f'Cannot move bin from: {hold_stockbin_obj.id} to {stockbin_data_item["source_bin_name"]}'})
                         # delete hold bin
                         hold_stockbin_obj.delete()
+
+                        # merge new source stock bin to origin stock bin
+                        new_stockbin_id = json_response["stockbin_id"]
+                        url = f'{settings.INNER_URL}/stock/bin/{stockbin_data_item["source_id"]}/'
+                        req_data = {
+                            'merged_stockbin': new_stockbin_id,
+                        }
+                        headers = {
+                            'Authorization': self.request.headers['Authorization'],
+                            'Token': self.request.META.get('HTTP_TOKEN'),
+                        }
+
+                        response = requests.patch(url, json=req_data, headers=headers)
+                        json_response = json.loads(response.content.decode('UTF-8'))
+                        json_response_status = json_response.get('status_code')
+                        if response.status_code != 200 or (json_response_status and json_response_status != 200):
+                            # response.content: { status_code: 5xx, detial: 'xxx' }
+                            print(json_response)
+                            raise APIException({"detail": f'Cannot merge bin from: {new_stockbin_id} to {stockbin_data_item["source_id"]}'})
+
+                        # clear target_id and target_bin_name
+                        stockbin_data_item['target_id'] = ''
+                        stockbin_data_item['target_bin_name'] = ''
+                        is_stockbin_data_changed = True
 
                     goods_qty_change = stocklist.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                                 goods_code=str(dn_detail_list[i].goods_code)).first()
@@ -2123,8 +2142,7 @@ class DnPickedViewSet(viewsets.ModelViewSet):
             picking_list = PickingListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                                   dn_code=str(qs.dn_code))
             qs.dn_status = 3
-            staff_name = staff.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
-                                              id=self.request.META.get('HTTP_OPERATOR')).first().staff_name
+            staff_name = self.request.user.username
 
             shoporder_obj = ShoporderModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), dn_code=qs.dn_code, is_delete=False).first()
             if shoporder_obj:
@@ -2419,6 +2437,132 @@ class DnPODViewSet(viewsets.ModelViewSet):
                         continue
                     goods_detail.save()
             qs.save()
+            return Response({"detail": "success"}, status=200)
+
+class DnDiscardViewSet(viewsets.ModelViewSet):
+    """
+        retrieve:
+            Response a data list（get）
+
+        list:
+            Response a data list（all）
+
+        create:
+            Create a data line（post）
+
+        delete:
+            Delete a data line（delete)
+
+    """
+    pagination_class = MyPageNumberPaginationDNList
+    filter_backends = [DjangoFilterBackend, OrderingFilter, ]
+    ordering_fields = ['id', "create_time", "update_time", ]
+    filter_class = DnListFilter
+    permission_classes = (permissions.DjangoModelPermissions,)
+
+    def get_project(self):
+        try:
+            id = self.kwargs.get('pk')
+            return id
+        except:
+            return None
+
+    def get_queryset(self):
+        id = self.get_project()
+        if self.request.user:
+            if id is None:
+                return DnListModel.objects.filter(
+                    Q(openid=self.request.META.get('HTTP_TOKEN'), is_delete=False) & ~Q(customer=''))
+            else:
+                return DnListModel.objects.filter(
+                    Q(openid=self.request.META.get('HTTP_TOKEN'), id=id, is_delete=False) & ~Q(customer=''))
+        else:
+            return DnListModel.objects.none()
+
+    def get_serializer_class(self):
+        if self.action in ['destroy']:
+            return serializers.DNDiscardGetSerializer
+        else:
+            return self.http_method_not_allowed(request=self.request)
+
+    def destroy(self, request, pk):
+        qs = self.get_object()
+        if qs.openid != self.request.META.get('HTTP_TOKEN'):
+            raise APIException({"detail": "Cannot delete data which not yours"})
+        else:
+            if qs.dn_status == 6:
+                raise APIException({"detail": "Cannot delete pod dn"})
+            elif qs.dn_status == 5:
+                raise APIException({"detail": "Cannot delete dispatch dn"})
+            elif qs.dn_status == 4:
+                arr = ['picked', 'orderrelease', 'neworder', 'list']
+                for item in arr:
+                    url = f'{settings.INNER_URL}/dn/{item}/{qs.id}/'
+                    req_data = {}
+                    headers = {
+                        'Authorization': self.request.headers['Authorization'],
+                        'Token': self.request.META.get('HTTP_TOKEN'),
+                    }
+
+                    response = requests.delete(url, json=req_data, headers=headers)
+                    json_response = json.loads(response.content.decode('UTF-8'))
+                    json_response_status = json_response.get('status_code')
+                    if response.status_code != 200 or (json_response_status and json_response_status != 200):
+                        # response.content: { status_code: 5xx, detial: 'xxx' }
+                        print(json_response)
+                        raise APIException({"detail": f'Cannot discard {item} dn'})
+            elif qs.dn_status == 3:
+                arr = ['orderrelease', 'neworder', 'list']
+                for item in arr:
+                    url = f'{settings.INNER_URL}/dn/{item}/{qs.id}/'
+                    req_data = {}
+                    headers = {
+                        'Authorization': self.request.headers['Authorization'],
+                        'Token': self.request.META.get('HTTP_TOKEN'),
+                    }
+
+                    response = requests.delete(url, json=req_data, headers=headers)
+                    json_response = json.loads(response.content.decode('UTF-8'))
+                    json_response_status = json_response.get('status_code')
+                    if response.status_code != 200 or (json_response_status and json_response_status != 200):
+                        # response.content: { status_code: 5xx, detial: 'xxx' }
+                        print(json_response)
+                        raise APIException({"detail": f'Cannot discard {item} dn'})
+            elif qs.dn_status == 2:
+                arr = ['neworder', 'list']
+                for item in arr:
+                    url = f'{settings.INNER_URL}/dn/{item}/{qs.id}/'
+                    req_data = {}
+                    headers = {
+                        'Authorization': self.request.headers['Authorization'],
+                        'Token': self.request.META.get('HTTP_TOKEN'),
+                    }
+
+                    response = requests.delete(url, json=req_data, headers=headers)
+                    json_response = json.loads(response.content.decode('UTF-8'))
+                    json_response_status = json_response.get('status_code')
+                    if response.status_code != 200 or (json_response_status and json_response_status != 200):
+                        # response.content: { status_code: 5xx, detial: 'xxx' }
+                        print(json_response)
+                        raise APIException({"detail": f'Cannot discard {item} dn'})
+            elif qs.dn_status == 1:
+                arr = ['list']
+                for item in arr:
+                    url = f'{settings.INNER_URL}/dn/{item}/{qs.id}/'
+                    req_data = {}
+                    headers = {
+                        'Authorization': self.request.headers['Authorization'],
+                        'Token': self.request.META.get('HTTP_TOKEN'),
+                    }
+
+                    response = requests.delete(url, json=req_data, headers=headers)
+                    json_response = json.loads(response.content.decode('UTF-8'))
+                    json_response_status = json_response.get('status_code')
+                    if response.status_code != 200 or (json_response_status and json_response_status != 200):
+                        # response.content: { status_code: 5xx, detial: 'xxx' }
+                        print(json_response)
+                        raise APIException({"detail": f'Cannot discard {item} dn'})
+
             return Response({"detail": "success"}, status=200)
 
 class FileListDownloadView(viewsets.ModelViewSet):

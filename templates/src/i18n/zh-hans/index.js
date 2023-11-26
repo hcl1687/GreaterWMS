@@ -709,6 +709,8 @@ export default {
     all: '所有',
     fetch_order: '抓取新订单',
     fetch_order_tip: '抓取待审核和待出库的平台订单',
+    update_order: '更新订单',
+    update_order_tip: '更新待审核，待出库，已出库和已取消的平台订单',
     quantity: '数量',
     platform_id: '平台ID',
     platform_warehouse_id: '平台仓库ID',

@@ -44,5 +44,7 @@ re_path(r'^pod/(?P<pk>\d+)/$', views.DnPODViewSet.as_view({
 }), name="pod_1"),
 path(r'filelist/', views.FileListDownloadView.as_view({"get": "list"}), name="dnfilelistdownload"),
 path(r'filedetail/', views.FileDetailDownloadView.as_view({"get": "list"}), name="dnfiledetaildownload"),
-
+re_path(r'^discard/(?P<pk>\d+)/$', views.DnDiscardViewSet.as_view({
+    'delete': 'destroy'
+}), name="dndiscard"),
 ]

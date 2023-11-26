@@ -161,6 +161,19 @@ class DNPickingCheckGetSerializer(serializers.ModelSerializer):
         exclude = ['openid', ]
         read_only_fields = ['id', ]
 
+class DNDiscardGetSerializer(serializers.ModelSerializer):
+    dn_code = serializers.CharField(read_only=True, required=False)
+    dn_status = serializers.IntegerField(read_only=True, required=False)
+    customer = serializers.CharField(read_only=True, required=False)
+    creater = serializers.CharField(read_only=True, required=False)
+    bar_code = serializers.CharField(read_only=True, required=False)
+    create_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
+    update_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
+    class Meta:
+        model = DnListModel
+        exclude = ['openid', 'is_delete', ]
+        read_only_fields = ['id', ]
+
 class FileListRenderSerializer(serializers.ModelSerializer):
     dn_code = serializers.CharField(read_only=False, required=False)
     dn_status = serializers.IntegerField(read_only=False, required=False)

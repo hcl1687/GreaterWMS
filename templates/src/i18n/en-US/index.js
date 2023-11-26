@@ -708,6 +708,8 @@ export default {
     all: 'All',
     fetch_order: 'Fetch new orders',
     fetch_order_tip: 'Fetch awaiting review and awaiting deliver orders from platform',
+    update_order: 'Update orders',
+    update_order_tip: 'Update awaiting review, awaiting deliver, delivering and cancelled orders from platform',
     quantity: 'Quantity',
     platform_id: 'Platform ID',
     platform_warehouse_id: 'Platform Warehouse ID',

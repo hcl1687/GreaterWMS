@@ -11,7 +11,6 @@ from .serializers import FileRenderSerializer
 from rest_framework import permissions
 from utils.staff import Staff
 from shop.models import ListModel as ShopModel
-from goods.models import ListModel as GoodsModel
 from .files import FileRenderCN, FileRenderEN
 from rest_framework.settings import api_settings
 from django.http import StreamingHttpResponse
@@ -20,12 +19,12 @@ import json
 from shopsku.models import ListModel as ShopskuModel
 from stock.models import StockListModel, StockBinModel
 from django.conf import settings
-from dateutil import parser
 import requests
 import copy
 from utils.seller_api import SELLER_API
 from .status import Status, Handle_Status
 from datetime import datetime
+from dn.models import DnListModel
 
 class APIViewSet(viewsets.ModelViewSet):
     """
@@ -180,9 +179,6 @@ class APIViewSet(viewsets.ModelViewSet):
         if qs.handle_status != Handle_Status.Normal:
             raise APIException({"detail": "This Shop order is abnormal"})
 
-        if qs.status != Status.Awaiting_Review:
-            raise APIException({"detail": "This Shop order does not in Awaiting Review Status"})
-
         data = self.request.data
         data['openid'] = self.request.META.get('HTTP_TOKEN')
 
@@ -196,7 +192,7 @@ class APIViewSet(viewsets.ModelViewSet):
         shop_id = shop_obj.id
         if shop_obj is None:
             raise APIException({"detail": "The shop does not exist"})
-        
+
         platform_warehouse_id = data.get('platform_warehouse_id', '')
         if not platform_warehouse_id:
             raise APIException({"detail": "The platform_warehouse_id does not exist"})
@@ -213,16 +209,35 @@ class APIViewSet(viewsets.ModelViewSet):
         # status: 1: awaiting_packaging; 2: awaiting_deliver; 3: delivering; 4: cancelled; 5: delivered;
         status = data.get('status', Status.Awaiting_Review)
         if status == Status.Awaiting_Deliver:
+            if qs.status != Status.Awaiting_Review:
+                raise APIException({"detail": "This Shop order does not in Awaiting Review Status"})
             try:
-                self.handle_awaiting_deliver(data, shop_id, shop_supplier)
+                self.handle_awaiting_deliver(data, shop_id, shop_supplier, qs)
             except APIException as e:
                 print(e)
                 data['handle_status'] = Handle_Status.Abnormal
                 data['handle_message'] = e.detail['detail']
         elif status == Status.Delivering:
-            pass
+            try:
+                self.handle_delivering(data, shop_id, shop_supplier, qs)
+            except APIException as e:
+                print(e)
+                data['handle_status'] = Handle_Status.Abnormal
+                data['handle_message'] = e.detail['detail']
+        elif status == Status.Delivered:
+            try:
+                self.handle_delivered(data, shop_id, shop_supplier, qs)
+            except APIException as e:
+                print(e)
+                data['handle_status'] = Handle_Status.Abnormal
+                data['handle_message'] = e.detail['detail']
         elif status == Status.Cancelled:
-            pass
+            try:
+                self.handle_cancelled(data, shop_id, shop_supplier, qs)
+            except APIException as e:
+                print(e)
+                data['handle_status'] = Handle_Status.Abnormal
+                data['handle_message'] = e.detail['detail']
         else:
             return Response({"detail": "Not awaiting_deliver or delivering or cancelled data"}, status=200)
 
@@ -370,7 +385,7 @@ class APIViewSet(viewsets.ModelViewSet):
         data['stockbin_data'] = json.dumps(stockbin_data)
         return data
 
-    def handle_awaiting_deliver(self, data, shop_id, shop_supplier):
+    def handle_awaiting_deliver(self, data, shop_id, shop_supplier, qs):
         # create DN
         try:
             order_products = json.loads(data.get('order_products', ''))
@@ -435,10 +450,108 @@ class APIViewSet(viewsets.ModelViewSet):
         data['dn_code'] = dn_code
         return data
 
-    def handle_delivering(data, shop_id, shop_supplier):
+    def handle_delivering(self, data, shop_id, shop_supplier, qs):
+        qs.status = Status.Delivering
+        qs.save()
         return data
 
-    def handle_delivered(data, shop_id, shop_supplier):
+    def handle_delivered(self, data, shop_id, shop_supplier, qs):
+        qs.status = Status.Delivered
+        qs.save()
+        return data
+
+    def handle_cancelled(self, data, shop_id, shop_supplier, qs):
+        if qs.status == Status.Awaiting_Review:
+            # delete holding bin
+            shoporder_obj = qs
+            if shoporder_obj:
+                try:
+                    stockbin_data = json.loads(shoporder_obj.stockbin_data)
+                except json.JSONDecodeError:
+                    raise APIException({"detail": "stockbin_data decode error"})
+
+            for stockbin_data_item in stockbin_data:
+                # Todo: If this dn has platform order, move holding bin to normal bin
+                # get hold stock bin
+                hold_stockbin_obj = StockBinModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
+                                                    id=stockbin_data_item['target_id']).first()
+                # move holding stock to normal bin
+                url = f'{settings.INNER_URL}/stock/bin/{stockbin_data_item["target_id"]}/'
+                req_data = {
+                    'bin_name': stockbin_data_item['target_bin_name'],
+                    'move_to_bin': stockbin_data_item['source_bin_name'],
+                    'goods_code': hold_stockbin_obj.goods_code,
+                    'move_qty': hold_stockbin_obj.goods_qty
+                }
+                headers = {
+                    'Authorization': self.request.headers['Authorization'],
+                    'Token': self.request.META.get('HTTP_TOKEN'),
+                }
+
+                response = requests.post(url, json=req_data, headers=headers)
+                json_response = json.loads(response.content.decode('UTF-8'))
+                json_response_status = json_response.get('status_code')
+                if response.status_code != 200 or (json_response_status and json_response_status != 200):
+                    # response.content: { status_code: 5xx, detial: 'xxx' }
+                    print(json_response)
+                    raise APIException({"detail": f'Cannot move bin from: {hold_stockbin_obj.id} to {stockbin_data_item["source_bin_name"]}'})
+                # delete hold bin
+                hold_stockbin_obj.delete()
+
+                # merge new source stock bin to origin stock bin
+                new_stockbin_id = json_response["stockbin_id"]
+                url = f'{settings.INNER_URL}/stock/bin/{stockbin_data_item["source_id"]}/'
+                req_data = {
+                    'merged_stockbin': new_stockbin_id,
+                }
+                headers = {
+                    'Authorization': self.request.headers['Authorization'],
+                    'Token': self.request.META.get('HTTP_TOKEN'),
+                }
+
+                response = requests.patch(url, json=req_data, headers=headers)
+                json_response = json.loads(response.content.decode('UTF-8'))
+                json_response_status = json_response.get('status_code')
+                if response.status_code != 200 or (json_response_status and json_response_status != 200):
+                    # response.content: { status_code: 5xx, detial: 'xxx' }
+                    print(json_response)
+                    raise APIException({"detail": f'Cannot merge bin from: {new_stockbin_id} to {stockbin_data_item["source_id"]}'})
+
+                # clear target_id and target_bin_name
+                stockbin_data_item['target_id'] = ''
+                stockbin_data_item['target_bin_name'] = ''
+                is_stockbin_data_changed = True
+
+            # update shoporder
+            if shoporder_obj and is_stockbin_data_changed:
+                partial_data = {
+                    'stockbin_data': json.dumps(stockbin_data)
+                }
+                serializer = serializers.ShoporderPartialUpdateSerializer(shoporder_obj, data=partial_data, partial=True)
+                serializer.is_valid(raise_exception=True)
+                serializer.save()
+        else:
+            # delete dn
+            dn_obj = DnListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), dn_code=qs.dn_code, is_delete=False).first()
+            if dn_obj:
+                url = f'{settings.INNER_URL}/dn/discard/{dn_obj.id}/'
+                req_data = {}
+                headers = {
+                    'Authorization': self.request.headers['Authorization'],
+                    'Token': self.request.META.get('HTTP_TOKEN'),
+                }
+
+                response = requests.delete(url, json=req_data, headers=headers)
+                json_response = json.loads(response.content.decode('UTF-8'))
+                json_response_status = json_response.get('status_code')
+                if response.status_code != 200 or (json_response_status and json_response_status != 200):
+                    # response.content: { status_code: 5xx, detial: 'xxx' }
+                    print(json_response)
+                    raise APIException({"detail": f'Cannot discard dn of shop order: {qs.id}'})
+
+        qs.status = Status.Cancelled
+        qs.dn_code = ''
+        qs.save()
         return data
 
 class ShoporderInitViewSet(viewsets.ModelViewSet):
@@ -593,12 +706,12 @@ class ShoporderUpdateViewSet(viewsets.ModelViewSet):
             status = Status.Awaiting_Deliver
             shop_id = shop.id
             self.handle_shoporder(shop_id, since=since, to=to, status=status)
-        # init Delivering order
+        # update Delivering order
         for shop in shop_list:
             status = Status.Delivering
             shop_id = shop.id
             self.handle_shoporder(shop_id, since=since, to=to, status=status)
-        # init Cancelled order
+        # update Cancelled order
         for shop in shop_list:
             status = Status.Cancelled
             shop_id = shop.id
@@ -619,7 +732,12 @@ class ShoporderUpdateViewSet(viewsets.ModelViewSet):
             seller_resp = seller_api.get_orders(params)
             for item in seller_resp.get('items', []):
                 item['shop'] = shop_id
-                url = f'{settings.INNER_URL}/shoporder/'
+                platform_id = item['platform_id']
+                shop_order = ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), shop_id=shop_id, platform_id=platform_id, is_delete=False).first()
+                if shop_order is None:
+                    print(f'Can not find shop order for platform_id: {platform_id}')
+                    continue
+                url = f'{settings.INNER_URL}/shoporder/{shop_order.id}/'
                 req_data = item
                 headers = {
                     'Authorization': self.request.headers['Authorization'],
@@ -632,7 +750,7 @@ class ShoporderUpdateViewSet(viewsets.ModelViewSet):
                 if response.status_code != 200 or (json_response_status and json_response_status != 200):
                     # response.content: { status_code: 5xx, detial: 'xxx' }
                     print(json_response)
-                    print(f'update Awaiting_Review order failed')
+                    print(f'update order {platform_id} to {args["status"]} failed')
 
             if seller_resp is None:
                 break

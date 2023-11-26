@@ -60,6 +60,14 @@ class StockBinPostSerializer(serializers.ModelSerializer):
         exclude = []
         read_only_fields = ['id', 'openid', 'create_time', 'update_time', ]
 
+class StockBinPartialUpdateSerializer(serializers.ModelSerializer):
+    merged_stockbin = serializers.IntegerField(read_only=False,  required=True)
+
+    class Meta:
+        model = StockBinModel
+        exclude = ['is_delete', ]
+        read_only_fields = ['id', 'create_time', 'update_time', ]
+
 class FileBinListRenderSerializer(serializers.ModelSerializer):
     bin_name = serializers.CharField(read_only=False, required=False)
     goods_code = serializers.CharField(read_only=False, required=False)

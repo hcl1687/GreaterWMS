@@ -27,6 +27,13 @@
               <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ $t('order.fetch_order_tip') }}</q-tooltip>
             </q-btn>
             <q-btn
+              :label="$t('order.update_order')"
+              icon="cloud_sync"
+              @click="updateOrder()"
+            >
+              <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ $t('order.update_order_tip') }}</q-tooltip>
+            </q-btn>
+            <q-btn
               v-show="$q.localStorage.getItem('staff_type') !== 'Supplier' && $q.localStorage.getItem('staff_type') !== 'Customer'"
               :label="$t('refresh')"
               icon="refresh"
@@ -400,6 +407,12 @@ export default {
     },
     async fetchOrder () {
       await postauth('shoporder/init/', {})
+      this.current = 1;
+      this.paginationIpt = 1;
+      this.getList()
+    },
+    async updateOrder () {
+      await postauth('shoporder/update/', {})
       this.current = 1;
       this.paginationIpt = 1;
       this.getList()
