@@ -31,7 +31,7 @@ COPY ./web_start.sh /GreaterWMS/templates/web_start.sh
 ENV port = ${port}
 #ENV NODE_OPTIONS=--openssl-legacy-provider
 RUN cd  /GreaterWMS/templates
-RUN npm install -g npm --force
+# RUN npm install -g npm --force
 #RUN npm config set registry https://registry.npm.taobao.org
 RUN npm install -g yarn --force
 #RUN yarn config set registry https://registry.npm.taobao.org
