@@ -702,7 +702,9 @@ export default {
     previous: 'Previous',
     next: 'Next',
     previous_tip: 'Go to previous page',
-    next_tip: 'Go to next page'
+    next_tip: 'Go to next page',
+    platform_stock: 'Platform Stock',
+    sys_stock: 'System Stock'
   },
   order: {
     all: 'All',

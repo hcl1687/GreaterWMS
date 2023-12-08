@@ -101,6 +101,7 @@ class OZON_API():
                 item['height'] = product_detail_dict.get('attr', {}).get('height', 0)
                 item['depth'] = product_detail_dict.get('attr', {}).get('depth', 0)
                 item['weight'] = product_detail_dict.get('attr', {}).get('weight', 0)
+                item['stock'] = product_detail_dict.get('stocks', {}).get('present', 0)
 
         return {
             'count': product_resp.get('result', {}).get('total', 0),

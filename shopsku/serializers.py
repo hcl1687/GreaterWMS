@@ -59,6 +59,8 @@ class FileRenderSerializer(serializers.ModelSerializer):
     platform_id = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     platform_sku = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     goods_code = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
+    platform_stock = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
+    sys_stock = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     supplier = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     creater = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     create_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
