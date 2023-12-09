@@ -12,5 +12,6 @@ path(r'supplierfileadd/', views.SupplierfileAddViewSet.as_view(), name="suppplie
 path(r'customerfileadd/', views.CustomerfileAddViewSet.as_view(), name="customerfileadd"),
 path(r'capitalfileadd/', views.CapitalfileAddViewSet.as_view(), name="capitalfileadd"),
 path(r'freightfileadd/', views.FreightfileAddViewSet.as_view(), name="freightfileadd"),
-path(r'asnfileadd/', views.AsnfileAddViewSet.as_view(), name="asnfileadd")
+path(r'asnfileadd/', views.AsnfileAddViewSet.as_view(), name="asnfileadd"),
+path(r'shopskuskufileupdate/', views.ShopskuSkufileUpdateViewSet.as_view(), name="shopskuskufileupdate")
 ]

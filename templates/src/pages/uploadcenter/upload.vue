@@ -22,6 +22,15 @@
                 exact
               />
             </transition>
+            <transition appear enter-active-class="animated zoomIn">
+              <q-route-tab
+                name="updateupload"
+                :label="$t('upload_center.updateupload')"
+                icon="img:statics/uploadcenter/addupload.png"
+                :to="{ name: 'updateupload' }"
+                exact
+              />
+            </transition>
           </q-tabs>
         </div>
       </div>

@@ -24,8 +24,12 @@ from rest_framework.response import Response
 from rest_framework.exceptions import APIException
 from staff.models import ListModel as staff
 from rest_framework import permissions
+from asn.models import AsnListModel
 from asn import files as asnfiles
+from shopsku.models import ListModel as shopsku
+from shopsku import files as shopskufiles
 from binset.models import ListModel as binset
+from stock.models import StockListModel
 from django.conf import settings
 import requests
 import json
@@ -1124,9 +1128,9 @@ class AsnfileAddViewSet(views.APIView):
 
     def get_queryset(self):
         if self.request.user:
-            return supplier.objects.filter(openid=self.request.META.get('HTTP_TOKEN'))
+            return AsnListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'))
         else:
-            return supplier.objects.filter().none()
+            return AsnListModel.objects.filter().none()
 
     def get_lang(self):
         if self.request.user:
@@ -1321,6 +1325,88 @@ class AsnfileAddViewSet(views.APIView):
                         # response.content: { status_code: 5xx, detial: 'xxx' }
                         print(json_response)
                         raise APIException({"detail": f'Cannot movetobin asn, goods_code: {data_list[i][0]}'})
+            else:
+                raise APIException({"detail": "Can Not Support This File Type"})
+        else:
+            raise APIException({"detail": "Please Select One File"})
+        return Response({"detail": "success"})
+
+class ShopskuSkufileUpdateViewSet(views.APIView):
+    """
+        create:
+            Upload One Excel（post）
+    """
+    pagination_class = []
+    permission_classes = (permissions.DjangoModelPermissions,)
+
+    def get_queryset(self):
+        if self.request.user:
+            return shopsku.objects.filter(openid=self.request.META.get('HTTP_TOKEN'))
+        else:
+            return shopsku.objects.filter().none()
+
+    def get_lang(self):
+        if self.request.user:
+            lang = self.request.META.get('HTTP_LANGUAGE')
+        else:
+            lang = 'en-US'
+        if lang == 'zh-hans':
+            data_header = shopskufiles.cn_sku_data_header()
+        elif lang == 'en-US':
+            data_header = shopskufiles.en_sku_data_header()
+        else:
+            data_header = shopskufiles.en_sku_data_header()
+        return data_header
+
+    def post(self, request, *args, **kwargs):
+        data_header = self.get_lang()
+        files = self.request.FILES.get('file')
+        if files:
+            excel_type = files.name.split('.')[1]
+            if excel_type in ['xlsx', 'xls', 'csv']:
+                if excel_type == 'csv':
+                    df = pd.read_csv(files)
+                else:
+                    df = pd.read_excel(files)
+                df.drop_duplicates(keep='first', inplace=True)
+                data_list = df.drop_duplicates(subset=[data_header.get('goods_code')], keep='first').values
+                for d in range(len(data_list)):
+                    data_validate(str(data_list[d]))
+                for i in range(len(data_list)):
+                    if str(data_list[i][0]) == 'nan':
+                        continue
+
+                    if str(data_list[i][1]) == 'nan':
+                        continue
+
+                    if str(data_list[i][2]) == 'nan':
+                        continue
+
+                    old_goods_code = str(data_list[i][1]).strip()
+                    new_goods_code = str(data_list[i][2]).strip()
+                    goods_obj = goodslist.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
+                                                     goods_code=old_goods_code).first()
+                    if goods_obj is None:
+                        continue
+
+                    if goodslist.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
+                                                     goods_code=new_goods_code).exists():
+                        continue
+
+                    if StockListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
+                                                                goods_code=old_goods_code).exists():
+                        raise APIException({"detail": f'Can not update, goods_code is in use: {data_list[i][1]}'})
+
+                    # update goods_code
+                    goods_obj.goods_code = new_goods_code
+                    goods_obj.save()
+                    # update shopsku
+                    shopsku_obj = shopsku.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
+                                                         goods_code=old_goods_code).first()
+                    if shopsku_obj is None:
+                        pass
+                    shopsku_obj.goods_code = new_goods_code
+                    shopsku_obj.save()
             else:
                 raise APIException({"detail": "Can Not Support This File Type"})
         else:

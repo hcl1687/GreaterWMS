@@ -255,7 +255,10 @@ export default {
     downloadsuppliertemplate: 'Supplier Example',
     addupload: 'Add Upload',
     downloadasntemplate: 'Asn Example',
-    uploadasnfile: 'Upload Asn'
+    uploadasnfile: 'Upload Asn',
+    updateupload: 'Update Upload',
+    downloadshopskuskutemplate: 'Goods Code Example',
+    uploadshopskuskufile: 'Upload Goods Code File'
   },
   download_center: {
     createTime: 'Create Time',

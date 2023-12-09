@@ -399,6 +399,11 @@ const routes = [{
         path: 'addupload',
         name: 'addupload',
         component: () => import('pages/uploadcenter/addupload.vue')
+      },
+      {
+        path: 'updateupload',
+        name: 'updateupload',
+        component: () => import('pages/uploadcenter/updateupload.vue')
       }
       ]
     },

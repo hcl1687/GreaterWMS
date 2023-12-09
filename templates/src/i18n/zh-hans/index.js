@@ -252,7 +252,10 @@ export default {
     downloadsuppliertemplate: '下载供应商模板',
     addupload: '新增上传',
     downloadasntemplate: '下载收货单模板',
-    uploadasnfile: '上传收货清单'
+    uploadasnfile: '上传收货清单',
+    updateupload: '更新上传',
+    downloadshopskuskutemplate: '下载商品编码模板',
+    uploadshopskuskufile: '上传商品编码文件'
   },
   download_center: {
     createTime: '创建时间',

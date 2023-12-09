@@ -42,6 +42,20 @@ def en_data_header():
         ('update_time', u'Update Time')
     ])
 
+def cn_sku_data_header():
+    return dict([
+        ('platform_sku', u'平台SKU'),
+        ('goods_code', u'商品编码'),
+        ('new_goods_code', u'新商品编码')
+    ])
+
+def en_sku_data_header():
+    return dict([
+        ('platform_sku', u'Platform SKU'),
+        ('goods_code', u'Goods Code'),
+        ('new_goods_code', u'New Goods Code')
+    ])
+
 class FileRenderCN(CSVStreamingRenderer):
     header = file_headers()
     labels = cn_data_header()

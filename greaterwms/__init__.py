@@ -28,12 +28,20 @@ goodslist_cn_path = os.path.join(settings.BASE_DIR, 'media/' + "/upload_example/
 goodslist_en_path = os.path.join(settings.BASE_DIR, 'media/' + "/upload_example/goodslist_en.xlsx")
 supplier_cn_path = os.path.join(settings.BASE_DIR, 'media/' + "/upload_example/supplier_cn.xlsx")
 supplier_en_path = os.path.join(settings.BASE_DIR, 'media/' + "/upload_example/supplier_en.xlsx")
+asn_cn_path = os.path.join(settings.BASE_DIR, 'media/' + "/upload_example/asn_cn.xlsx")
+asn_en_path = os.path.join(settings.BASE_DIR, 'media/' + "/upload_example/asn_en.xlsx")
+shopsku_sku_cn_path = os.path.join(settings.BASE_DIR, 'media/' + "/upload_example/shopsku_sku_cn.xlsx")
+shopsku_sku_en_path = os.path.join(settings.BASE_DIR, 'media/' + "/upload_example/shopsku_sku_en.xlsx")
 customer_cn_file = os.path.exists(customer_cn_path)
 customer_en_file = os.path.exists(customer_en_path)
 goodslist_cn_file = os.path.exists(goodslist_cn_path)
 goodslist_en_file = os.path.exists(goodslist_en_path)
 supplier_cn_file = os.path.exists(supplier_cn_path)
 supplier_en_file = os.path.exists(supplier_en_path)
+asn_cn_file = os.path.exists(asn_cn_path)
+asn_en_file = os.path.exists(asn_en_path)
+shopsku_sku_cn_file = os.path.exists(shopsku_sku_cn_path)
+shopsku_sku_en_file = os.path.exists(shopsku_sku_en_path)
 if not customer_cn_file:
     customer_cn = pd.DataFrame({"客户名称": [], "客户城市": [] ,"详细地址": [], "联系电话": [], "负责人": [], "客户等级": []})
     df = customer_cn.set_index("客户名称")
@@ -63,5 +71,25 @@ if not supplier_en_file:
     supplier_en = pd.DataFrame({"Supplier Name": [], "Supplier City": [] ,"Supplier Address": [], "Supplier Contact": [], "Supplier Manager": [], "Supplier Level": []})
     df = supplier_en.set_index("Supplier Name")
     df.to_excel(supplier_en_path)
+
+if not asn_cn_file:
+    asn_cn = pd.DataFrame({"商品编码": [], "订单数量": [] ,"库位名称": []})
+    df = asn_cn.set_index("商品编码")
+    df.to_excel(asn_cn_path)
+
+if not asn_en_file:
+    asn_en = pd.DataFrame({"Goods Code": [], "Goods Qty": [] ,"Bin Name": []})
+    df = asn_en.set_index("Goods Code")
+    df.to_excel(asn_en_path)
+
+if not shopsku_sku_cn_file:
+    shopsku_sku_cn = pd.DataFrame({"平台SKU": [], "商品编码": [] ,"新商品编码": []})
+    df = shopsku_sku_cn.set_index("商品编码")
+    df.to_excel(shopsku_sku_cn_path)
+
+if not shopsku_sku_en_file:
+    shopsku_sku_en = pd.DataFrame({"Platform SKU": [], "Goods Code": [] ,"New Goods Code": []})
+    df = shopsku_sku_en.set_index("Goods Code")
+    df.to_excel(shopsku_sku_en_path)
 
 print('Welcome To GreaterWMS')
