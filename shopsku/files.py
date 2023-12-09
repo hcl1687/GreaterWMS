@@ -7,6 +7,8 @@ def file_headers():
         'platform_id',
         'platform_sku',
         'goods_code',
+        'platform_stock',
+        'sys_stock',
         'supplier',
         'create_time',
         'update_time'
@@ -19,6 +21,8 @@ def cn_data_header():
         ('platform_id', u'平台ID'),
         ('platform_sku', u'平台SKU'),
         ('goods_code', u'系统SKU'),
+        ('platform_stock', u'平台库存'),
+        ('sys_stock', u'系统库存'),
         ('supplier', u'供应商'),
         ('create_time', u'创建时间'),
         ('update_time', u'更新时间')
@@ -31,6 +35,8 @@ def en_data_header():
         ('platform_id', u'Platform ID'),
         ('platform_sku', u'Platform SKU'),
         ('goods_code', u'System SKU'),
+        ('platform_stock', u'Platform Stock'),
+        ('sys_stock', u'System Stock'),
         ('supplier', u'Supplier'),
         ('create_time', u'Create Time'),
         ('update_time', u'Update Time')

@@ -16,6 +16,7 @@ from goods.models import ListModel as GoodsModel
 from .files import FileRenderCN, FileRenderEN
 from rest_framework.settings import api_settings
 from django.http import StreamingHttpResponse
+from stock.models import StockListModel
 
 class APIViewSet(viewsets.ModelViewSet):
     """
@@ -125,11 +126,21 @@ class APIViewSet(viewsets.ModelViewSet):
             item['height'] = seller_item['height']
             item['depth'] = seller_item['depth']
             item['weight'] = seller_item['weight']
+            item['platform_stock'] = seller_item['stock']
             if seller_product_id in new_dict:
                 sys_item = new_dict[seller_product_id]
                 item['sys_id'] = sys_item['id']
                 item['goods_code'] = sys_item['goods_code']
-
+                item['supplier'] = sys_item['supplier']
+                item['creater'] = sys_item['creater']
+                item['create_time'] = sys_item['create_time']
+                item['update_time'] = sys_item['update_time']
+                # get system stock
+                sku_stock = StockListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), goods_code=sys_item['goods_code']).first()
+                if sku_stock:
+                    item['sys_stock'] = sku_stock.can_order_stock
+                else:
+                    item['sys_stock'] = 0
             resp_items.append(item)
 
         return Response(resp_data, status=200)
@@ -255,7 +266,7 @@ class APIViewSet(viewsets.ModelViewSet):
 class FileDownloadView(viewsets.ModelViewSet):
     renderer_classes = (FileRenderCN,) + tuple(api_settings.DEFAULT_RENDERER_CLASSES)
     filter_backends = [DjangoFilterBackend, OrderingFilter, ]
-    ordering_fields = ['id', "create_time", "update_time", ]
+    ordering_fields = ["create_time", "update_time", ]
     filter_class = Filter
     permission_classes = (permissions.DjangoModelPermissions,)
 
@@ -303,10 +314,7 @@ class FileDownloadView(viewsets.ModelViewSet):
     def list(self, request, *args, **kwargs):
         from datetime import datetime
         dt = datetime.now()
-        data = (
-            FileRenderSerializer(instance).data
-            for instance in self.filter_queryset(self.get_queryset())
-        )
+        data = self.get_list(request)
         renderer = self.get_lang(data)
         response = StreamingHttpResponse(
             renderer,
@@ -315,3 +323,77 @@ class FileDownloadView(viewsets.ModelViewSet):
         response['Content-Disposition'] = "attachment; filename='shopsku_{}.csv'".format(
             str(dt.strftime('%Y%m%d%H%M%S%f')))
         return response
+
+    def get_list(self, request, *args, **kwargs):
+        shop_id = str(request.GET.get('shop_id'))
+        if not shop_id:
+            raise APIException({"detail": "The shop id does not exist"})
+        
+        shop_obj = ShopModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=shop_id).first()
+        if shop_obj is None:
+            raise APIException({"detail": "The shop does not exist"})
+
+        seller_api = SELLER_API(shop_id)
+
+        last_id = request.GET.get('last_id', '')
+        res = []
+        while True:
+            seller_sku_resp = seller_api.get_products({
+                'last_id': last_id,
+                'limit': 100
+            })
+            shopsku_data = [
+                ShopskuGetSerializer(instance).data
+                for instance in self.get_queryset()
+            ]
+
+            new_dict = {}
+            for item in shopsku_data:
+                id = item['platform_id']
+                new_dict[id] = item
+
+            resp_data = {}
+            resp_data['previous'] = None
+            resp_data['next'] = None
+            resp_data['count'] = seller_sku_resp.get('count', 0)
+            resp_data['last_id'] = seller_sku_resp.get('last_id', '')
+            resp_data['results'] = []
+            resp_items = resp_data['results']
+            for seller_item in seller_sku_resp.get('items', []):
+                item = {}
+                seller_product_id = str(seller_item['platform_id'])
+                seller_platform_sku = str(seller_item['platform_sku'])
+                item['shop_type'] = shop_obj.shop_type
+                item['shop_name'] = shop_obj.shop_name
+                item['id'] = seller_product_id
+                item['platform_id'] = seller_product_id
+                item['platform_sku'] = seller_platform_sku
+                item['name'] = seller_item['name']
+                item['image'] = seller_item['image']
+                item['width'] = seller_item['width']
+                item['height'] = seller_item['height']
+                item['depth'] = seller_item['depth']
+                item['weight'] = seller_item['weight']
+                item['platform_stock'] = seller_item['stock']
+                if seller_product_id in new_dict:
+                    sys_item = new_dict[seller_product_id]
+                    item['sys_id'] = sys_item['id']
+                    item['goods_code'] = sys_item['goods_code']
+                    item['supplier'] = sys_item['supplier']
+                    item['creater'] = sys_item['creater']
+                    item['create_time'] = sys_item['create_time']
+                    item['update_time'] = sys_item['update_time']
+                    # get system stock
+                    sku_stock = StockListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), goods_code=sys_item['goods_code']).first()
+                    if sku_stock:
+                        item['sys_stock'] = sku_stock.can_order_stock
+                    else:
+                        item['sys_stock'] = 0
+                resp_items.append(item)
+                res.append(item)
+            
+            last_id = resp_data['last_id']
+            if last_id == '':
+                break
+
+        return res

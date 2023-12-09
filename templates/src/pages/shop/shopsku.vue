@@ -30,6 +30,9 @@
             <q-btn :label="$t('shopsku.init_bind')" icon="link" :disable="selected.length === 0" @click="initBind()">
               <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ $t('shopsku.init_bind_tip') }}</q-tooltip>
             </q-btn>
+            <q-btn :label="$t('download')" icon="cloud_download" @click="downloadData()">
+              <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ $t('downloadtip') }}</q-tooltip>
+            </q-btn>
           </q-btn-group>
         </template>
         <template v-slot:header-selection="scope">
@@ -40,6 +43,7 @@
             <q-td>
               <q-checkbox v-model="props.selected" color="primary" />
             </q-td>
+            <q-td key="index" :props="props" style="max-width: 300px; white-space: normal;">{{ props.row.index }}</q-td>
             <q-td key="image" :props="props" style="width: 150px;">
               <q-img
                 :src="props.row.image"
@@ -78,6 +82,8 @@
             <template v-else-if="props.row.id !== editid">
               <q-td key="goods_code" :props="props">{{ props.row.goods_code }}</q-td>
             </template>
+            <q-td key="platform_stock" :props="props">{{ props.row.platform_stock }}</q-td>
+            <q-td key="sys_stock" :props="props">{{ props.row.sys_stock }}</q-td>
             <q-td key="width" :props="props">{{ props.row.width }}</q-td>
             <q-td key="height" :props="props">{{ props.row.height }}</q-td>
             <q-td key="depth" :props="props">{{ props.row.depth }}</q-td>
@@ -179,11 +185,14 @@ export default {
       goods_list: [],
       selected: [],
       columns: [
+        { name: 'index', label: '#', field: 'index', align: 'center' },
         { name: 'image', label: this.$t('shopsku.image'), field: 'image', align: 'center' },
         { name: 'name', required: true, label: this.$t('shopsku.name'), align: 'center', field: 'name' },
         { name: 'shop_name', label: this.$t('shop.shop_name'), align: 'center', field: 'shop_name' },
         { name: 'platform_sku', label: this.$t('shopsku.platform_sku'), field: 'platform_sku', align: 'center' },
         { name: 'goods_code', label: this.$t('shopsku.goods_code'), field: 'goods_code', align: 'center' },
+        { name: 'platform_stock', label: this.$t('shopsku.platform_stock'), field: 'platform_stock', align: 'center' },
+        { name: 'sys_stock', label: this.$t('shopsku.sys_stock'), field: 'sys_stock', align: 'center' },
         { name: 'width', label: this.$t('goods.view_goodslist.goods_w'), field: 'width', align: 'center' },
         { name: 'height', label: this.$t('goods.view_goodslist.goods_h'), field: 'height', align: 'center' },
         { name: 'depth', label: this.$t('goods.view_goodslist.goods_d'), field: 'depth', align: 'center' },
@@ -258,6 +267,7 @@ export default {
       const last_id = _this.last_id_list[last_id_index]
       getauth(`${_this.pathname}?shop_id=${_this.shop_id}&last_id=${last_id}`, {})
         .then(res => {
+          res.results.forEach((item, index) => (item.index = index + 1))
           _this.table_list = res.results
           _this.total = res.count
 
@@ -507,7 +517,30 @@ export default {
     handleNext () {
       this.selected = []
       this.getList('next')
-    }
+    },
+    downloadData () {
+      var _this = this
+      if (LocalStorage.has('auth')) {
+        getfile(`${_this.pathname}file/?shop_id=${_this.shop_id}&lang=${LocalStorage.getItem('lang')}`).then(res => {
+          var timeStamp = Date.now()
+          var formattedString = date.formatDate(timeStamp, 'YYYYMMDDHHmmssSSS')
+          const status = exportFile(_this.pathname + formattedString + '.csv', '\uFEFF' + res.data, 'text/csv')
+          if (status !== true) {
+            this.$q.notify({
+              message: 'Browser denied file download...',
+              color: 'negative',
+              icon: 'warning'
+            })
+          }
+        })
+      } else {
+        _this.$q.notify({
+          message: _this.$t('notice.loginerror'),
+          color: 'negative',
+          icon: 'warning'
+        })
+      }
+    },
   },
   created () {
     var _this = this

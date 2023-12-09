@@ -703,7 +703,9 @@ export default {
     previous: '前一页',
     next: '下一页',
     previous_tip: '跳转前一页',
-    next_tip: '跳转下一页'
+    next_tip: '跳转下一页',
+    platform_stock: '平台库存',
+    sys_stock: '系统库存'
   },
   order: {
     all: '所有',
