@@ -102,6 +102,20 @@ def detail_en_data_header():
         ('update_time', u'Update Time')
     ])
 
+def detail_cn_upload_data_header():
+    return dict([
+        ('goods_code', u'商品编码'),
+        ('goods_qty', u'订单数量'),
+        ('bin_name', u'库位名称')
+    ])
+
+def detail_en_upload_data_header():
+    return dict([
+        ('goods_code', u'Goods Code'),
+        ('goods_qty', u'Goods Qty'),
+        ('bin_name', u'Bin Name')
+    ])
+
 class FileListRenderCN(CSVStreamingRenderer):
     header = list_file_headers()
     labels = list_cn_data_header()

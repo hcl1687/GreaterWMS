@@ -10,6 +10,9 @@
       <q-btn :label="$t('upload_center.downloadsuppliertemplate')" icon="cloud_download" @click="downloadsuppliertemplate()">
         <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ $t('upload_center.downloadsuppliertemplate') }}</q-tooltip>
       </q-btn>
+      <q-btn :label="$t('upload_center.downloadasntemplate')" icon="cloud_download" @click="downloadasntemplate()">
+        <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ $t('upload_center.downloadasntemplate') }}</q-tooltip>
+      </q-btn>
     </q-btn-group>
     <div style="display: flex;">
       <div class="q-pt-md q-gutter-md row items-start">
@@ -17,7 +20,7 @@
           style="width:300px;height:200px"
           :url="goodslistfile_pathname"
           method="post"
-          :headers="[{ name: 'token', value: token }, { name: 'language', value: lang }, { name: 'operator', value: login_id }]"
+          :headers="headers"
           :field-name="file => 'file'"
           :label="$t('upload_center.uploadgoodslistfile')"
           accept=".xlsx,csv,xls/*"
@@ -31,9 +34,23 @@
           style="width:300px;height:200px"
           :url="customerfile_pathname"
           method="post"
-          :headers="[{ name: 'token', value: token }, { name: 'language', value: lang }, { name: 'operator', value: login_id }]"
+          :headers="headers"
           :field-name="file => 'file'"
           :label="$t('upload_center.uploadcustomerfile')"
+          accept=".xlsx,csv,xls/*"
+          @rejected="onRejected"
+          @added="getfileinfo"
+        />
+      </div>
+
+      <div class="q-pa-md q-gutter-md row items-start">
+        <q-uploader
+          style="width:300px;height:200px"
+          :url="supplierfile_pathname"
+          method="post"
+          :headers="headers"
+          :field-name="file => 'file'"
+          :label="$t('upload_center.uploadsupplierfile')"
           accept=".xlsx,csv,xls/*"
           @rejected="onRejected"
           @added="getfileinfo"
@@ -43,11 +60,11 @@
       <div class="q-pt-md q-gutter-md row items-start">
         <q-uploader
           style="width:300px;height:200px"
-          :url="supplierfile_pathname"
+          :url="asnfile_pathname"
           method="post"
-          :headers="[{ name: 'token', value: token }, { name: 'language', value: lang }, { name: 'operator', value: login_id }]"
+          :headers="headers"
           :field-name="file => 'file'"
-          :label="$t('upload_center.uploadsupplierfile')"
+          :label="$t('upload_center.uploadasnfile')"
           accept=".xlsx,csv,xls/*"
           @rejected="onRejected"
           @added="getfileinfo"
@@ -67,6 +84,7 @@ export default {
   data() {
     return {
       height: '',
+      authorization: `Bearer ${LocalStorage.getItem('access_token')}`,
       token: LocalStorage.getItem('openid'),
       lang: LocalStorage.getItem('lang'),
       login_id: LocalStorage.getItem('login_id'),
@@ -74,8 +92,19 @@ export default {
       customerfile_pathname: baseurl + '/uploadfile/customerfileadd/',
       freightfile_pathname: baseurl + '/uploadfile/freightfileadd/',
       goodslistfile_pathname: baseurl + '/uploadfile/goodslistfileadd/',
-      supplierfile_pathname: baseurl + '/uploadfile/supplierfileadd/'
+      supplierfile_pathname: baseurl + '/uploadfile/supplierfileadd/',
+      asnfile_pathname: baseurl + '/uploadfile/asnfileadd/'
     };
+  },
+  computed: {
+    headers () {
+      return [
+        { name: 'authorization', value: this.authorization },
+        { name: 'token', value: this.token },
+        { name: 'language', value: this.lang },
+        { name: 'operator', value: this.login_id }
+      ]
+    }
   },
   methods: {
     checkFileType(files) {
@@ -141,6 +170,26 @@ export default {
           }
         } else {
           openURL(baseurl + '/media/upload_example/supplier_en.xlsx');
+        }
+      } else {
+        _this.$q.notify({
+          message: _this.$t('notice.loginerror'),
+          color: 'negative',
+          icon: 'warning'
+        });
+      }
+    },
+    downloadasntemplate() {
+      var _this = this;
+      if (LocalStorage.has('auth')) {
+        if (LocalStorage.has('lang')) {
+          if (LocalStorage.getItem('lang') === 'zh-hans') {
+            openURL(baseurl + '/media/upload_example/asn_cn.xlsx');
+          } else {
+            openURL(baseurl + '/media/upload_example/asn_en.xlsx');
+          }
+        } else {
+          openURL(baseurl + '/media/upload_example/asn_en.xlsx');
         }
       } else {
         _this.$q.notify({

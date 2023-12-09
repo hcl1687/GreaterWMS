@@ -17,7 +17,7 @@
           style="width:300px;height:200px"
           :url="goodslistfile_pathname"
           method="post"
-          :headers="[{ name: 'token', value: token }, { name: 'language', value: lang }, { name: 'operator', value: login_id }]"
+          :headers="headers"
           :field-name="file => 'file'"
           :label="$t('upload_center.uploadgoodslistfile')"
           accept=".xlsx,csv,xls/*"
@@ -30,7 +30,7 @@
           style="width:300px;height:200px"
           :url="customerfile_pathname"
           method="post"
-          :headers="[{ name: 'token', value: token }, { name: 'language', value: lang }, { name: 'operator', value: login_id }]"
+          :headers="headers"
           :field-name="file => 'file'"
           :label="$t('upload_center.uploadcustomerfile')"
           accept=".xlsx,csv,xls/*"
@@ -43,7 +43,7 @@
           style="width:300px;height:200px"
           :url="supplierfile_pathname"
           method="post"
-          :headers="[{ name: 'token', value: token }, { name: 'language', value: lang }, { name: 'operator', value: login_id }]"
+          :headers="headers"
           :field-name="file => 'file'"
           :label="$t('upload_center.uploadsupplierfile')"
           accept=".xlsx,csv,xls/*"
@@ -64,6 +64,7 @@ export default {
   data() {
     return {
       height: '',
+      authorization: `Bearer ${LocalStorage.getItem('access_token')}`,
       token: LocalStorage.getItem('openid'),
       lang: LocalStorage.getItem('lang'),
       login_id: LocalStorage.getItem('login_id'),
@@ -73,6 +74,16 @@ export default {
       goodslistfile_pathname: baseurl + '/uploadfile/goodslistfile/',
       supplierfile_pathname: baseurl + '/uploadfile/supplierfile/'
     };
+  },
+  computed: {
+    headers () {
+      return [
+        { name: 'authorization', value: this.authorization },
+        { name: 'token', value: this.token },
+        { name: 'language', value: this.lang },
+        { name: 'operator', value: this.login_id }
+      ]
+    }
   },
   methods: {
     checkFileType(files) {

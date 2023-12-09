@@ -24,6 +24,11 @@ from rest_framework.response import Response
 from rest_framework.exceptions import APIException
 from staff.models import ListModel as staff
 from rest_framework import permissions
+from asn import files as asnfiles
+from binset.models import ListModel as binset
+from django.conf import settings
+import requests
+import json
 
 class GoodlistfileViewSet(views.APIView):
     """
@@ -1103,6 +1108,219 @@ class FreightfileAddViewSet(views.APIView):
                                                    transportation_supplier=str(data_list[i][5]).strip(),
                                                    creater=str(staff_name)
                                                    )
+            else:
+                raise APIException({"detail": "Can Not Support This File Type"})
+        else:
+            raise APIException({"detail": "Please Select One File"})
+        return Response({"detail": "success"})
+
+class AsnfileAddViewSet(views.APIView):
+    """
+        create:
+            Upload One Excel（post）
+    """
+    pagination_class = []
+    permission_classes = (permissions.DjangoModelPermissions,)
+
+    def get_queryset(self):
+        if self.request.user:
+            return supplier.objects.filter(openid=self.request.META.get('HTTP_TOKEN'))
+        else:
+            return supplier.objects.filter().none()
+
+    def get_lang(self):
+        if self.request.user:
+            lang = self.request.META.get('HTTP_LANGUAGE')
+        else:
+            lang = 'en-US'
+        if lang == 'zh-hans':
+            data_header = asnfiles.detail_cn_upload_data_header()
+        elif lang == 'en-US':
+            data_header = asnfiles.detail_en_upload_data_header()
+        else:
+            data_header = asnfiles.detail_en_upload_data_header()
+        return data_header
+
+    def post(self, request, *args, **kwargs):
+        data_header = self.get_lang()
+        files = self.request.FILES.get('file')
+        if files:
+            excel_type = files.name.split('.')[1]
+            staff_name = staff.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
+                                              id=self.request.META.get('HTTP_OPERATOR')).first().staff_name
+            if excel_type in ['xlsx', 'xls', 'csv']:
+                if excel_type == 'csv':
+                    df = pd.read_csv(files)
+                else:
+                    df = pd.read_excel(files)
+                df.drop_duplicates(keep='first', inplace=True)
+                data_list = df.drop_duplicates(subset=[data_header.get('goods_code')], keep='first').values
+                for d in range(len(data_list)):
+                    data_validate(str(data_list[d]))
+                for i in range(len(data_list)):
+                    if str(data_list[i][0]) == 'nan':
+                        continue
+
+                    if is_number(str(data_list[i][1])):
+                        if str(data_list[i][1]) == 'nan':
+                            data_list[i][1] = 0
+                    else:
+                        data_list[i][1] = 0
+                    goods_qty = int(data_list[i][1])
+                    if goods_qty <= 0:
+                        continue
+
+                    if str(data_list[i][2]) == 'nan':
+                        continue
+
+                    goods_obj = goodslist.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
+                                                     goods_code=str(data_list[i][0]).strip()).first()
+                    if goods_obj is None:
+                        continue
+                    binset_obj = binset.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
+                                                     bin_name=str(data_list[i][2]).strip()).first()
+                    if binset_obj is None:
+                        continue
+
+                    # create asn
+                    url = f'{settings.INNER_URL}/asn/list/'
+                    req_data = {
+                        'creater': staff_name,
+                    }
+                    headers = {
+                        'Authorization': self.request.headers['Authorization'],
+                        'Token': self.request.META.get('HTTP_TOKEN'),
+                        'Operator': str(self.request.user.id)
+                    }
+
+                    response = requests.post(url, json=req_data, headers=headers)
+                    json_response = json.loads(response.content.decode('UTF-8'))
+                    json_response_status = json_response.get('status_code')
+                    if response.status_code != 200 or (json_response_status and json_response_status != 200):
+                        # response.content: { status_code: 5xx, detial: 'xxx' }
+                        print(json_response)
+                        raise APIException({"detail": f'Cannot create asn, goods_code: {data_list[i][0]}'})
+                    asn_id = json_response['id']
+                    asn_code = json_response['asn_code']
+
+                    # create asn detail
+                    url = f'{settings.INNER_URL}/asn/detail/'
+                    req_data = {
+                        'asn_code': asn_code,
+                        'creater': staff_name,
+                        'goods_code': [goods_obj.goods_code],
+                        'goods_qty': [goods_qty],
+                        'supplier': goods_obj.goods_supplier
+                    }
+                    headers = {
+                        'Authorization': self.request.headers['Authorization'],
+                        'Token': self.request.META.get('HTTP_TOKEN'),
+                        'Operator': str(self.request.user.id)
+                    }
+
+                    response = requests.post(url, json=req_data, headers=headers)
+                    json_response = json.loads(response.content.decode('UTF-8'))
+                    json_response_status = json_response.get('status_code')
+                    if response.status_code != 200 or (json_response_status and json_response_status != 200):
+                        # response.content: { status_code: 5xx, detial: 'xxx' }
+                        print(json_response)
+                        raise APIException({"detail": f'Cannot create asn detail, goods_code: {data_list[i][0]}'})
+
+                    # preload
+                    url = f'{settings.INNER_URL}/asn/preload/{asn_id}/'
+                    req_data = {}
+                    headers = {
+                        'Authorization': self.request.headers['Authorization'],
+                        'Token': self.request.META.get('HTTP_TOKEN'),
+                        'Operator': str(self.request.user.id)
+                    }
+
+                    response = requests.post(url, json=req_data, headers=headers)
+                    json_response = json.loads(response.content.decode('UTF-8'))
+                    json_response_status = json_response.get('status_code')
+                    if response.status_code != 200 or (json_response_status and json_response_status != 200):
+                        # response.content: { status_code: 5xx, detial: 'xxx' }
+                        print(json_response)
+                        raise APIException({"detail": f'Cannot preload asn, goods_code: {data_list[i][0]}'})
+
+                    # presort
+                    url = f'{settings.INNER_URL}/asn/presort/{asn_id}/'
+                    req_data = {}
+                    headers = {
+                        'Authorization': self.request.headers['Authorization'],
+                        'Token': self.request.META.get('HTTP_TOKEN'),
+                        'Operator': str(self.request.user.id)
+                    }
+
+                    response = requests.post(url, json=req_data, headers=headers)
+                    json_response = json.loads(response.content.decode('UTF-8'))
+                    json_response_status = json_response.get('status_code')
+                    if response.status_code != 200 or (json_response_status and json_response_status != 200):
+                        # response.content: { status_code: 5xx, detial: 'xxx' }
+                        print(json_response)
+                        raise APIException({"detail": f'Cannot presort asn, goods_code: {data_list[i][0]}'})
+
+                    # get asn detail
+                    url = f'{settings.INNER_URL}/asn/detail/?asn_code={asn_code}'
+                    req_data = {}
+                    headers = {
+                        'Authorization': self.request.headers['Authorization'],
+                        'Token': self.request.META.get('HTTP_TOKEN'),
+                        'Operator': str(self.request.user.id)
+                    }
+
+                    response = requests.get(url, json=req_data, headers=headers)
+                    json_response = json.loads(response.content.decode('UTF-8'))
+                    json_response_status = json_response.get('status_code')
+                    if response.status_code != 200 or (json_response_status and json_response_status != 200):
+                        # response.content: { status_code: 5xx, detial: 'xxx' }
+                        print(json_response)
+                        raise APIException({"detail": f'Cannot get asn detail, goods_code: {data_list[i][0]}'})
+                    asn_detail_results = json_response.get('results', [])
+                    for item in asn_detail_results:
+                        item['goods_actual_qty'] = item['goods_qty']
+
+                    # sorted
+                    url = f'{settings.INNER_URL}/asn/sorted/{asn_id}/'
+                    req_data = {
+                        'asn_code': asn_code,
+                        'creater': staff_name,
+                        'goodsData': asn_detail_results,
+                        'supplier': goods_obj.goods_supplier
+                    }
+                    headers = {
+                        'Authorization': self.request.headers['Authorization'],
+                        'Token': self.request.META.get('HTTP_TOKEN'),
+                        'Operator': str(self.request.user.id)
+                    }
+
+                    response = requests.post(url, json=req_data, headers=headers)
+                    json_response = json.loads(response.content.decode('UTF-8'))
+                    json_response_status = json_response.get('status_code')
+                    if response.status_code != 200 or (json_response_status and json_response_status != 200):
+                        # response.content: { status_code: 5xx, detial: 'xxx' }
+                        print(json_response)
+                        raise APIException({"detail": f'Cannot sorted asn, goods_code: {data_list[i][0]}'})
+
+                    # move to bin
+                    asn_detail_id = asn_detail_results[0]['id']
+                    url = f'{settings.INNER_URL}/asn/movetobin/{asn_detail_id}/'
+                    req_data = asn_detail_results[0].copy()
+                    req_data['bin_name'] = binset_obj.bin_name
+                    req_data['qty'] = req_data['goods_qty']
+                    headers = {
+                        'Authorization': self.request.headers['Authorization'],
+                        'Token': self.request.META.get('HTTP_TOKEN'),
+                        'Operator': str(self.request.user.id)
+                    }
+
+                    response = requests.post(url, json=req_data, headers=headers)
+                    json_response = json.loads(response.content.decode('UTF-8'))
+                    json_response_status = json_response.get('status_code')
+                    if response.status_code != 200 or (json_response_status and json_response_status != 200):
+                        # response.content: { status_code: 5xx, detial: 'xxx' }
+                        print(json_response)
+                        raise APIException({"detail": f'Cannot movetobin asn, goods_code: {data_list[i][0]}'})
             else:
                 raise APIException({"detail": "Can Not Support This File Type"})
         else:

@@ -253,7 +253,9 @@ export default {
     downloadgoodstemplate: 'Goods Example',
     downloadcustomertemplate: 'Customer Example',
     downloadsuppliertemplate: 'Supplier Example',
-    addupload: 'Add Upload'
+    addupload: 'Add Upload',
+    downloadasntemplate: 'Asn Example',
+    uploadasnfile: 'Upload Asn'
   },
   download_center: {
     createTime: 'Create Time',

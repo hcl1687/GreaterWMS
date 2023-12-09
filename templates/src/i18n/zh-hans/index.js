@@ -250,7 +250,9 @@ export default {
     downloadgoodstemplate: '下载商品模板',
     downloadcustomertemplate: '下载客户模板',
     downloadsuppliertemplate: '下载供应商模板',
-    addupload: '新增上传'
+    addupload: '新增上传',
+    downloadasntemplate: '下载收货单模板',
+    uploadasnfile: '上传收货清单'
   },
   download_center: {
     createTime: '创建时间',
