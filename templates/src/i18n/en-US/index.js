@@ -732,6 +732,8 @@ export default {
     delivered: 'Delivered',
     normal: 'Normal',
     abnormal: 'Abnormal',
-    normal_delete_tip: 'Can not delete normal order'
+    normal_delete_tip: 'Can not delete normal order',
+    batch_delete: 'Batch Delete',
+    batch_delete_tip: 'Batch delete abnormal orders'
   }
 }

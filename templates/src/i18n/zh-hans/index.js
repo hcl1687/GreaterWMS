@@ -733,6 +733,8 @@ export default {
     delivered: '已完成',
     normal: '正常',
     abnormal: '异常',
-    normal_delete_tip: '正常订单不能删除'
+    normal_delete_tip: '正常订单不能删除',
+    batch_delete: '批量删除',
+    batch_delete_tip: '批量删除异常订单'
   }
 }

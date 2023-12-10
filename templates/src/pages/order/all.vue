@@ -1,4 +1,4 @@
-<template>
+ <template>
   <div>
     <transition appear enter-active-class="animated fadeIn">
       <q-table
@@ -9,6 +9,8 @@
         :loading="loading"
         :filter="filter"
         :columns="columns"
+        selection="multiple"
+        :selected.sync="selected"
         hide-bottom
         :pagination.sync="pagination"
         no-data-label="No data"
@@ -33,6 +35,9 @@
             >
               <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ $t('order.update_order_tip') }}</q-tooltip>
             </q-btn>
+            <q-btn :label="$t('order.batch_delete')" icon="delete_sweep" :disable="selected.length === 0" @click="batchDelete()">
+              <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ $t('order.batch_delete_tip') }}</q-tooltip>
+            </q-btn>
             <q-btn
               v-show="$q.localStorage.getItem('staff_type') !== 'Supplier' && $q.localStorage.getItem('staff_type') !== 'Customer'"
               :label="$t('refresh')"
@@ -49,8 +54,15 @@
             </template>
           </q-input>
         </template>
+        <template v-slot:header-selection="scope">
+          <q-checkbox v-model="scope.selected" />
+        </template>
         <template v-slot:body="props">
           <q-tr :props="props">
+            <q-td>
+              <q-checkbox v-model="props.selected" color="primary" />
+            </q-td>
+            <q-td key="index" :props="props" style="max-width: 300px; white-space: normal;">{{ props.row.index }}</q-td>
             <q-td key="platform_id" :props="props">{{ props.row.platform_id }}</q-td>
             <q-td key="platform_warehouse_id" :props="props">{{ props.row.platform_warehouse_id }}</q-td>
             <q-td key="posting_number" :props="props">{{ props.row.posting_number }}</q-td>
@@ -183,7 +195,9 @@ export default {
       height: '',
       table_list: [],
       products_table: [],
+      selected: [],
       columns: [
+        { name: 'index', label: '#', field: 'index', align: 'center' },
         { name: 'platform_id', required: true, label: this.$t('order.platform_id'), align: 'left', field: 'platform_id' },
         { name: 'platform_warehouse_id', label: this.$t('order.platform_warehouse_id'), field: 'platform_warehouse_id', align: 'center' },
         { name: 'posting_number', label: this.$t('order.posting_number'), field: 'posting_number', align: 'center' },
@@ -237,7 +251,8 @@ export default {
                 _this.max = Math.ceil(res.count / 30)
               }
             }
-            res.results.forEach(item => {
+            res.results.forEach((item, index) => {
+              item.index = index + 1
               _this.table_list.push(item)
             })
             _this.pathname_previous = res.previous
@@ -281,7 +296,8 @@ export default {
                 _this.max = Math.ceil(res.count / 30)
               }
             }
-            res.results.forEach(item => {
+            res.results.forEach((item, index) => {
+              item.index = index + 1
               _this.table_list.push(item)
             })
             _this.pathname_previous = res.previous
@@ -303,7 +319,8 @@ export default {
         getauth(_this.pathname_previous, {})
           .then(res => {
             _this.table_list = []
-            res.results.forEach(item => {
+            res.results.forEach((item, index) => {
+              item.index = index + 1
               _this.table_list.push(item)
             })
             _this.pathname_previous = res.previous
@@ -325,7 +342,8 @@ export default {
         getauth(_this.pathname_next, {})
           .then(res => {
             _this.table_list = []
-            res.results.forEach(item => {
+            res.results.forEach((item, index) => {
+              item.index = index + 1
               _this.table_list.push(item)
             })
             _this.pathname_previous = res.previous
@@ -446,7 +464,45 @@ export default {
       }
 
       return msg
-    }
+    },
+    async batchDelete () {
+      const selected = this.selected
+      if (selected.length === 0) {
+        return
+      }
+
+      try {
+        for (let i = 0; i < selected.length; i++) {
+          const item = selected[i]
+          if (item.handle_status !== 2) {
+            continue
+          }
+
+          const deleteid = item.id
+          const res = await deleteauth(this.pathname + '' + deleteid + '/')
+          if (res.detail) {
+            throw new Error(res.detail)
+          }
+        }
+
+        this.$q.notify({
+          message: 'Success Delete',
+          icon: 'check',
+          color: 'green'
+        })
+      } catch (e) {
+        this.$q.notify({
+          message: e.message,
+          icon: 'close',
+          color: 'negative'
+        })
+      } finally {
+        this.selected = []
+        this.current = 1
+        this.paginationIpt = 1
+        this.getList()
+      }
+    },
   },
   created () {
     var _this = this
