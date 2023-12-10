@@ -735,6 +735,9 @@ export default {
     abnormal: '异常',
     normal_delete_tip: '正常订单不能删除',
     batch_delete: '批量删除',
-    batch_delete_tip: '批量删除异常订单'
+    batch_delete_tip: '批量删除异常订单',
+    search_shop_name: '店铺名字搜索',
+    search_posting_number: '平台发货单号搜索',
+    search_dn_code: '发货单号搜索'
   }
 }

@@ -734,6 +734,9 @@ export default {
     abnormal: 'Abnormal',
     normal_delete_tip: 'Can not delete normal order',
     batch_delete: 'Batch Delete',
-    batch_delete_tip: 'Batch delete abnormal orders'
+    batch_delete_tip: 'Batch delete abnormal orders',
+    search_shop_name: 'Search by shop name',
+    search_posting_number: 'Search by posting number',
+    search_dn_code: 'Search by dn code'
   }
 }

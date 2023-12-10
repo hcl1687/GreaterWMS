@@ -10,6 +10,7 @@ class Filter(FilterSet):
             "platform_warehouse_id": ['exact', 'iexact', 'contains', 'icontains'],
             "posting_number": ['exact', 'iexact', 'contains', 'icontains'],
             "dn_code": ['exact', 'iexact', 'contains', 'icontains'],
+            "shop__shop_name": ['exact', 'iexact', 'contains', 'icontains'],
             "status": ['exact', 'iexact', 'gt', 'gte', 'lt', 'lte', 'isnull', 'in', 'range'],
             "handle_status": ['exact', 'iexact', 'gt', 'gte', 'lt', 'lte', 'isnull', 'in', 'range'],
             "order_time": ['year', 'month', 'day', 'week_day', 'gt', 'gte', 'lt', 'lte', 'range'],

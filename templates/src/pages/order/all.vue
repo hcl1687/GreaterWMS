@@ -20,39 +20,90 @@
         bordered
       >
         <template v-slot:top>
-          <q-btn-group push>
-            <q-btn
-              :label="$t('order.fetch_order')"
-              icon="system_update_alt"
-              @click="fetchOrder()"
-            >
-              <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ $t('order.fetch_order_tip') }}</q-tooltip>
-            </q-btn>
-            <q-btn
-              :label="$t('order.update_order')"
-              icon="cloud_sync"
-              @click="updateOrder()"
-            >
-              <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ $t('order.update_order_tip') }}</q-tooltip>
-            </q-btn>
-            <q-btn :label="$t('order.batch_delete')" icon="delete_sweep" :disable="selected.length === 0" @click="batchDelete()">
-              <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ $t('order.batch_delete_tip') }}</q-tooltip>
-            </q-btn>
-            <q-btn
-              v-show="$q.localStorage.getItem('staff_type') !== 'Supplier' && $q.localStorage.getItem('staff_type') !== 'Customer'"
-              :label="$t('refresh')"
-              icon="refresh"
-              @click="reFresh()"
-            >
-              <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ $t('refreshtip') }}</q-tooltip>
-            </q-btn>
-          </q-btn-group>
-          <q-space />
-          <q-input outlined rounded dense debounce="300" color="primary" v-model="filter" :placeholder="$t('search')" @input="getSearchList()" @keyup.enter="getSearchList()">
-            <template v-slot:append>
-              <q-icon name="search" @click="getSearchList()" />
-            </template>
-          </q-input>
+          <div class="col">
+            <div class="row items-center relative-position">
+              <q-btn-group push>
+                <q-btn
+                  :label="$t('download_center.reset')"
+                  icon="img:statics/downloadcenter/reset.svg"
+                  @click="reset()"
+                >
+                </q-btn>
+                <q-btn
+                  :label="$t('order.fetch_order')"
+                  icon="system_update_alt"
+                  @click="fetchOrder()"
+                >
+                  <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ $t('order.fetch_order_tip') }}</q-tooltip>
+                </q-btn>
+                <q-btn
+                  :label="$t('order.update_order')"
+                  icon="cloud_sync"
+                  @click="updateOrder()"
+                >
+                  <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ $t('order.update_order_tip') }}</q-tooltip>
+                </q-btn>
+                <q-btn :label="$t('order.batch_delete')" icon="delete_sweep" :disable="selected.length === 0" @click="batchDelete()">
+                  <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ $t('order.batch_delete_tip') }}</q-tooltip>
+                </q-btn>
+                <q-btn
+                  v-show="$q.localStorage.getItem('staff_type') !== 'Supplier' && $q.localStorage.getItem('staff_type') !== 'Customer'"
+                  :label="$t('refresh')"
+                  icon="refresh"
+                  @click="reFresh()"
+                >
+                  <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ $t('refreshtip') }}</q-tooltip>
+                </q-btn>
+              </q-btn-group>
+              <q-space />
+            </div>
+            <div class="row items-center relative-position q-mt-md">
+              <div class="col-auto">
+                <div class="flex items-center">
+                  <div class="q-mr-md">{{ $t("download_center.createTime") }}</div>
+                  <q-input
+                    readonly
+                    outlined
+                    dense
+                    v-model="createDate2"
+                    :placeholder="interval"
+                  >
+                    <template v-slot:append>
+                      <q-icon name="event" class="cursor-pointer">
+                        <q-popup-proxy
+                          ref="qDateProxy"
+                          transition-show="scale"
+                          transition-hide="scale"
+                          ><q-date v-model="createDate1" range
+                        /></q-popup-proxy>
+                      </q-icon>
+                    </template>
+                  </q-input>
+                </div>
+              </div>
+              <div class="col-auto q-ml-md">
+                <q-input outlined rounded dense debounce="300" color="primary" v-model="filter_shop_name" :placeholder="$t('order.search_shop_name')" @input="getList()" @keyup.enter="getList()">
+                  <template v-slot:append>
+                    <q-icon name="search" @click="getList()" />
+                  </template>
+                </q-input>
+              </div>
+              <div class="col-auto q-ml-md">
+                <q-input outlined rounded dense debounce="300" color="primary" v-model="filter_posting_number" :placeholder="$t('order.search_posting_number')" @input="getList()" @keyup.enter="getList()">
+                  <template v-slot:append>
+                    <q-icon name="search" @click="getList()" />
+                  </template>
+                </q-input>
+              </div>
+              <div class="col-auto q-ml-md">
+                <q-input outlined rounded dense debounce="300" color="primary" v-model="filter_dn_code" :placeholder="$t('order.search_dn_code')" @input="getList()" @keyup.enter="getList()">
+                  <template v-slot:append>
+                    <q-icon name="search" @click="getList()" />
+                  </template>
+                </q-input>
+              </div>
+            </div>
+          </div>
         </template>
         <template v-slot:header-selection="scope">
           <q-checkbox v-model="scope.selected" />
@@ -63,6 +114,8 @@
               <q-checkbox v-model="props.selected" color="primary" />
             </q-td>
             <q-td key="index" :props="props" style="max-width: 300px; white-space: normal;">{{ props.row.index }}</q-td>
+            <q-td key="shop_type" :props="props">{{ props.row.shop.shop_type }}</q-td>
+            <q-td key="shop_name" :props="props">{{ props.row.shop.shop_name }}</q-td>
             <q-td key="platform_id" :props="props">{{ props.row.platform_id }}</q-td>
             <q-td key="platform_warehouse_id" :props="props">{{ props.row.platform_warehouse_id }}</q-td>
             <q-td key="posting_number" :props="props">{{ props.row.posting_number }}</q-td>
@@ -196,9 +249,13 @@ export default {
       table_list: [],
       products_table: [],
       selected: [],
+      createDate1: '',
+      createDate2: '',
       columns: [
         { name: 'index', label: '#', field: 'index', align: 'center' },
-        { name: 'platform_id', required: true, label: this.$t('order.platform_id'), align: 'left', field: 'platform_id' },
+        { name: 'shop_type', required: true, label: this.$t('shoptype.shop_type'), align: 'center', field: 'shop.shop_type' },
+        { name: 'shop_name', required: true, label: this.$t('shop.shop_name'), align: 'center', field: 'shop.shop_name' },
+        { name: 'platform_id', required: true, label: this.$t('order.platform_id'), align: 'center', field: 'platform_id' },
         { name: 'platform_warehouse_id', label: this.$t('order.platform_warehouse_id'), field: 'platform_warehouse_id', align: 'center' },
         { name: 'posting_number', label: this.$t('order.posting_number'), field: 'posting_number', align: 'center' },
         { name: 'dn_code', label: this.$t('outbound.view_dn.dn_code'), field: 'dn_code', align: 'center' },
@@ -212,7 +269,10 @@ export default {
         { name: 'update_time', label: this.$t('updatetime'), field: 'update_time', align: 'center' },
         { name: 'action', label: this.$t('action'), align: 'right' }
       ],
-      filter: '',
+      filter_posting_number: '',
+      filter_date_range: '',
+      filter_shop_name: '',
+      filter_dn_code: '',
       pagination: {
         page: 1,
         rowsPerPage: '30'
@@ -234,39 +294,75 @@ export default {
       deleteid: 0,
     }
   },
+  computed: {
+    interval () {
+      return this.$t('download_center.start') + ' - ' + this.$t('download_center.end')
+    }
+  },
+  watch: {
+    createDate1 (val) {
+      if (val) {
+        if (val.to) {
+          this.createDate2 = `${val.from} - ${val.to}`
+          this.filter_date_range = `${val.from},${val.to} 23:59:59`
+        } else {
+          this.createDate2 = `${val}`
+          this.filter_date_range = `${val},${val} 23:59:59`
+        }
+        this.filter_date_range = this.filter_date_range.replace(/\//g, '-')
+        this.getList()
+        this.$refs.qDateProxy.hide()
+      }
+    }
+  },
   methods: {
     getList () {
       var _this = this
-      if (LocalStorage.has('auth')) {
-        getauth(_this.pathname + '?page=' + '' + _this.current, {})
-          .then(res => {
-            _this.table_list = []
-            _this.total = res.count
-            if (res.count === 0) {
-              _this.max = 0
-            } else {
-              if (Math.ceil(res.count / 30) === 1) {
-                _this.max = 0
-              } else {
-                _this.max = Math.ceil(res.count / 30)
-              }
-            }
-            res.results.forEach((item, index) => {
-              item.index = index + 1
-              _this.table_list.push(item)
-            })
-            _this.pathname_previous = res.previous
-            _this.pathname_next = res.next
-            _this.orderListData = res.results
-          })
-          .catch(err => {
-            _this.$q.notify({
-              message: err.detail,
-              icon: 'close',
-              color: 'negative'
-            })
-          })
+      if (!LocalStorage.has('auth')) {
+        return
       }
+
+      let url = _this.pathname + '?page=' + '' + _this.current
+      if (_this.filter_date_range) {
+        url = `${url}&create_time__range=${_this.filter_date_range}`
+      }
+      if (_this.filter_posting_number) {
+        url = `${url}&posting_number__icontains=${_this.filter_posting_number}`
+      }
+      if (_this.filter_shop_name) {
+        url = `${url}&shop__shop_name__icontains=${_this.filter_shop_name}`
+      }
+      if (_this.filter_dn_code) {
+        url = `${url}&dn_code__icontains=${_this.filter_dn_code}`
+      }
+      getauth(url, {})
+      .then(res => {
+        _this.table_list = []
+        _this.total = res.count
+        if (res.count === 0) {
+          _this.max = 0
+        } else {
+          if (Math.ceil(res.count / 30) === 1) {
+            _this.max = 0
+          } else {
+            _this.max = Math.ceil(res.count / 30)
+          }
+        }
+        res.results.forEach((item, index) => {
+          item.index = index + 1
+          _this.table_list.push(item)
+        })
+        _this.pathname_previous = res.previous
+        _this.pathname_next = res.next
+        _this.orderListData = res.results
+      })
+      .catch(err => {
+        _this.$q.notify({
+          message: err.detail,
+          icon: 'close',
+          color: 'negative'
+        })
+      })
     },
     changePageEnter(e) {
       if (Number(this.paginationIpt) < 1) {
@@ -279,39 +375,6 @@ export default {
         this.current = Number(this.paginationIpt);
       }
       this.getList();
-    },
-    getSearchList () {
-      var _this = this
-      if (LocalStorage.has('auth')) {
-        getauth(_this.pathname + '?posting_number__icontains=' + _this.filter + '&page=' + '' + _this.current, {})
-          .then(res => {
-            _this.table_list = []
-            _this.total = res.count
-            if (res.count === 0) {
-              _this.max = 0
-            } else {
-              if (Math.ceil(res.count / 30) === 1) {
-                _this.max = 0
-              } else {
-                _this.max = Math.ceil(res.count / 30)
-              }
-            }
-            res.results.forEach((item, index) => {
-              item.index = index + 1
-              _this.table_list.push(item)
-            })
-            _this.pathname_previous = res.previous
-            _this.pathname_next = res.next
-          })
-          .catch(err => {
-            _this.$q.notify({
-              message: err.detail,
-              icon: 'close',
-              color: 'negative'
-            })
-          })
-      } else {
-      }
     },
     getListPrevious () {
       var _this = this
@@ -503,6 +566,17 @@ export default {
         this.getList()
       }
     },
+    reset () {
+      this.current = 1
+      this.paginationIpt = 1
+      this.createDate1 = ''
+      this.createDate2 = ''
+      this.filter_date_range = ''
+      this.filter_dn_code = ''
+      this.filter_posting_number = ''
+      this.filter_shop_name = ''
+      this.getList()
+    }
   },
   created () {
     var _this = this
