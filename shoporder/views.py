@@ -607,17 +607,24 @@ class ShoporderInitViewSet(viewsets.ModelViewSet):
         # init Awaiting_Review order
         for shop in shop_list:
             status = Status.Awaiting_Review
-            shop_id = shop.id
-            self.handle_shoporder(shop_id, since=since, to=to, status=status)
+            self.handle_shoporder(shop, since=since, to=to, status=status)
         # init Awaiting_Deliver order
         for shop in shop_list:
             status = Status.Awaiting_Deliver
-            shop_id = shop.id
-            self.handle_shoporder(shop_id, since=since, to=to, status=status)
+            self.handle_shoporder(shop, since=since, to=to, status=status)
 
         return Response({"detail": "success"}, status=200)
 
-    def handle_shoporder(self, shop_id, **args):
+    def handle_shoporder(self, shop, **args):
+        shop_id = shop.id
+        shopwarehouse_list = shop.shopwarehouse.filter(is_delete=False)
+        warehosue_id = []
+        for warehouse in shopwarehouse_list:
+            warehosue_id.append(warehouse.platform_id)
+
+        if len(warehosue_id) == 0:
+            return
+
         seller_api = SELLER_API(shop_id)
         offset = 0
         while True:
@@ -625,7 +632,8 @@ class ShoporderInitViewSet(viewsets.ModelViewSet):
                 'offset': offset,
                 'status':args['status'],
                 'since': args['since'],
-                'to': args['to']
+                'to': args['to'],
+                'warehouse_id': warehosue_id
             }
             seller_resp = seller_api.get_orders(params)
             for item in seller_resp.get('items', []):
@@ -704,22 +712,28 @@ class ShoporderUpdateViewSet(viewsets.ModelViewSet):
         # update Awaiting_Deliver order
         for shop in shop_list:
             status = Status.Awaiting_Deliver
-            shop_id = shop.id
-            self.handle_shoporder(shop_id, since=since, to=to, status=status)
+            self.handle_shoporder(shop, since=since, to=to, status=status)
         # update Delivering order
         for shop in shop_list:
             status = Status.Delivering
-            shop_id = shop.id
-            self.handle_shoporder(shop_id, since=since, to=to, status=status)
+            self.handle_shoporder(shop, since=since, to=to, status=status)
         # update Cancelled order
         for shop in shop_list:
             status = Status.Cancelled
-            shop_id = shop.id
-            self.handle_shoporder(shop_id, since=since, to=to, status=status)
+            self.handle_shoporder(shop, since=since, to=to, status=status)
 
         return Response({"detail": "success"}, status=200)
 
-    def handle_shoporder(self, shop_id, **args):
+    def handle_shoporder(self, shop, **args):
+        shop_id = shop.id
+        shopwarehouse_list = shop.shopwarehouse.filter(is_delete=False)
+        warehosue_id = []
+        for warehouse in shopwarehouse_list:
+            warehosue_id.append(warehouse.platform_id)
+
+        if len(warehosue_id) == 0:
+            return
+
         seller_api = SELLER_API(shop_id)
         offset = 0
         while True:
@@ -727,7 +741,8 @@ class ShoporderUpdateViewSet(viewsets.ModelViewSet):
                 'offset': offset,
                 'status':args['status'],
                 'since': args['since'],
-                'to': args['to']
+                'to': args['to'],
+                'warehouse_id': warehosue_id
             }
             seller_resp = seller_api.get_orders(params)
             for item in seller_resp.get('items', []):

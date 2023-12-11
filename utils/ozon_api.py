@@ -145,6 +145,9 @@ class OZON_API():
             if to:
                 to = datetime.fromtimestamp(to).strftime ("%Y-%m-%dT%H:%M:%SZ")
                 _params['filter']['to'] = to
+            # filter by warehouse id
+            if params['warehouse_id']:
+                _params['filter']['warehouse_id'] = params['warehouse_id']
 
         print(json.dumps(_params))
         order_resp = self._request(path='/v3/posting/fbs/list', params=_params)
