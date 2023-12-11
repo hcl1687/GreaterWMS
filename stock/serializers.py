@@ -19,8 +19,8 @@ class StockListGetSerializer(serializers.ModelSerializer):
     pick_stock = serializers.IntegerField(read_only=True, required=False)
     picked_stock = serializers.IntegerField(read_only=True, required=False)
     back_order_stock = serializers.IntegerField(read_only=True, required=False)
-    create_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
-    update_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
+    create_time = serializers.DateTimeField(read_only=True)
+    update_time = serializers.DateTimeField(read_only=True)
 
     class Meta:
         model = StockListModel
@@ -38,8 +38,8 @@ class StockBinGetSerializer(serializers.ModelSerializer):
     bin_property = serializers.CharField(read_only=True, required=False)
     qty = serializers.SerializerMethodField()
     t_code = serializers.CharField(read_only=True, required=False)
-    create_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
-    update_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
+    create_time = serializers.DateTimeField(read_only=True)
+    update_time = serializers.DateTimeField(read_only=True)
 
     class Meta:
         model = StockBinModel
@@ -77,8 +77,8 @@ class FileBinListRenderSerializer(serializers.ModelSerializer):
     picked_qty = serializers.IntegerField(read_only=False, required=False)
     bin_size = serializers.CharField(read_only=False, required=False)
     bin_property = serializers.CharField(read_only=False, required=False)
-    create_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
-    update_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
+    create_time = serializers.DateTimeField(read_only=True)
+    update_time = serializers.DateTimeField(read_only=True)
 
     class Meta:
         model = StockBinModel
@@ -102,8 +102,8 @@ class FileListRenderSerializer(serializers.ModelSerializer):
     pick_stock = serializers.IntegerField(read_only=True, required=False)
     picked_stock = serializers.IntegerField(read_only=True, required=False)
     back_order_stock = serializers.IntegerField(read_only=True, required=False)
-    create_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
-    update_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
+    create_time = serializers.DateTimeField(read_only=True)
+    update_time = serializers.DateTimeField(read_only=True)
 
     class Meta:
         model = StockListModel

@@ -6,8 +6,8 @@ class StaffGetSerializer(serializers.ModelSerializer):
     staff_name = serializers.CharField(read_only=True, required=False)
     staff_type = serializers.CharField(read_only=True, required=False)
     check_code = serializers.IntegerField(read_only=True, required=False)
-    create_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
-    update_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
+    create_time = serializers.DateTimeField(read_only=True)
+    update_time = serializers.DateTimeField(read_only=True)
 
     class Meta:
         model = ListModel
@@ -43,8 +43,8 @@ class StaffPartialUpdateSerializer(serializers.ModelSerializer):
 class FileRenderSerializer(serializers.ModelSerializer):
     staff_name = serializers.CharField(read_only=False, required=False)
     staff_type = serializers.CharField(read_only=False, required=False)
-    create_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
-    update_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
+    create_time = serializers.DateTimeField(read_only=True)
+    update_time = serializers.DateTimeField(read_only=True)
 
     class Meta:
         model = ListModel
@@ -54,8 +54,8 @@ class FileRenderSerializer(serializers.ModelSerializer):
 class StaffTypeGetSerializer(serializers.ModelSerializer):
     staff_type = serializers.CharField(read_only=True, required=False)
     creater = serializers.CharField(read_only=True, required=False)
-    create_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
-    update_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
+    create_time = serializers.DateTimeField(read_only=True)
+    update_time = serializers.DateTimeField(read_only=True)
     class Meta:
         model = TypeListModel
         exclude = ['openid']

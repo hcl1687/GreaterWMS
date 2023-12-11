@@ -8,8 +8,8 @@ from stock.models import StockBinModel
 
 class ListGetSerializer(serializers.ModelSerializer):
     creater = serializers.CharField(read_only=True, required=False)
-    create_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
-    update_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
+    create_time = serializers.DateTimeField(read_only=True)
+    update_time = serializers.DateTimeField(read_only=True)
     request_time = serializers.SerializerMethodField()
 
     class Meta:
@@ -38,8 +38,8 @@ class SannerDnDetailPickingListGetSerializer(serializers.ModelSerializer):
     goods_volume = serializers.FloatField(read_only=True, required=False)
     goods_cost = serializers.FloatField(read_only=True, required=False)
     creater = serializers.CharField(read_only=True, required=False)
-    create_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
-    update_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
+    create_time = serializers.DateTimeField(read_only=True)
+    update_time = serializers.DateTimeField(read_only=True)
     back_order_label = serializers.BooleanField(read_only=True, required=False)
 
     class Meta:

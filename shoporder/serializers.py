@@ -11,14 +11,14 @@ class ShoporderGetSerializer(serializers.ModelSerializer):
     order_data = serializers.CharField(read_only=True, required=False)
     order_products = serializers.CharField(read_only=True, required=False)
     stockbin_data = serializers.CharField(read_only=True, required=False)
-    order_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
+    order_time = serializers.DateTimeField(read_only=True)
     status = serializers.IntegerField(read_only=True, required=False)
     handle_status = serializers.IntegerField(read_only=True, required=False)
     handle_message = serializers.CharField(read_only=True, required=False)
     supplier = serializers.CharField(read_only=True, required=False)
     creater = serializers.CharField(read_only=True, required=False)
-    create_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
-    update_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
+    create_time = serializers.DateTimeField(read_only=True)
+    update_time = serializers.DateTimeField(read_only=True)
 
     class Meta:
         model = ListModel
@@ -86,14 +86,14 @@ class FileRenderSerializer(serializers.ModelSerializer):
     order_data = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     order_products = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     stockbin_data = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
-    order_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
+    order_time = serializers.DateTimeField(read_only=True)
     status = serializers.IntegerField(read_only=False, required=False)
     handle_status = serializers.IntegerField(read_only=False, required=False)
     handle_message = serializers.CharField(read_only=False, required=False, validators=[datasolve.data_validate])
     supplier = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     creater = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
-    create_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
-    update_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
+    create_time = serializers.DateTimeField(read_only=True)
+    update_time = serializers.DateTimeField(read_only=True)
 
     class Meta:
         model = ListModel

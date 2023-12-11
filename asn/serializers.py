@@ -8,8 +8,8 @@ class ASNListGetSerializer(serializers.ModelSerializer):
     supplier = serializers.CharField(read_only=True, required=False)
     bar_code = serializers.CharField(read_only=True, required=False)
     creater = serializers.CharField(read_only=True, required=False)
-    create_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
-    update_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
+    create_time = serializers.DateTimeField(read_only=True)
+    update_time = serializers.DateTimeField(read_only=True)
     class Meta:
         model = AsnListModel
         exclude = ['openid', 'is_delete', ]
@@ -54,8 +54,8 @@ class ASNDetailGetSerializer(serializers.ModelSerializer):
     goods_more_qty = serializers.IntegerField(read_only=True, required=False)
     goods_damage_qty = serializers.IntegerField(read_only=True, required=False)
     creater = serializers.CharField(read_only=True, required=False)
-    create_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
-    update_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
+    create_time = serializers.DateTimeField(read_only=True)
+    update_time = serializers.DateTimeField(read_only=True)
     class Meta:
         model = AsnDetailModel
         exclude = ['openid', 'is_delete', ]
@@ -129,8 +129,8 @@ class FileListRenderSerializer(serializers.ModelSerializer):
     supplier = serializers.CharField(read_only=False, required=False)
     creater = serializers.CharField(read_only=False, required=False)
     transportation_fee = serializers.JSONField(read_only=False, required=False)
-    create_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
-    update_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
+    create_time = serializers.DateTimeField(read_only=True)
+    update_time = serializers.DateTimeField(read_only=True)
 
     class Meta:
         model = AsnListModel
@@ -153,8 +153,8 @@ class FileDetailRenderSerializer(serializers.ModelSerializer):
     goods_cost = serializers.FloatField(read_only=False, required=False)
     supplier = serializers.CharField(read_only=False, required=False)
     creater = serializers.CharField(read_only=False, required=False)
-    create_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
-    update_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
+    create_time = serializers.DateTimeField(read_only=True)
+    update_time = serializers.DateTimeField(read_only=True)
 
     class Meta:
         model = AsnDetailModel

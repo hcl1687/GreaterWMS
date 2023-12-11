@@ -8,8 +8,8 @@ class BinsizeGetSerializer(serializers.ModelSerializer):
     bin_size_d = serializers.FloatField(read_only=True, required=False)
     bin_size_h = serializers.FloatField(read_only=True, required=False)
     creater = serializers.CharField(read_only=True, required=False)
-    create_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
-    update_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
+    create_time = serializers.DateTimeField(read_only=True)
+    update_time = serializers.DateTimeField(read_only=True)
     class Meta:
         model = ListModel
         exclude = ['openid', 'is_delete', ]
@@ -55,8 +55,8 @@ class FileRenderSerializer(serializers.ModelSerializer):
     bin_size_d = serializers.FloatField(read_only=False, required=False)
     bin_size_h = serializers.FloatField(read_only=False, required=False)
     creater = serializers.CharField(read_only=False, required=False)
-    create_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
-    update_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
+    create_time = serializers.DateTimeField(read_only=True)
+    update_time = serializers.DateTimeField(read_only=True)
 
     class Meta:
         model = ListModel

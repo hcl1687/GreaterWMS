@@ -6,7 +6,7 @@ from .models import QTYRecorder
 class CyclecountGetSerializer(serializers.ModelSerializer):
     creater = serializers.CharField(read_only=True, required=False)
     create_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d')
-    update_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
+    update_time = serializers.DateTimeField(read_only=True)
     class Meta:
         model = CyclecountModeDayModel
         exclude = ['openid']
@@ -32,8 +32,8 @@ class FileRenderSerializer(serializers.ModelSerializer):
     creater = serializers.CharField(read_only=False, required=False)
     physical_inventory = serializers.SerializerMethodField()
     difference = serializers.SerializerMethodField()
-    create_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
-    update_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
+    create_time = serializers.DateTimeField(read_only=True)
+    update_time = serializers.DateTimeField(read_only=True)
 
     class Meta:
         model = CyclecountModeDayModel
@@ -48,8 +48,8 @@ class FileRenderSerializer(serializers.ModelSerializer):
 
 class FileRenderAllSerializer(serializers.ModelSerializer):
     creater = serializers.CharField(read_only=False, required=False)
-    create_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
-    update_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
+    create_time = serializers.DateTimeField(read_only=True)
+    update_time = serializers.DateTimeField(read_only=True)
 
     class Meta:
         model = CyclecountModeDayModel
@@ -65,8 +65,8 @@ class QTYRecorderSerializer(serializers.ModelSerializer):
     goods_qty = serializers.IntegerField(read_only=True, required=False)
     store_code = serializers.CharField(read_only=True, required=False)
     creater = serializers.CharField(read_only=True, required=False)
-    create_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
-    update_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
+    create_time = serializers.DateTimeField(read_only=True)
+    update_time = serializers.DateTimeField(read_only=True)
 
     class Meta:
         model = QTYRecorder
@@ -76,7 +76,7 @@ class QTYRecorderSerializer(serializers.ModelSerializer):
 class ManualCyclecountGetSerializer(serializers.ModelSerializer):
     creater = serializers.CharField(read_only=True, required=False)
     create_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d')
-    update_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
+    update_time = serializers.DateTimeField(read_only=True)
     class Meta:
         model = ManualCyclecountModeModel
         exclude = ['openid']
@@ -104,8 +104,8 @@ class ManualFileRenderSerializer(serializers.ModelSerializer):
     creater = serializers.CharField(read_only=False, required=False)
     physical_inventory = serializers.SerializerMethodField()
     difference = serializers.SerializerMethodField()
-    create_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
-    update_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
+    create_time = serializers.DateTimeField(read_only=True)
+    update_time = serializers.DateTimeField(read_only=True)
 
     class Meta:
         model = ManualCyclecountModeModel

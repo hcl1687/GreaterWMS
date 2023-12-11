@@ -18,8 +18,8 @@ class SannerDnDetailGetSerializer(serializers.ModelSerializer):
     goods_volume = serializers.FloatField(read_only=True, required=False)
     goods_cost = serializers.FloatField(read_only=True, required=False)
     creater = serializers.CharField(read_only=True, required=False)
-    create_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
-    update_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
+    create_time = serializers.DateTimeField(read_only=True)
+    update_time = serializers.DateTimeField(read_only=True)
     back_order_label = serializers.BooleanField(read_only=True, required=False)
     class Meta:
         model = DnDetailModel
@@ -33,8 +33,8 @@ class DNListGetSerializer(serializers.ModelSerializer):
     customer = serializers.CharField(read_only=True, required=False)
     creater = serializers.CharField(read_only=True, required=False)
     bar_code = serializers.CharField(read_only=True, required=False)
-    create_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
-    update_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
+    create_time = serializers.DateTimeField(read_only=True)
+    update_time = serializers.DateTimeField(read_only=True)
     class Meta:
         model = DnListModel
         exclude = ['openid', 'is_delete', ]
@@ -85,8 +85,8 @@ class DNDetailGetSerializer(serializers.ModelSerializer):
     goods_volume = serializers.FloatField(read_only=True, required=False)
     goods_cost = serializers.FloatField(read_only=True, required=False)
     creater = serializers.CharField(read_only=True, required=False)
-    create_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
-    update_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
+    create_time = serializers.DateTimeField(read_only=True)
+    update_time = serializers.DateTimeField(read_only=True)
     back_order_label = serializers.BooleanField(read_only=True, required=False)
     class Meta:
         model = DnDetailModel
@@ -139,8 +139,8 @@ class DNPickingListGetSerializer(serializers.ModelSerializer):
     picked_qty = serializers.IntegerField(read_only=True, required=False)
     creater = serializers.CharField(read_only=True, required=False)
     t_code = serializers.CharField(read_only=True, required=False)
-    create_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
-    update_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
+    create_time = serializers.DateTimeField(read_only=True)
+    update_time = serializers.DateTimeField(read_only=True)
     class Meta:
         model = PickingListModel
         exclude = ['openid', ]
@@ -154,8 +154,8 @@ class DNPickingCheckGetSerializer(serializers.ModelSerializer):
     pick_qty = serializers.IntegerField(read_only=True, required=False)
     picked_qty = serializers.IntegerField(read_only=True, required=False)
     creater = serializers.CharField(read_only=True, required=False)
-    create_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
-    update_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
+    create_time = serializers.DateTimeField(read_only=True)
+    update_time = serializers.DateTimeField(read_only=True)
     class Meta:
         model = PickingListModel
         exclude = ['openid', ]
@@ -167,8 +167,8 @@ class DNDiscardGetSerializer(serializers.ModelSerializer):
     customer = serializers.CharField(read_only=True, required=False)
     creater = serializers.CharField(read_only=True, required=False)
     bar_code = serializers.CharField(read_only=True, required=False)
-    create_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
-    update_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
+    create_time = serializers.DateTimeField(read_only=True)
+    update_time = serializers.DateTimeField(read_only=True)
     class Meta:
         model = DnListModel
         exclude = ['openid', 'is_delete', ]
@@ -183,8 +183,8 @@ class FileListRenderSerializer(serializers.ModelSerializer):
     customer = serializers.CharField(read_only=False, required=False)
     creater = serializers.CharField(read_only=False, required=False)
     back_order_label = serializers.BooleanField(read_only=False, required=False)
-    create_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
-    update_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
+    create_time = serializers.DateTimeField(read_only=True)
+    update_time = serializers.DateTimeField(read_only=True)
 
     class Meta:
         model = DnListModel
@@ -209,8 +209,8 @@ class FileDetailRenderSerializer(serializers.ModelSerializer):
     goods_volume = serializers.FloatField(read_only=False, required=False)
     goods_cost = serializers.FloatField(read_only=False, required=False)
     creater = serializers.CharField(read_only=False, required=False)
-    create_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
-    update_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
+    create_time = serializers.DateTimeField(read_only=True)
+    update_time = serializers.DateTimeField(read_only=True)
     back_order_label = serializers.BooleanField(read_only=False, required=False)
 
     class Meta:

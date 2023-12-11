@@ -7,8 +7,8 @@ class CapitalGetSerializer(serializers.ModelSerializer):
     capital_qty = serializers.IntegerField(read_only=True, required=False)
     capital_cost = serializers.FloatField(read_only=True, required=False)
     creater = serializers.CharField(read_only=True, required=False)
-    create_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
-    update_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
+    create_time = serializers.DateTimeField(read_only=True)
+    update_time = serializers.DateTimeField(read_only=True)
     class Meta:
         model = ListModel
         exclude = ['openid', 'is_delete', ]
@@ -50,8 +50,8 @@ class FileRenderSerializer(serializers.ModelSerializer):
     capital_qty = serializers.IntegerField(read_only=False, required=False)
     capital_cost = serializers.FloatField(read_only=False, required=False)
     creater = serializers.CharField(read_only=False, required=False)
-    create_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
-    update_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
+    create_time = serializers.DateTimeField(read_only=True)
+    update_time = serializers.DateTimeField(read_only=True)
 
     class Meta:
         model = ListModel

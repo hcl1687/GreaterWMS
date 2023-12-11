@@ -9,8 +9,8 @@ class ShopGetSerializer(serializers.ModelSerializer):
     supplier = serializers.CharField(read_only=True, required=False)
     creater = serializers.CharField(read_only=True, required=False)
     sync = serializers.BooleanField(read_only=True, required=False)
-    create_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
-    update_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
+    create_time = serializers.DateTimeField(read_only=True)
+    update_time = serializers.DateTimeField(read_only=True)
 
     class Meta:
         model = ListModel
@@ -55,8 +55,8 @@ class FileRenderSerializer(serializers.ModelSerializer):
     shop_data = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     supplier = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     creater = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
-    create_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
-    update_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
+    create_time = serializers.DateTimeField(read_only=True)
+    update_time = serializers.DateTimeField(read_only=True)
 
     class Meta:
         model = ListModel

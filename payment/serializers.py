@@ -9,8 +9,8 @@ class FreightGetSerializer(serializers.ModelSerializer):
     volume_fee = serializers.FloatField(read_only=True, required=False)
     transportation_supplier = serializers.CharField(read_only=True, required=False)
     creater = serializers.CharField(read_only=True, required=False)
-    create_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
-    update_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
+    create_time = serializers.DateTimeField(read_only=True)
+    update_time = serializers.DateTimeField(read_only=True)
     class Meta:
         model = TransportationFeeListModel
         exclude = ['openid', 'is_delete', ]
@@ -60,8 +60,8 @@ class FreightfileRenderSerializer(serializers.ModelSerializer):
     volume_fee = serializers.FloatField(read_only=True, required=False)
     transportation_supplier = serializers.CharField(read_only=True, required=False)
     creater = serializers.CharField(read_only=True, required=False)
-    create_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
-    update_time = serializers.DateTimeField(read_only=True, format='%Y-%m-%d %H:%M:%S')
+    create_time = serializers.DateTimeField(read_only=True)
+    update_time = serializers.DateTimeField(read_only=True)
     class Meta:
         model = TransportationFeeListModel
         exclude = ['openid', 'is_delete', ]
