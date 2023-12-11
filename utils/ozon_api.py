@@ -173,7 +173,8 @@ class OZON_API():
                 'platform_id': item['order_id'],
                 'platform_warehouse_id': item.get('delivery_method', {}).get('warehouse_id'),
                 'posting_number': item['posting_number'],
-                'order_time': datetime.timestamp(datetime.strptime(item['in_process_at'], "%Y-%m-%dT%H:%M:%SZ")),
+                'order_time': item['in_process_at'],
+                'shipment_time': item['shipment_date'],
                 'status': self.toSystemStatus(item['status']),
                 'order_data': json.dumps(item),
                 'order_products': json.dumps(order_products)

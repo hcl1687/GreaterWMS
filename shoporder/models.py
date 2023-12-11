@@ -11,6 +11,7 @@ class ListModel(models.Model):
     order_products = models.TextField(verbose_name="Order Products")
     stockbin_data = models.TextField(verbose_name="Stockbin Data")
     order_time = models.DateTimeField(auto_now=False, blank=False, null=False, verbose_name="Order Time")
+    shipment_time = models.DateTimeField(auto_now=False, blank=False, null=False, verbose_name="Shipment Time")
     status = models.BigIntegerField(default=1, verbose_name="Status")
     handle_status = models.BigIntegerField(default=1, verbose_name="Handle Status")
     handle_message = models.CharField(max_length=255, verbose_name="Handle Message")

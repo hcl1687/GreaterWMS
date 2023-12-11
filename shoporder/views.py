@@ -14,7 +14,7 @@ from shop.models import ListModel as ShopModel
 from .files import FileRenderCN, FileRenderEN
 from rest_framework.settings import api_settings
 from django.http import StreamingHttpResponse
-from shopwarehouse.models import ListModel as ShopwarehouseModal
+from shopwarehouse.models import ListModel as ShopwarehouseModel
 import json
 from shopsku.models import ListModel as ShopskuModel
 from stock.models import StockListModel, StockBinModel
@@ -90,18 +90,26 @@ class APIViewSet(viewsets.ModelViewSet):
     def list(self, request, *args, **kwargs):
         data = super().list(request=request).data
         # add extra info to data here
+        for item in data['results']:
+            dn_code = item['dn_code']
+            if dn_code:
+                dn_obj = DnListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), dn_code=dn_code, is_delete=False).first()
+                if dn_obj:
+                    total_weight = dn_obj.total_weight
+                    item['total_weight'] = total_weight
+
+            shop_id = item['shop']['id']
+            warehouse_id = item['platform_warehouse_id']
+            platform_warehouse_obj = ShopwarehouseModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), shop_id=shop_id, platform_id=warehouse_id, is_delete=False).first()
+            if platform_warehouse_obj:
+                item['platform_warehouse_name'] = platform_warehouse_obj.platform_name
+
         return Response(data, status=200)
 
     def create(self, request, *args, **kwargs):
         data = self.request.data
         original_data = copy.deepcopy(data)
         data['openid'] = self.request.META.get('HTTP_TOKEN')
-
-        # data['order_time'] is timestamp
-        try:
-            data['order_time'] = datetime.fromtimestamp(data['order_time'])
-        except Exception:
-            raise APIException({"detail": "order_time parse error"})
 
         shop_id = data.get('shop', '')
         if not shop_id:
@@ -115,7 +123,7 @@ class APIViewSet(viewsets.ModelViewSet):
         if not platform_warehouse_id:
             raise APIException({"detail": "The platform_warehouse_id does not exist"})
 
-        platform_warehouse_obj = ShopwarehouseModal.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), shop_id=shop_id, platform_id=platform_warehouse_id, is_delete=False).first()
+        platform_warehouse_obj = ShopwarehouseModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), shop_id=shop_id, platform_id=platform_warehouse_id, is_delete=False).first()
         if platform_warehouse_obj is None:
             raise APIException({"detail": "The platform warehouse does not exist"})
 
@@ -182,12 +190,6 @@ class APIViewSet(viewsets.ModelViewSet):
         data = self.request.data
         data['openid'] = self.request.META.get('HTTP_TOKEN')
 
-        # data['order_time'] is timestamp
-        try:
-            data['order_time'] = datetime.fromtimestamp(data['order_time'])
-        except Exception:
-            raise APIException({"detail": "order_time parse error"})
-
         shop_obj = qs.shop
         shop_id = shop_obj.id
         if shop_obj is None:
@@ -197,7 +199,7 @@ class APIViewSet(viewsets.ModelViewSet):
         if not platform_warehouse_id:
             raise APIException({"detail": "The platform_warehouse_id does not exist"})
 
-        platform_warehouse_obj = ShopwarehouseModal.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), shop_id=shop_id, platform_id=platform_warehouse_id, is_delete=False).first()
+        platform_warehouse_obj = ShopwarehouseModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), shop_id=shop_id, platform_id=platform_warehouse_id, is_delete=False).first()
         if platform_warehouse_obj is None:
             raise APIException({"detail": "The platform warehouse does not exist"})
 
@@ -828,6 +830,22 @@ class FileDownloadView(viewsets.ModelViewSet):
             FileRenderSerializer(instance).data
             for instance in self.filter_queryset(self.get_queryset())
         )
+
+        # add extra info to data here
+        for item in data:
+            dn_code = item['dn_code']
+            if dn_code:
+                dn_obj = DnListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), dn_code=dn_code, is_delete=False).first()
+                if dn_obj:
+                    total_weight = dn_obj.total_weight
+                    item['total_weight'] = total_weight
+
+            shop_id = item['shop']['id']
+            warehouse_id = item['platform_warehouse_id']
+            platform_warehouse_obj = ShopwarehouseModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), shop_id=shop_id, platform_id=warehouse_id, is_delete=False).first()
+            if platform_warehouse_obj:
+                item['platform_warehouse_name'] = platform_warehouse_obj.platform_name
+
         renderer = self.get_lang(data)
         response = StreamingHttpResponse(
             renderer,

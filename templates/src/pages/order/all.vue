@@ -102,6 +102,33 @@
                   </template>
                 </q-input>
               </div>
+              <div class="col-auto q-ml-md">
+                <q-select
+                  filled
+                  use-input
+                  fill-input
+                  hide-selected
+                  input-debounce="0"
+                  dense
+                  outlined
+                  square
+                  v-model="filter_supplier"
+                  :options="supplier_list"
+                  @filter="filterFnS"
+                  @input-value="setSupplierIpt"
+                  :label="$t('baseinfo.view_supplier.supplier_name')"
+                  style="margin-bottom: 5px"
+                  @keyup.enter="getList()"
+                >
+                  <template v-slot:Sno-option>
+                    <q-item>
+                      <q-item-section class="text-grey">
+                        No Result
+                      </q-item-section>
+                    </q-item>
+                  </template>
+                </q-select>
+              </div>
             </div>
           </div>
         </template>
@@ -117,10 +144,12 @@
             <q-td key="shop_type" :props="props">{{ props.row.shop.shop_type }}</q-td>
             <q-td key="shop_name" :props="props">{{ props.row.shop.shop_name }}</q-td>
             <q-td key="platform_id" :props="props">{{ props.row.platform_id }}</q-td>
-            <q-td key="platform_warehouse_id" :props="props">{{ props.row.platform_warehouse_id }}</q-td>
+            <q-td key="platform_warehouse_name" :props="props">{{ props.row.platform_warehouse_name }}</q-td>
             <q-td key="posting_number" :props="props">{{ props.row.posting_number }}</q-td>
             <q-td key="dn_code" :props="props">{{ props.row.dn_code }}</q-td>
+            <q-td key="total_weight" :props="props">{{ props.row.total_weight?.toFixed(4) }}</q-td>
             <q-td key="order_time" :props="props">{{ props.row.order_time }}</q-td>
+            <q-td key="shipment_time" :props="props">{{ props.row.shipment_time }}</q-td>
             <q-td key="status" :props="props">{{ getStatusMsg(props.row.status) }}</q-td>
             <q-td key="handle_status" :props="props">{{ getHandleStatusMsg(props.row.handle_status) }}</q-td>
             <q-td key="handle_message" :props="props">{{ props.row.handle_message }}</q-td>
@@ -256,10 +285,12 @@ export default {
         { name: 'shop_type', required: true, label: this.$t('shoptype.shop_type'), align: 'center', field: 'shop.shop_type' },
         { name: 'shop_name', required: true, label: this.$t('shop.shop_name'), align: 'center', field: 'shop.shop_name' },
         { name: 'platform_id', required: true, label: this.$t('order.platform_id'), align: 'center', field: 'platform_id' },
-        { name: 'platform_warehouse_id', label: this.$t('order.platform_warehouse_id'), field: 'platform_warehouse_id', align: 'center' },
+        { name: 'platform_warehouse_name', label: this.$t('order.platform_warehouse_name'), field: 'platform_warehouse_name', align: 'center' },
         { name: 'posting_number', label: this.$t('order.posting_number'), field: 'posting_number', align: 'center' },
         { name: 'dn_code', label: this.$t('outbound.view_dn.dn_code'), field: 'dn_code', align: 'center' },
+        { name: 'total_weight', label: this.$t('outbound.view_dn.total_weight'), field: 'total_weight', align: 'center' },
         { name: 'order_time', label: this.$t('order.order_time'), field: 'order_time', align: 'center' },
+        { name: 'shipment_time', label: this.$t('order.shipment_time'), field: 'shipment_time', align: 'center' },
         { name: 'status', label: this.$t('order.status'), field: 'status', align: 'center' },
         { name: 'handle_status', label: this.$t('order.handle_status'), field: 'handle_status', align: 'center' },
         { name: 'handle_message', label: this.$t('order.handle_message'), field: 'handle_message', align: 'center' },
@@ -269,10 +300,12 @@ export default {
         { name: 'update_time', label: this.$t('updatetime'), field: 'update_time', align: 'center' },
         { name: 'action', label: this.$t('action'), align: 'right' }
       ],
+      filter: '',
       filter_posting_number: '',
       filter_date_range: '',
       filter_shop_name: '',
       filter_dn_code: '',
+      filter_supplier: '',
       pagination: {
         page: 1,
         rowsPerPage: '30'
@@ -292,6 +325,8 @@ export default {
       viewNumber: '',
       deleteForm: false,
       deleteid: 0,
+      supplier_list: [],
+      supplier_list1: []
     }
   },
   computed: {
@@ -304,10 +339,10 @@ export default {
       if (val) {
         if (val.to) {
           this.createDate2 = `${val.from} - ${val.to}`
-          this.filter_date_range = `${val.from},${val.to} 23:59:59`
+          this.filter_date_range = `${(new Date(val.from)).toISOString()},${(new Date(val.to + ' 23:59:59')).toISOString()}`
         } else {
           this.createDate2 = `${val}`
-          this.filter_date_range = `${val},${val} 23:59:59`
+          this.filter_date_range = `${(new Date(val)).toISOString()},${(new Date(val + ' 23:59:59')).toISOString()}`
         }
         this.filter_date_range = this.filter_date_range.replace(/\//g, '-')
         this.getList()
@@ -334,6 +369,9 @@ export default {
       }
       if (_this.filter_dn_code) {
         url = `${url}&dn_code__icontains=${_this.filter_dn_code}`
+      }
+      if (_this.filter_supplier) {
+        url = `${url}&supplier__icontains=${_this.filter_supplier}`
       }
       getauth(url, {})
       .then(res => {
@@ -575,7 +613,42 @@ export default {
       this.filter_dn_code = ''
       this.filter_posting_number = ''
       this.filter_shop_name = ''
+      this.filter_supplier = ''
       this.getList()
+    },
+    filterFnS (val, update, abort) {
+      var _this = this
+      update(() => {
+        const needle = val.toLocaleLowerCase()
+        const data_filter = _this.supplier_list1
+        _this.supplier_list = data_filter.filter(v => v.toLocaleLowerCase().indexOf(needle) > -1)
+      })
+    },
+    setSupplierIpt (val) {
+      const _this = this
+      _this.filter_supplier = val
+    },
+    getSupplierList () {
+      var _this = this
+      getauth('supplier/' + '?page=1', {})
+        .then(res => {
+          const suppliers_name = res.results.map(item => {
+            return item.supplier_name
+          })
+
+          _this.supplier_list = suppliers_name
+          _this.supplier_list1 = suppliers_name
+        })
+        .catch(err => {
+          _this.$q.notify({
+            message: err.detail,
+            icon: 'close',
+            color: 'negative'
+          })
+        })
+    },
+    getFieldRequiredMessage (field) {
+      return this.$t('notice.field_required_error', { field })
     }
   },
   created () {
@@ -595,6 +668,7 @@ export default {
     if (LocalStorage.has('auth')) {
       _this.authin = '1'
       _this.table_list = []
+      _this.getSupplierList()
       _this.getList()
     } else {
       _this.authin = '0'

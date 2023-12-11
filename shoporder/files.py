@@ -15,6 +15,7 @@ def file_headers():
         'order_products',
         'stockbin_data',
         'order_time',
+        'shipment_time',
         'supplier',
         'create_time',
         'update_time'
@@ -35,6 +36,7 @@ def cn_data_header():
         ('order_products', u'订单产品信息'),
         ('stockbin_data', u'库存信息'),
         ('order_time', u'平台订单创建时间'),
+        ('shipment_time', u'平台发货时间'),
         ('supplier', u'供应商'),
         ('create_time', u'创建时间'),
         ('update_time', u'更新时间')
@@ -55,6 +57,7 @@ def en_data_header():
         ('order_products', u'Order Products'),
         ('stockbin_data', u'Stock Bin Data'),
         ('order_time', u'Platform Order Time'),
+        ('shipment_time', u'Platform Shipment Time'),
         ('supplier', u'Supplier'),
         ('create_time', u'Create Time'),
         ('update_time', u'Update Time')
