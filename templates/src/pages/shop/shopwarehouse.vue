@@ -36,14 +36,10 @@
                 <q-select
                   dense
                   outlined
-                  square
-                  emit-value
-                  v-model="editFormData.warehouse"
-                  :options="sys_warehouse_list"
-                  transition-show="scale"
-                  transition-hide="scale"
+                  v-model="editFormData.warehouse_name"
+                  :options="sys_warehouse_name_list"
                   :label="$t('shopwarehouse.sys_name')"
-                  :rules="[val => (val && val.length > 0) || getFieldRequiredMessage('sys_warehouse')]"
+                  :rules="[val => !!val || getFieldRequiredMessage('sys_warehouse')]"
                 />
               </q-td>
             </template>
@@ -137,6 +133,7 @@ export default {
       height: '',
       table_list: [],
       sys_warehouse_list: [],
+      sys_warehouse_name_list: [],
       columns: [
         { name: 'id', required: true, label: this.$t('shopwarehouse.id'), align: 'left', field: 'id' },
         { name: 'name', label: this.$t('shopwarehouse.name'), field: 'name', align: 'center' },
@@ -163,9 +160,10 @@ export default {
       getauth('warehouse/' + '?page=1', {})
         .then(res => {
           _this.sys_warehouse_list = res.results.map(item => {
+            _this.sys_warehouse_name_list.push(item.warehouse_name)
             return {
-              label: item.warehouse_name,
-              value: item.id
+              name: item.warehouse_name,
+              id: item.id
             }
           })
         })
@@ -205,13 +203,14 @@ export default {
         id: e.sys_id,
         platform_id: '' + e.id,
         platform_name: e.name,
-        warehouse: e.sys_warehouse_id
+        warehouse: e.sys_warehouse_id,
+        warehouse_name: e.sys_name
       }
     },
     editDataSubmit () {
       var _this = this
 
-      if (!_this.editFormData.warehouse) {
+      if (!_this.editFormData.warehouse_name) {
         _this.$q.notify({
           message: _this.getFieldRequiredMessage('warehouse'),
           icon: 'close',
@@ -219,6 +218,13 @@ export default {
         })
         return
       }
+
+      _this.sys_warehouse_list.some(item => {
+        if (item.name === _this.editFormData.warehouse_name) {
+          _this.editFormData.warehouse = item.id
+          return true
+        }
+      })
 
       let reqPromise
       if (_this.editFormData.id) {

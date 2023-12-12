@@ -58,7 +58,7 @@
               <q-space />
             </div>
             <div class="row items-center relative-position q-mt-md">
-              <div class="col-auto">
+              <div class="col-auto q-mb-md">
                 <div class="flex items-center">
                   <div class="q-mr-md">{{ $t("download_center.createTime") }}</div>
                   <q-input
@@ -81,44 +81,43 @@
                   </q-input>
                 </div>
               </div>
-              <div class="col-auto q-ml-md">
+              <div class="col-auto q-mb-md q-ml-md">
                 <q-input outlined rounded dense debounce="300" color="primary" v-model="filter_shop_name" :placeholder="$t('order.search_shop_name')" @input="getList()" @keyup.enter="getList()">
                   <template v-slot:append>
                     <q-icon name="search" @click="getList()" />
                   </template>
                 </q-input>
               </div>
-              <div class="col-auto q-ml-md">
+              <div class="col-auto q-mb-md q-ml-md">
                 <q-input outlined rounded dense debounce="300" color="primary" v-model="filter_posting_number" :placeholder="$t('order.search_posting_number')" @input="getList()" @keyup.enter="getList()">
                   <template v-slot:append>
                     <q-icon name="search" @click="getList()" />
                   </template>
                 </q-input>
               </div>
-              <div class="col-auto q-ml-md">
+              <div class="col-auto q-mb-md q-ml-md">
                 <q-input outlined rounded dense debounce="300" color="primary" v-model="filter_dn_code" :placeholder="$t('order.search_dn_code')" @input="getList()" @keyup.enter="getList()">
                   <template v-slot:append>
                     <q-icon name="search" @click="getList()" />
                   </template>
                 </q-input>
               </div>
-              <div class="col-auto q-ml-md">
+              <div class="col-auto q-mb-md q-ml-md">
                 <q-select
-                  filled
+                  clearable
                   use-input
                   fill-input
                   hide-selected
                   input-debounce="0"
                   dense
                   outlined
-                  square
                   v-model="filter_supplier"
                   :options="supplier_list"
                   @filter="filterFnS"
                   @input-value="setSupplierIpt"
+                  @input="getList()"
                   :label="$t('baseinfo.view_supplier.supplier_name')"
                   style="margin-bottom: 5px"
-                  @keyup.enter="getList()"
                 >
                   <template v-slot:Sno-option>
                     <q-item>
@@ -128,6 +127,40 @@
                     </q-item>
                   </template>
                 </q-select>
+              </div>
+            </div>
+            <div class="row items-center relative-position">
+              <div class="col-auto q-mb-md">
+                <div class="flex items-center">
+                  <div class="q-mr-md">{{ $t("order.shipment_time") }}</div>
+                  <q-input
+                    readonly
+                    outlined
+                    dense
+                    v-model="shipmentDate2"
+                    :placeholder="interval"
+                  >
+                    <template v-slot:append>
+                      <q-icon name="event" class="cursor-pointer">
+                        <q-popup-proxy
+                          ref="qDateProxy"
+                          transition-show="scale"
+                          transition-hide="scale"
+                          ><q-date v-model="shipmentDate1" range
+                        /></q-popup-proxy>
+                      </q-icon>
+                    </template>
+                  </q-input>
+                </div>
+              </div>
+              <div class="col-auto q-mb-md q-ml-md">
+                <q-btn-toggle
+                  v-model="shipmentDate3"
+                  push
+                  glossy
+                  toggle-color="primary"
+                  :options="shipmentDate3Options"
+                />
               </div>
             </div>
           </div>
@@ -147,7 +180,7 @@
             <q-td key="platform_warehouse_name" :props="props">{{ props.row.platform_warehouse_name }}</q-td>
             <q-td key="posting_number" :props="props">{{ props.row.posting_number }}</q-td>
             <q-td key="dn_code" :props="props">{{ props.row.dn_code }}</q-td>
-            <q-td key="total_weight" :props="props">{{ props.row.total_weight?.toFixed(4) }}</q-td>
+            <q-td key="total_weight" :props="props">{{ props.row.total_weight && props.row.total_weight.toFixed(4) }}</q-td>
             <q-td key="order_time" :props="props">{{ props.row.order_time }}</q-td>
             <q-td key="shipment_time" :props="props">{{ props.row.shipment_time }}</q-td>
             <q-td key="status" :props="props">{{ getStatusMsg(props.row.status) }}</q-td>
@@ -261,6 +294,7 @@
 <script>
 import { getauth, postauth, deleteauth } from 'boot/axios_request'
 import { LocalStorage } from 'quasar'
+import dayjs from 'dayjs'
 
 export default {
   name: 'Pageorderlist',
@@ -280,6 +314,14 @@ export default {
       selected: [],
       createDate1: '',
       createDate2: '',
+      shipmentDate1: '',
+      shipmentDate2: '',
+      shipmentDate3: '',
+      shipmentDate3Options: [
+        { label: this.$t('order.today'), value: 'today' },
+        { label: this.$t('order.tomorrow'), value: 'tomorrow' },
+        { label: 'order.after_tomorrow', value: 'after_tomorrow' }
+      ],
       columns: [
         { name: 'index', label: '#', field: 'index', align: 'center' },
         { name: 'shop_type', required: true, label: this.$t('shoptype.shop_type'), align: 'center', field: 'shop.shop_type' },
@@ -303,6 +345,7 @@ export default {
       filter: '',
       filter_posting_number: '',
       filter_date_range: '',
+      filter_shipment_date_range: '',
       filter_shop_name: '',
       filter_dn_code: '',
       filter_supplier: '',
@@ -348,6 +391,35 @@ export default {
         this.getList()
         this.$refs.qDateProxy.hide()
       }
+    },
+    shipmentDate1 (val) {
+      if (val) {
+        this.shipmentDate3 = ''
+        if (val.to) {
+          this.shipmentDate2 = `${val.from} - ${val.to}`
+          this.filter_shipment_date_range = `${(new Date(val.from)).toISOString()},${(new Date(val.to + ' 23:59:59')).toISOString()}`
+        } else {
+          this.shipmentDate2 = `${val}`
+          this.filter_shipment_date_range = `${(new Date(val)).toISOString()},${(new Date(val + ' 23:59:59')).toISOString()}`
+        }
+        this.filter_shipment_date_range = this.filter_shipment_date_range.replace(/\//g, '-')
+        this.getList()
+        this.$refs.qDateProxy.hide()
+      }
+    },
+    shipmentDate3 (val) {
+      this.shipmentDate2 = ''
+      if (val === 'today') {
+        val = dayjs(new Date()).format('YYYY-MM-DD')
+      } else if (val === 'tomorrow') {
+        val = dayjs(new Date()).add(1, 'day').format('YYYY-MM-DD')
+      } else if (val === 'after_tomorrow') {
+        val = dayjs(new Date()).add(2, 'day').format('YYYY-MM-DD')
+      }
+
+      this.filter_shipment_date_range = `${(new Date(val)).toISOString()},${(new Date(val + ' 23:59:59')).toISOString()}`
+      this.filter_shipment_date_range = this.filter_shipment_date_range.replace(/\//g, '-')
+      this.getList()
     }
   },
   methods: {
@@ -360,6 +432,9 @@ export default {
       let url = _this.pathname + '?page=' + '' + _this.current
       if (_this.filter_date_range) {
         url = `${url}&create_time__range=${_this.filter_date_range}`
+      }
+      if (_this.filter_shipment_date_range) {
+        url = `${url}&shipment_time__range=${_this.filter_shipment_date_range}`
       }
       if (_this.filter_posting_number) {
         url = `${url}&posting_number__icontains=${_this.filter_posting_number}`
@@ -609,7 +684,10 @@ export default {
       this.paginationIpt = 1
       this.createDate1 = ''
       this.createDate2 = ''
+      this.shipmentDate1 = '',
+      this.shipmentDate2 = ''
       this.filter_date_range = ''
+      this.filter_shipment_date_range = ''
       this.filter_dn_code = ''
       this.filter_posting_number = ''
       this.filter_shop_name = ''
