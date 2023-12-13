@@ -52,8 +52,8 @@
             <q-td key="total_volume" :props="props">{{ props.row.total_volume.toFixed(4) }}</q-td>
             <q-td key="customer" :props="props">{{ props.row.customer }}</q-td>
             <q-td key="creater" :props="props">{{ props.row.creater }}</q-td>
-            <q-td key="create_time" :props="props">{{ props.row.create_time }}</q-td>
-            <q-td key="update_time" :props="props">{{ props.row.update_time }}</q-td>
+            <q-td key="create_time" :props="props">{{ showLocalTime(props.row.create_time) }}</q-td>
+            <q-td key="update_time" :props="props">{{ showLocalTime(props.row.update_time) }}</q-td>
             <q-td key="action" :props="props" style="width: 100px">
               <q-btn
                 round

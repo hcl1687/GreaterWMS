@@ -76,8 +76,8 @@
             <template v-else-if="props.row.id !== editid">
               <q-td key="staff_type" :props="props">{{ props.row.staff_type }}</q-td>
             </template>
-            <q-td key="create_time" :props="props">{{ props.row.create_time }}</q-td>
-            <q-td key="update_time" :props="props">{{ props.row.update_time }}</q-td>
+            <q-td key="create_time" :props="props">{{ showLocalTime(props.row.create_time) }}</q-td>
+            <q-td key="update_time" :props="props">{{ showLocalTime(props.row.update_time) }}</q-td>
             <template v-if="!editMode">
               <q-td key="action" :props="props" style="width: 175px">
                 <q-btn

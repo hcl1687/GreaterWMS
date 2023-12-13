@@ -53,10 +53,10 @@
                {{ props.row.creater }}
              </q-td>
              <q-td key="create_time" :props="props">
-               {{ props.row.create_time }}
+               {{ showLocalTime(props.row.create_time) }}
              </q-td>
              <q-td key="update_time" :props="props">
-               {{ props.row.update_time }}
+               {{ showLocalTime(props.row.update_time) }}
              </q-td>
              <q-td key="action" :props="props" style="width: 50px">
                <q-btn round flat push color="dark" icon="delete" @click="deleteData(props.row)">

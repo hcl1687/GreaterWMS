@@ -44,8 +44,8 @@
           <q-tr :props="props">
             <q-td key="shop_name" :props="props">{{ props.row.shop_name }}</q-td>
             <q-td key="shop_type" :props="props">{{ props.row.shop_type }}</q-td>
-            <q-td key="create_time" :props="props">{{ props.row.create_time }}</q-td>
-            <q-td key="update_time" :props="props">{{ props.row.update_time }}</q-td>
+            <q-td key="create_time" :props="props">{{ showLocalTime(props.row.create_time) }}</q-td>
+            <q-td key="update_time" :props="props">{{ showLocalTime(props.row.update_time) }}</q-td>
             <q-td key="action" :props="props" style="width: 250px">
               <q-btn
                 round

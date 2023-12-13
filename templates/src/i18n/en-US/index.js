@@ -739,6 +739,9 @@ export default {
     batch_delete_tip: 'Batch delete abnormal orders',
     search_shop_name: 'Search by shop name',
     search_posting_number: 'Search by posting number',
-    search_dn_code: 'Search by dn code'
+    search_dn_code: 'Search by dn code',
+    today: 'Today',
+    tomorrow: 'Tomorrow',
+    after_tomorrow: 'The day after tomorrow'
   }
 }

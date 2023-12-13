@@ -49,8 +49,8 @@
             <q-td key="pick_stock" :props="props">{{ props.row.pick_stock }}</q-td>
             <q-td key="picked_stock" :props="props">{{ props.row.picked_stock }}</q-td>
             <q-td key="back_order_stock" :props="props">{{ props.row.back_order_stock }}</q-td>
-            <q-td key="create_time" :props="props">{{ props.row.create_time }}</q-td>
-            <q-td key="update_time" :props="props">{{ props.row.update_time }}</q-td>
+            <q-td key="create_time" :props="props">{{ showLocalTime(props.row.create_time) }}</q-td>
+            <q-td key="update_time" :props="props">{{ showLocalTime(props.row.update_time) }}</q-td>
           </q-tr>
         </template>
       </q-table>

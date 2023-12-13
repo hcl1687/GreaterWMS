@@ -740,6 +740,9 @@ export default {
     batch_delete_tip: '批量删除异常订单',
     search_shop_name: '店铺名字搜索',
     search_posting_number: '平台发货单号搜索',
-    search_dn_code: '发货单号搜索'
+    search_dn_code: '发货单号搜索',
+    today: '今天',
+    tomorrow: '明天',
+    after_tomorrow: '后天'
   }
 }

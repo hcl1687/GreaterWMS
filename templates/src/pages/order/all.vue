@@ -158,6 +158,7 @@
                   v-model="shipmentDate3"
                   push
                   glossy
+                  clearable
                   toggle-color="primary"
                   :options="shipmentDate3Options"
                 />
@@ -181,15 +182,15 @@
             <q-td key="posting_number" :props="props">{{ props.row.posting_number }}</q-td>
             <q-td key="dn_code" :props="props">{{ props.row.dn_code }}</q-td>
             <q-td key="total_weight" :props="props">{{ props.row.total_weight && props.row.total_weight.toFixed(4) }}</q-td>
-            <q-td key="order_time" :props="props">{{ props.row.order_time }}</q-td>
-            <q-td key="shipment_time" :props="props">{{ props.row.shipment_time }}</q-td>
+            <q-td key="order_time" :props="props">{{ showLocalTime(props.row.order_time) }}</q-td>
+            <q-td key="shipment_time" :props="props">{{ showLocalTime(props.row.shipment_time) }}</q-td>
             <q-td key="status" :props="props">{{ getStatusMsg(props.row.status) }}</q-td>
             <q-td key="handle_status" :props="props">{{ getHandleStatusMsg(props.row.handle_status) }}</q-td>
             <q-td key="handle_message" :props="props">{{ props.row.handle_message }}</q-td>
             <q-td key="supplier" :props="props">{{ props.row.supplier }}</q-td>
             <q-td key="creater" :props="props">{{ props.row.creater }}</q-td>
-            <q-td key="create_time" :props="props">{{ props.row.create_time }}</q-td>
-            <q-td key="update_time" :props="props">{{ props.row.update_time }}</q-td>
+            <q-td key="create_time" :props="props">{{ showLocalTime(props.row.create_time) }}</q-td>
+            <q-td key="update_time" :props="props">{{ showLocalTime(props.row.update_time) }}</q-td>
             <q-td key="action" :props="props" style="width: 100px">
               <q-btn
                 round
@@ -320,7 +321,7 @@ export default {
       shipmentDate3Options: [
         { label: this.$t('order.today'), value: 'today' },
         { label: this.$t('order.tomorrow'), value: 'tomorrow' },
-        { label: 'order.after_tomorrow', value: 'after_tomorrow' }
+        { label: this.$t('order.after_tomorrow'), value: 'after_tomorrow' }
       ],
       columns: [
         { name: 'index', label: '#', field: 'index', align: 'center' },
@@ -409,16 +410,28 @@ export default {
     },
     shipmentDate3 (val) {
       this.shipmentDate2 = ''
-      if (val === 'today') {
-        val = dayjs(new Date()).format('YYYY-MM-DD')
-      } else if (val === 'tomorrow') {
-        val = dayjs(new Date()).add(1, 'day').format('YYYY-MM-DD')
-      } else if (val === 'after_tomorrow') {
-        val = dayjs(new Date()).add(2, 'day').format('YYYY-MM-DD')
+      let start
+      let end
+      const now = new Date()
+      if (!val) {
+        // click again, toggle it
+        this.filter_shipment_date_range = ''
+        this.getList()
+        return
       }
 
-      this.filter_shipment_date_range = `${(new Date(val)).toISOString()},${(new Date(val + ' 23:59:59')).toISOString()}`
-      this.filter_shipment_date_range = this.filter_shipment_date_range.replace(/\//g, '-')
+      if (val === 'today') {
+        start = dayjs(now).set('hour', 0).set('minute', 0).set('second', 0).toISOString()
+        end = dayjs(now).set('hour', 23).set('minute', 59).set('second', 59).toISOString()
+      } else if (val === 'tomorrow') {
+        start = dayjs(now).add(1, 'day').set('hour', 0).set('minute', 0).set('second', 0).toISOString()
+        end = dayjs(now).add(1, 'day').set('hour', 23).set('minute', 59).set('second', 59).toISOString()
+      } else if (val === 'after_tomorrow') {
+        start = dayjs(now).add(2, 'day').set('hour', 0).set('minute', 0).set('second', 0).toISOString()
+        end = dayjs(now).add(2, 'day').set('hour', 23).set('minute', 59).set('second', 59).toISOString()
+      }
+
+      this.filter_shipment_date_range = `${start},${end}`
       this.getList()
     }
   },

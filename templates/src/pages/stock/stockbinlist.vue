@@ -40,8 +40,8 @@
             <q-td key="picked_qty" :props="props">{{ props.row.picked_qty }}</q-td>
             <q-td key="bin_size" :props="props">{{ props.row.bin_size }}</q-td>
             <q-td key="bin_property" :props="props">{{ props.row.bin_property }}</q-td>
-            <q-td key="create_time" :props="props">{{ props.row.create_time }}</q-td>
-            <q-td key="update_time" :props="props">{{ props.row.update_time }}</q-td>
+            <q-td key="create_time" :props="props">{{ showLocalTime(props.row.create_time) }}</q-td>
+            <q-td key="update_time" :props="props">{{ showLocalTime(props.row.update_time) }}</q-td>
             <q-td key="action" :props="props" style="width: 50px">
               <q-btn
                 v-show="$q.localStorage.getItem('staff_type') !== 'Inbound' && $q.localStorage.getItem('staff_type') !== 'Outbound'"

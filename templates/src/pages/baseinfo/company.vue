@@ -118,10 +118,10 @@
                {{ props.row.creater }}
              </q-td>
              <q-td key="create_time" :props="props">
-               {{ props.row.create_time }}
+               {{ showLocalTime(props.row.create_time) }}
              </q-td>
              <q-td key="update_time" :props="props">
-               {{ props.row.update_time }}
+               {{ showLocalTime(props.row.update_time) }}
              </q-td>
              <template v-if="!editMode">
                <q-td key="action" :props="props" style="width: 100px">
@@ -259,6 +259,7 @@
 <script>
 import { getauth, postauth, putauth, deleteauth, getfile } from 'boot/axios_request'
 import { date, exportFile, LocalStorage } from 'quasar'
+import { showLocalTime } from '../../utils'
 
 export default {
   name: 'Pagecompany',

@@ -44,10 +44,10 @@
                {{ props.row.check_code }}
              </q-td>
              <q-td key="create_time" :props="props">
-               {{ props.row.create_time }}
+               {{ showLocalTime(props.row.create_time) }}
              </q-td>
              <q-td key="update_time" :props="props">
-               {{ props.row.update_time }}
+               {{ showLocalTime(props.row.update_time) }}
              </q-td>
            </q-tr>
          </template>
