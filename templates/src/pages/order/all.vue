@@ -177,14 +177,15 @@
             <q-td key="index" :props="props" style="max-width: 300px; white-space: normal;">{{ props.row.index }}</q-td>
             <q-td key="shop_type" :props="props">{{ props.row.shop.shop_type }}</q-td>
             <q-td key="shop_name" :props="props">{{ props.row.shop.shop_name }}</q-td>
-            <q-td key="platform_id" :props="props">{{ props.row.platform_id }}</q-td>
             <q-td key="platform_warehouse_name" :props="props">{{ props.row.platform_warehouse_name }}</q-td>
+            <q-td key="platform_id" :props="props">{{ props.row.platform_id }}</q-td>
             <q-td key="posting_number" :props="props">{{ props.row.posting_number }}</q-td>
             <q-td key="dn_code" :props="props">{{ props.row.dn_code }}</q-td>
             <q-td key="total_weight" :props="props">{{ props.row.total_weight && props.row.total_weight.toFixed(4) }}</q-td>
             <q-td key="order_time" :props="props">{{ showLocalTime(props.row.order_time) }}</q-td>
             <q-td key="shipment_time" :props="props">{{ showLocalTime(props.row.shipment_time) }}</q-td>
             <q-td key="status" :props="props">{{ getStatusMsg(props.row.status) }}</q-td>
+            <q-td key="dn_status" :props="props">{{ getDnStatusText(props.row.dn_status) }}</q-td>
             <q-td key="handle_status" :props="props">{{ getHandleStatusMsg(props.row.handle_status) }}</q-td>
             <q-td key="handle_message" :props="props">{{ props.row.handle_message }}</q-td>
             <q-td key="supplier" :props="props">{{ props.row.supplier }}</q-td>
@@ -327,14 +328,15 @@ export default {
         { name: 'index', label: '#', field: 'index', align: 'center' },
         { name: 'shop_type', required: true, label: this.$t('shoptype.shop_type'), align: 'center', field: 'shop.shop_type' },
         { name: 'shop_name', required: true, label: this.$t('shop.shop_name'), align: 'center', field: 'shop.shop_name' },
-        { name: 'platform_id', required: true, label: this.$t('order.platform_id'), align: 'center', field: 'platform_id' },
         { name: 'platform_warehouse_name', label: this.$t('order.platform_warehouse_name'), field: 'platform_warehouse_name', align: 'center' },
+        { name: 'platform_id', required: true, label: this.$t('order.platform_id'), align: 'center', field: 'platform_id' },
         { name: 'posting_number', label: this.$t('order.posting_number'), field: 'posting_number', align: 'center' },
         { name: 'dn_code', label: this.$t('outbound.view_dn.dn_code'), field: 'dn_code', align: 'center' },
         { name: 'total_weight', label: this.$t('outbound.view_dn.total_weight'), field: 'total_weight', align: 'center' },
         { name: 'order_time', label: this.$t('order.order_time'), field: 'order_time', align: 'center' },
         { name: 'shipment_time', label: this.$t('order.shipment_time'), field: 'shipment_time', align: 'center' },
         { name: 'status', label: this.$t('order.status'), field: 'status', align: 'center' },
+        { name: 'dn_status', label: this.$t('outbound.view_dn.dn_status'), field: 'dn_status', align: 'center' },
         { name: 'handle_status', label: this.$t('order.handle_status'), field: 'handle_status', align: 'center' },
         { name: 'handle_message', label: this.$t('order.handle_message'), field: 'handle_message', align: 'center' },
         { name: 'supplier', label: this.$t('baseinfo.view_supplier.supplier_name'), field: 'supplier', align: 'center' },
@@ -740,6 +742,24 @@ export default {
     },
     getFieldRequiredMessage (field) {
       return this.$t('notice.field_required_error', { field })
+    },
+    getDnStatusText (dn_status) {
+      switch(dn_status) {
+        case 1:
+          return this.$t('outbound.freshorder')
+        case 2:
+          return this.$t('outbound.neworder')
+        case 3:
+          return this.$t('outbound.pickstock')
+        case 4:
+          return this.$t('outbound.pickedstock')
+        case 5:
+          return this.$t('outbound.shippedstock')
+        case 6:
+          return this.$t('outbound.received')
+        default:
+          return ''
+      }
     }
   },
   created () {

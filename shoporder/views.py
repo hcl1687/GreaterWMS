@@ -97,6 +97,7 @@ class APIViewSet(viewsets.ModelViewSet):
                 if dn_obj:
                     total_weight = dn_obj.total_weight
                     item['total_weight'] = total_weight
+                    item['dn_status'] = dn_obj.dn_status
 
             shop_id = item['shop']['id']
             warehouse_id = item['platform_warehouse_id']
@@ -158,24 +159,6 @@ class APIViewSet(viewsets.ModelViewSet):
             serializer.is_valid(raise_exception=True)
             serializer.save()
 
-            if data.get('handle_status', Handle_Status.Normal) == Handle_Status.Normal and status == Status.Awaiting_Deliver:
-                # handle awaiting_deliver data
-                url = f'{settings.INNER_URL}/shoporder/{serializer.data["id"]}/'
-                req_data = original_data
-                headers = {
-                    'Authorization': self.request.headers['Authorization'],
-                    'Token': self.request.META.get('HTTP_TOKEN'),
-                }
-
-                response = requests.put(url, json=req_data, headers=headers)
-                json_response = json.loads(response.content.decode('UTF-8'))
-                json_response_status = json_response.get('status_code')
-                if response.status_code != 200 or (json_response_status and json_response_status != 200):
-                    # response.content: { status_code: 5xx, detial: 'xxx' }
-                    print(json_response)
-                    raise APIException({"detail": f'Handle awaiting_deliver data failed after holding stock'})
-
-
             headers = self.get_success_headers(serializer.data)
             return Response(serializer.data, status=200, headers=headers)
 
@@ -210,6 +193,7 @@ class APIViewSet(viewsets.ModelViewSet):
         
         # status: 1: awaiting_packaging; 2: awaiting_deliver; 3: delivering; 4: cancelled; 5: delivered;
         status = data.get('status', Status.Awaiting_Review)
+        need_update_handle_status = False
         if status == Status.Awaiting_Deliver:
             if qs.status != Status.Awaiting_Review:
                 raise APIException({"detail": "This Shop order does not in Awaiting Review Status"})
@@ -217,6 +201,7 @@ class APIViewSet(viewsets.ModelViewSet):
                 self.handle_awaiting_deliver(data, shop_id, shop_supplier, qs)
             except APIException as e:
                 print(e)
+                need_update_handle_status = True
                 data['handle_status'] = Handle_Status.Abnormal
                 data['handle_message'] = e.detail['detail']
         elif status == Status.Delivering:
@@ -224,6 +209,7 @@ class APIViewSet(viewsets.ModelViewSet):
                 self.handle_delivering(data, shop_id, shop_supplier, qs)
             except APIException as e:
                 print(e)
+                need_update_handle_status = True
                 data['handle_status'] = Handle_Status.Abnormal
                 data['handle_message'] = e.detail['detail']
         elif status == Status.Delivered:
@@ -231,6 +217,7 @@ class APIViewSet(viewsets.ModelViewSet):
                 self.handle_delivered(data, shop_id, shop_supplier, qs)
             except APIException as e:
                 print(e)
+                need_update_handle_status = True
                 data['handle_status'] = Handle_Status.Abnormal
                 data['handle_message'] = e.detail['detail']
         elif status == Status.Cancelled:
@@ -238,16 +225,19 @@ class APIViewSet(viewsets.ModelViewSet):
                 self.handle_cancelled(data, shop_id, shop_supplier, qs)
             except APIException as e:
                 print(e)
+                need_update_handle_status = True
                 data['handle_status'] = Handle_Status.Abnormal
                 data['handle_message'] = e.detail['detail']
         else:
             return Response({"detail": "Not awaiting_deliver or delivering or cancelled data"}, status=200)
 
-        serializer = self.get_serializer(qs, data=data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        headers = self.get_success_headers(serializer.data)
-        return Response(serializer.data, status=200, headers=headers)
+        if need_update_handle_status:
+            qs.refresh_from_db()
+            serializer = self.get_serializer(qs, data=data, partial=True)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+
+        return Response(data, status=200)
 
     def partial_update(self, request, pk):
         qs = self.get_object()
@@ -390,7 +380,7 @@ class APIViewSet(viewsets.ModelViewSet):
     def handle_awaiting_deliver(self, data, shop_id, shop_supplier, qs):
         # create DN
         try:
-            order_products = json.loads(data.get('order_products', ''))
+            order_products = json.loads(qs.order_products)
         except json.JSONDecodeError:
             raise APIException({"detail": "order_products decode error"})
 
@@ -426,6 +416,7 @@ class APIViewSet(viewsets.ModelViewSet):
             print(json_response)
             raise APIException({"detail": f'Cannot create dn list'})
         dn_code = json_response['dn_code']
+        dn_id = json_response['id']
 
         # create DN detail
         url = f'{settings.INNER_URL}/dn/detail/'
@@ -449,18 +440,50 @@ class APIViewSet(viewsets.ModelViewSet):
             print(json_response)
             raise APIException({"detail": f'Cannot create dn detail'})
 
-        data['dn_code'] = dn_code
-        return data
+        # save order first
+        qs.refresh_from_db()
+        qs.dn_code = dn_code
+        qs.save()
+
+        # confirm order
+        url = f'{settings.INNER_URL}/dn/neworder/{dn_id}/'
+        req_data = {}
+        headers = {
+            'Authorization': self.request.headers['Authorization'],
+            'Token': self.request.META.get('HTTP_TOKEN'),
+            'Operator': str(self.request.user.id)
+        }
+
+        response = requests.post(url, json=req_data, headers=headers)
+        json_response = json.loads(response.content.decode('UTF-8'))
+        if response.status_code != 200 or (json_response_status and json_response_status != 200):
+            # response.content: { status_code: 5xx, detial: 'xxx' }
+            print(json_response)
+            raise APIException({"detail": f'Cannot confirm dn: {dn_code}'})
+
+        # generate pick order
+        url = f'{settings.INNER_URL}/dn/orderrelease/{dn_id}/'
+        req_data = {}
+        headers = {
+            'Authorization': self.request.headers['Authorization'],
+            'Token': self.request.META.get('HTTP_TOKEN'),
+            'Operator': str(self.request.user.id)
+        }
+
+        response = requests.put(url, json=req_data, headers=headers)
+        json_response = json.loads(response.content.decode('UTF-8'))
+        if response.status_code != 200 or (json_response_status and json_response_status != 200):
+            # response.content: { status_code: 5xx, detial: 'xxx' }
+            print(json_response)
+            raise APIException({"detail": f'Cannot generate pick order for dn: {dn_code}'})
 
     def handle_delivering(self, data, shop_id, shop_supplier, qs):
         qs.status = Status.Delivering
         qs.save()
-        return data
 
     def handle_delivered(self, data, shop_id, shop_supplier, qs):
         qs.status = Status.Delivered
         qs.save()
-        return data
 
     def handle_cancelled(self, data, shop_id, shop_supplier, qs):
         if qs.status == Status.Awaiting_Review:
@@ -554,7 +577,6 @@ class APIViewSet(viewsets.ModelViewSet):
         qs.status = Status.Cancelled
         qs.dn_code = ''
         qs.save()
-        return data
 
 class ShoporderInitViewSet(viewsets.ModelViewSet):
     """
@@ -839,6 +861,7 @@ class FileDownloadView(viewsets.ModelViewSet):
                 if dn_obj:
                     total_weight = dn_obj.total_weight
                     item['total_weight'] = total_weight
+                    item['dn_status'] = dn_obj.dn_status
 
             shop_id = item['shop']['id']
             warehouse_id = item['platform_warehouse_id']

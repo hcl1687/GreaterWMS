@@ -66,7 +66,7 @@ class ShoporderPartialUpdateSerializer(serializers.ModelSerializer):
     platform_id = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     platform_warehouse_id = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     posting_number = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
-    dn_code = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
+    dn_code = serializers.CharField(read_only=False, required=False, validators=[datasolve.data_validate])
     order_data = serializers.CharField(read_only=False, required=False, validators=[datasolve.data_validate])
     order_products = serializers.CharField(read_only=False, required=False, validators=[datasolve.data_validate])
     handle_message = serializers.CharField(read_only=False, required=False, validators=[datasolve.data_validate])
