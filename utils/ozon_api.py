@@ -1,16 +1,18 @@
 from userprofile.models import Users
 from staff.models import ListModel, TypeListModel
 from supplier.models import ListModel as SupplierModel
-import logging
 import requests
 import json
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from shoporder.status import Status
+import logging
+import time
+
+logger = logging.getLogger(__name__)
 
 class OZON_API():
     def __init__(self, shop_data: dict):
-        self._logger = logging.getLogger(__name__)
         self._client_id = shop_data['client_id']
         self._api_key = shop_data['api_key']
         self._api_url = shop_data['api_url']
@@ -24,21 +26,19 @@ class OZON_API():
             headers.update({'Api-Key': self._api_key})
             param_json = json.dumps(params, sort_keys=True, separators=(',', ':'))
             url = self._api_url + '{}'.format(path)
-            if self._logger:
-                self._logger.debug('Request url: {}'.format(url))
-                self._logger.debug('Request headers: {}'.format(headers))
-                self._logger.debug('Request params: {}'.format(param_json))
+            logger.info(f'Request url: {url} with params: {param_json}')
+
+            start_time = time.time()
             response = requests.post(url=url, data=param_json, headers=headers)
-            if self._logger:
-                self._logger.debug('Response status code: {}'.format(response.status_code))
-                self._logger.debug('Response headers: {}'.format(response.headers))
-                self._logger.debug('Response content: {}'.format(response.content.decode('UTF-8')))
+            processing_time = time.time() - start_time
+            logger.info(f'Request url: {url} took {processing_time:.6f} seconds.')
+
             if response.status_code != 200:
+                logger.error(f'Request url: {url} with response status code: {response.status_code}')
                 return None
             return json.loads(response.content)
         except Exception as e:
-            if self._logger:
-                self._logger.exception('{}'.format(e))
+            logger.exception('{}'.format(e))
             return None
     def get_warehouses(self) -> json:
         return self._request(path='/v1/warehouse/list')
@@ -149,7 +149,6 @@ class OZON_API():
             if params['warehouse_id']:
                 _params['filter']['warehouse_id'] = params['warehouse_id']
 
-        print(json.dumps(_params))
         order_resp = self._request(path='/v3/posting/fbs/list', params=_params)
         order_list = order_resp.get('result', {}).get('postings', [])
 

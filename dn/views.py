@@ -38,6 +38,9 @@ import json
 from django.conf import settings
 import requests
 from shoporder.serializers import ShoporderPartialUpdateSerializer
+import logging
+
+logger = logging.getLogger(__name__)
 
 class DnListViewSet(viewsets.ModelViewSet):
     """
@@ -168,11 +171,12 @@ class DnListViewSet(viewsets.ModelViewSet):
                         }
 
                         response = requests.post(url, json=req_data, headers=headers)
-                        json_response = json.loads(response.content.decode('UTF-8'))
+                        str_response = response.content.decode('UTF-8')
+                        json_response = json.loads(str_response)
                         json_response_status = json_response.get('status_code')
                         if response.status_code != 200 or (json_response_status and json_response_status != 200):
                             # response.content: { status_code: 5xx, detial: 'xxx' }
-                            print(json_response)
+                            logger.info(f'Cannot move bin from: {hold_stockbin_obj.id} to {stockbin_data_item["source_bin_name"]}, response: {str_response}')
                             raise APIException({"detail": f'Cannot move bin from: {hold_stockbin_obj.id} to {stockbin_data_item["source_bin_name"]}'})
                         # delete hold bin
                         hold_stockbin_obj.delete()
@@ -189,11 +193,12 @@ class DnListViewSet(viewsets.ModelViewSet):
                         }
 
                         response = requests.patch(url, json=req_data, headers=headers)
-                        json_response = json.loads(response.content.decode('UTF-8'))
+                        str_response = response.content.decode('UTF-8')
+                        json_response = json.loads(str_response)
                         json_response_status = json_response.get('status_code')
                         if response.status_code != 200 or (json_response_status and json_response_status != 200):
                             # response.content: { status_code: 5xx, detial: 'xxx' }
-                            print(json_response)
+                            logger.info(f'Cannot merge bin from: {new_stockbin_id} to {stockbin_data_item["source_id"]}, response: {str_response}')
                             raise APIException({"detail": f'Cannot merge bin from: {new_stockbin_id} to {stockbin_data_item["source_id"]}'})
 
                         # clear target_id and target_bin_name
@@ -2505,11 +2510,12 @@ class DnDiscardViewSet(viewsets.ModelViewSet):
                     }
 
                     response = requests.delete(url, json=req_data, headers=headers)
-                    json_response = json.loads(response.content.decode('UTF-8'))
+                    str_response = response.content.decode('UTF-8')
+                    json_response = json.loads(str_response)
                     json_response_status = json_response.get('status_code')
                     if response.status_code != 200 or (json_response_status and json_response_status != 200):
                         # response.content: { status_code: 5xx, detial: 'xxx' }
-                        print(json_response)
+                        logger.info(f'Cannot discard {item} dn, response: {str_response}')
                         raise APIException({"detail": f'Cannot discard {item} dn'})
             elif qs.dn_status == 3:
                 arr = ['orderrelease', 'neworder', 'list']
@@ -2522,11 +2528,12 @@ class DnDiscardViewSet(viewsets.ModelViewSet):
                     }
 
                     response = requests.delete(url, json=req_data, headers=headers)
-                    json_response = json.loads(response.content.decode('UTF-8'))
+                    str_response = response.content.decode('UTF-8')
+                    json_response = json.loads(str_response)
                     json_response_status = json_response.get('status_code')
                     if response.status_code != 200 or (json_response_status and json_response_status != 200):
                         # response.content: { status_code: 5xx, detial: 'xxx' }
-                        print(json_response)
+                        logger.info(f'Cannot discard {item} dn, response: {str_response}')
                         raise APIException({"detail": f'Cannot discard {item} dn'})
             elif qs.dn_status == 2:
                 arr = ['neworder', 'list']
@@ -2539,11 +2546,12 @@ class DnDiscardViewSet(viewsets.ModelViewSet):
                     }
 
                     response = requests.delete(url, json=req_data, headers=headers)
-                    json_response = json.loads(response.content.decode('UTF-8'))
+                    str_response = response.content.decode('UTF-8')
+                    json_response = json.loads(str_response)
                     json_response_status = json_response.get('status_code')
                     if response.status_code != 200 or (json_response_status and json_response_status != 200):
                         # response.content: { status_code: 5xx, detial: 'xxx' }
-                        print(json_response)
+                        logger.info(f'Cannot discard {item} dn, response: {str_response}')
                         raise APIException({"detail": f'Cannot discard {item} dn'})
             elif qs.dn_status == 1:
                 arr = ['list']
@@ -2556,11 +2564,12 @@ class DnDiscardViewSet(viewsets.ModelViewSet):
                     }
 
                     response = requests.delete(url, json=req_data, headers=headers)
-                    json_response = json.loads(response.content.decode('UTF-8'))
+                    str_response = response.content.decode('UTF-8')
+                    json_response = json.loads(str_response)
                     json_response_status = json_response.get('status_code')
                     if response.status_code != 200 or (json_response_status and json_response_status != 200):
                         # response.content: { status_code: 5xx, detial: 'xxx' }
-                        print(json_response)
+                        logger.info(f'Cannot discard {item} dn, response: {str_response}')
                         raise APIException({"detail": f'Cannot discard {item} dn'})
 
             return Response({"detail": "success"}, status=200)

@@ -33,6 +33,9 @@ from stock.models import StockListModel
 from django.conf import settings
 import requests
 import json
+import logging
+
+logger = logging.getLogger(__name__)
 
 class GoodlistfileViewSet(views.APIView):
     """
@@ -1198,11 +1201,12 @@ class AsnfileAddViewSet(views.APIView):
                     }
 
                     response = requests.post(url, json=req_data, headers=headers)
-                    json_response = json.loads(response.content.decode('UTF-8'))
+                    str_response = response.content.decode('UTF-8')
+                    json_response = json.loads(str_response)
                     json_response_status = json_response.get('status_code')
                     if response.status_code != 200 or (json_response_status and json_response_status != 200):
                         # response.content: { status_code: 5xx, detial: 'xxx' }
-                        print(json_response)
+                        logger.info(f'Cannot create asn, goods_code: {data_list[i][0]}, response: {str_response}')
                         raise APIException({"detail": f'Cannot create asn, goods_code: {data_list[i][0]}'})
                     asn_id = json_response['id']
                     asn_code = json_response['asn_code']
@@ -1223,11 +1227,12 @@ class AsnfileAddViewSet(views.APIView):
                     }
 
                     response = requests.post(url, json=req_data, headers=headers)
-                    json_response = json.loads(response.content.decode('UTF-8'))
+                    str_response = response.content.decode('UTF-8')
+                    json_response = json.loads(str_response)
                     json_response_status = json_response.get('status_code')
                     if response.status_code != 200 or (json_response_status and json_response_status != 200):
                         # response.content: { status_code: 5xx, detial: 'xxx' }
-                        print(json_response)
+                        logger.info(f'Cannot create asn detail, goods_code: {data_list[i][0]}, response: {str_response}')
                         raise APIException({"detail": f'Cannot create asn detail, goods_code: {data_list[i][0]}'})
 
                     # preload
@@ -1240,11 +1245,12 @@ class AsnfileAddViewSet(views.APIView):
                     }
 
                     response = requests.post(url, json=req_data, headers=headers)
-                    json_response = json.loads(response.content.decode('UTF-8'))
+                    str_response = response.content.decode('UTF-8')
+                    json_response = json.loads(str_response)
                     json_response_status = json_response.get('status_code')
                     if response.status_code != 200 or (json_response_status and json_response_status != 200):
                         # response.content: { status_code: 5xx, detial: 'xxx' }
-                        print(json_response)
+                        logger.info(f'Cannot preload asn, goods_code: {data_list[i][0]}, response: {str_response}')
                         raise APIException({"detail": f'Cannot preload asn, goods_code: {data_list[i][0]}'})
 
                     # presort
@@ -1257,11 +1263,12 @@ class AsnfileAddViewSet(views.APIView):
                     }
 
                     response = requests.post(url, json=req_data, headers=headers)
-                    json_response = json.loads(response.content.decode('UTF-8'))
+                    str_response = response.content.decode('UTF-8')
+                    json_response = json.loads(str_response)
                     json_response_status = json_response.get('status_code')
                     if response.status_code != 200 or (json_response_status and json_response_status != 200):
                         # response.content: { status_code: 5xx, detial: 'xxx' }
-                        print(json_response)
+                        logger.info(f'Cannot presort asn, goods_code: {data_list[i][0]}, response: {str_response}')
                         raise APIException({"detail": f'Cannot presort asn, goods_code: {data_list[i][0]}'})
 
                     # get asn detail
@@ -1274,11 +1281,12 @@ class AsnfileAddViewSet(views.APIView):
                     }
 
                     response = requests.get(url, json=req_data, headers=headers)
-                    json_response = json.loads(response.content.decode('UTF-8'))
+                    str_response = response.content.decode('UTF-8')
+                    json_response = json.loads(str_response)
                     json_response_status = json_response.get('status_code')
                     if response.status_code != 200 or (json_response_status and json_response_status != 200):
                         # response.content: { status_code: 5xx, detial: 'xxx' }
-                        print(json_response)
+                        logger.info(f'Cannot get asn detail, goods_code: {data_list[i][0]}, response: {str_response}')
                         raise APIException({"detail": f'Cannot get asn detail, goods_code: {data_list[i][0]}'})
                     asn_detail_results = json_response.get('results', [])
                     for item in asn_detail_results:
@@ -1299,11 +1307,12 @@ class AsnfileAddViewSet(views.APIView):
                     }
 
                     response = requests.post(url, json=req_data, headers=headers)
-                    json_response = json.loads(response.content.decode('UTF-8'))
+                    str_response = response.content.decode('UTF-8')
+                    json_response = json.loads(str_response)
                     json_response_status = json_response.get('status_code')
                     if response.status_code != 200 or (json_response_status and json_response_status != 200):
                         # response.content: { status_code: 5xx, detial: 'xxx' }
-                        print(json_response)
+                        logger.info(f'Cannot sorted asn, goods_code: {data_list[i][0]}, response: {str_response}')
                         raise APIException({"detail": f'Cannot sorted asn, goods_code: {data_list[i][0]}'})
 
                     # move to bin
@@ -1319,11 +1328,12 @@ class AsnfileAddViewSet(views.APIView):
                     }
 
                     response = requests.post(url, json=req_data, headers=headers)
-                    json_response = json.loads(response.content.decode('UTF-8'))
+                    str_response = response.content.decode('UTF-8')
+                    json_response = json.loads(str_response)
                     json_response_status = json_response.get('status_code')
                     if response.status_code != 200 or (json_response_status and json_response_status != 200):
                         # response.content: { status_code: 5xx, detial: 'xxx' }
-                        print(json_response)
+                        logger.info(f'Cannot movetobin asn, goods_code: {data_list[i][0]}, response: {str_response}')
                         raise APIException({"detail": f'Cannot movetobin asn, goods_code: {data_list[i][0]}'})
             else:
                 raise APIException({"detail": "Can Not Support This File Type"})

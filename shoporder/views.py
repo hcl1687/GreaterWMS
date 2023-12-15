@@ -25,6 +25,9 @@ from utils.seller_api import SELLER_API
 from .status import Status, Handle_Status
 from datetime import datetime
 from dn.models import DnListModel
+import logging
+
+logger = logging.getLogger(__name__)
 
 class APIViewSet(viewsets.ModelViewSet):
     """
@@ -109,7 +112,6 @@ class APIViewSet(viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         data = self.request.data
-        original_data = copy.deepcopy(data)
         data['openid'] = self.request.META.get('HTTP_TOKEN')
 
         shop_id = data.get('shop', '')
@@ -141,7 +143,7 @@ class APIViewSet(viewsets.ModelViewSet):
             # raise APIException({"detail": "Data exists"})
             return Response({"detail": "Data exists"}, status=200)
         elif status != Status.Awaiting_Review and status != Status.Awaiting_Deliver:
-            return Response({"detail": "Not awaiting_packaging or awaiting_deliver data"}, status=200)
+            raise APIException({"detail": "Not awaiting_packaging or awaiting_deliver data"})
         else:
             data['supplier'] = shop_supplier
             data['creater'] = self.request.user.username
@@ -196,11 +198,12 @@ class APIViewSet(viewsets.ModelViewSet):
         need_update_handle_status = False
         if status == Status.Awaiting_Deliver:
             if qs.status != Status.Awaiting_Review:
-                raise APIException({"detail": "This Shop order does not in Awaiting Review Status"})
+                logger.info(f'This Shop order does not in Awaiting Review Status for shop_id: {shop_id}, platform_id: {qs.platform_id}')
+                return Response({"detail": "This Shop order does not in Awaiting Review Status"}, status=200)
             try:
                 self.handle_awaiting_deliver(data, shop_id, shop_supplier, qs)
             except APIException as e:
-                print(e)
+                logger.error(str(e))
                 need_update_handle_status = True
                 data['handle_status'] = Handle_Status.Abnormal
                 data['handle_message'] = e.detail['detail']
@@ -208,7 +211,7 @@ class APIViewSet(viewsets.ModelViewSet):
             try:
                 self.handle_delivering(data, shop_id, shop_supplier, qs)
             except APIException as e:
-                print(e)
+                logger.error(str(e))
                 need_update_handle_status = True
                 data['handle_status'] = Handle_Status.Abnormal
                 data['handle_message'] = e.detail['detail']
@@ -216,7 +219,7 @@ class APIViewSet(viewsets.ModelViewSet):
             try:
                 self.handle_delivered(data, shop_id, shop_supplier, qs)
             except APIException as e:
-                print(e)
+                logger.error(str(e))
                 need_update_handle_status = True
                 data['handle_status'] = Handle_Status.Abnormal
                 data['handle_message'] = e.detail['detail']
@@ -224,7 +227,7 @@ class APIViewSet(viewsets.ModelViewSet):
             try:
                 self.handle_cancelled(data, shop_id, shop_supplier, qs)
             except APIException as e:
-                print(e)
+                logger.error(str(e))
                 need_update_handle_status = True
                 data['handle_status'] = Handle_Status.Abnormal
                 data['handle_message'] = e.detail['detail']
@@ -364,18 +367,18 @@ class APIViewSet(viewsets.ModelViewSet):
             }
 
             response = requests.post(url, json=req_data, headers=headers)
-            json_response = json.loads(response.content.decode('UTF-8'))
+            str_response = response.content.decode('UTF-8')
+            json_response = json.loads(str_response)
             json_response_status = json_response.get('status_code')
             if response.status_code != 200 or (json_response_status and json_response_status != 200):
                 # response.content: { status_code: 5xx, detial: 'xxx' }
-                print(json_response)
+                logger.info(f'Cannot move bin from: {stockbin_data_item["source_id"]} to {settings.DEFAULT_HOLDING_BIN}, response: {str_response}')
                 raise APIException({"detail": f'Cannot move bin from: {stockbin_data_item["source_id"]} to {settings.DEFAULT_HOLDING_BIN}'})
 
             stockbin_data_item['target_id'] = json_response['stockbin_id']
             stockbin_data_item['target_bin_name'] = json_response['stockbin_bin_name']
 
         data['stockbin_data'] = json.dumps(stockbin_data)
-        return data
 
     def handle_awaiting_deliver(self, data, shop_id, shop_supplier, qs):
         # create DN
@@ -409,11 +412,12 @@ class APIViewSet(viewsets.ModelViewSet):
         }
 
         response = requests.post(url, json=req_data, headers=headers)
-        json_response = json.loads(response.content.decode('UTF-8'))
+        str_response = response.content.decode('UTF-8')
+        json_response = json.loads(str_response)
         json_response_status = json_response.get('status_code')
         if response.status_code != 200 or (json_response_status and json_response_status != 200):
             # response.content: { status_code: 5xx, detial: 'xxx' }
-            print(json_response)
+            logger.info(f'Cannot create dn list, response: {str_response}')
             raise APIException({"detail": f'Cannot create dn list'})
         dn_code = json_response['dn_code']
         dn_id = json_response['id']
@@ -434,15 +438,17 @@ class APIViewSet(viewsets.ModelViewSet):
         }
 
         response = requests.post(url, json=req_data, headers=headers)
-        json_response = json.loads(response.content.decode('UTF-8'))
+        str_response = response.content.decode('UTF-8')
+        json_response = json.loads(str_response)
         if response.status_code != 200 or (json_response_status and json_response_status != 200):
             # response.content: { status_code: 5xx, detial: 'xxx' }
-            print(json_response)
+            logger.info(f'Cannot create dn detail, response: {str_response}')
             raise APIException({"detail": f'Cannot create dn detail'})
 
         # save order first
         qs.refresh_from_db()
         qs.dn_code = dn_code
+        qs.status = Status.Awaiting_Deliver
         qs.save()
 
         # confirm order
@@ -455,10 +461,11 @@ class APIViewSet(viewsets.ModelViewSet):
         }
 
         response = requests.post(url, json=req_data, headers=headers)
-        json_response = json.loads(response.content.decode('UTF-8'))
+        str_response = response.content.decode('UTF-8')
+        json_response = json.loads(str_response)
         if response.status_code != 200 or (json_response_status and json_response_status != 200):
             # response.content: { status_code: 5xx, detial: 'xxx' }
-            print(json_response)
+            logger.info(f'Cannot confirm dn: {dn_code}, response: {str_response}')
             raise APIException({"detail": f'Cannot confirm dn: {dn_code}'})
 
         # generate pick order
@@ -471,10 +478,11 @@ class APIViewSet(viewsets.ModelViewSet):
         }
 
         response = requests.put(url, json=req_data, headers=headers)
-        json_response = json.loads(response.content.decode('UTF-8'))
+        str_response = response.content.decode('UTF-8')
+        json_response = json.loads(str_response)
         if response.status_code != 200 or (json_response_status and json_response_status != 200):
             # response.content: { status_code: 5xx, detial: 'xxx' }
-            print(json_response)
+            logger.info(f'Cannot generate pick order for dn: {dn_code}, response: {str_response}')
             raise APIException({"detail": f'Cannot generate pick order for dn: {dn_code}'})
 
     def handle_delivering(self, data, shop_id, shop_supplier, qs):
@@ -514,11 +522,12 @@ class APIViewSet(viewsets.ModelViewSet):
                 }
 
                 response = requests.post(url, json=req_data, headers=headers)
-                json_response = json.loads(response.content.decode('UTF-8'))
+                str_response = response.content.decode('UTF-8')
+                json_response = json.loads(str_response)
                 json_response_status = json_response.get('status_code')
                 if response.status_code != 200 or (json_response_status and json_response_status != 200):
                     # response.content: { status_code: 5xx, detial: 'xxx' }
-                    print(json_response)
+                    logger.info(f'Cannot move bin from: {hold_stockbin_obj.id} to {stockbin_data_item["source_bin_name"]}, response: {str_response}')
                     raise APIException({"detail": f'Cannot move bin from: {hold_stockbin_obj.id} to {stockbin_data_item["source_bin_name"]}'})
                 # delete hold bin
                 hold_stockbin_obj.delete()
@@ -535,11 +544,12 @@ class APIViewSet(viewsets.ModelViewSet):
                 }
 
                 response = requests.patch(url, json=req_data, headers=headers)
-                json_response = json.loads(response.content.decode('UTF-8'))
+                str_response = response.content.decode('UTF-8')
+                json_response = json.loads(str_response)
                 json_response_status = json_response.get('status_code')
                 if response.status_code != 200 or (json_response_status and json_response_status != 200):
                     # response.content: { status_code: 5xx, detial: 'xxx' }
-                    print(json_response)
+                    logger.info(f'Cannot merge bin from: {new_stockbin_id} to {stockbin_data_item["source_id"]}, response: {str_response}')
                     raise APIException({"detail": f'Cannot merge bin from: {new_stockbin_id} to {stockbin_data_item["source_id"]}'})
 
                 # clear target_id and target_bin_name
@@ -567,11 +577,12 @@ class APIViewSet(viewsets.ModelViewSet):
                 }
 
                 response = requests.delete(url, json=req_data, headers=headers)
-                json_response = json.loads(response.content.decode('UTF-8'))
+                str_response = response.content.decode('UTF-8')
+                json_response = json.loads(str_response)
                 json_response_status = json_response.get('status_code')
                 if response.status_code != 200 or (json_response_status and json_response_status != 200):
                     # response.content: { status_code: 5xx, detial: 'xxx' }
-                    print(json_response)
+                    logger.info(f'Cannot discard dn of shop order: {qs.id}, response: {str_response}')
                     raise APIException({"detail": f'Cannot discard dn of shop order: {qs.id}'})
 
         qs.status = Status.Cancelled
@@ -670,12 +681,12 @@ class ShoporderInitViewSet(viewsets.ModelViewSet):
                 }
 
                 response = requests.post(url, json=req_data, headers=headers)
-                json_response = json.loads(response.content.decode('UTF-8'))
+                str_response = response.content.decode('UTF-8')
+                json_response = json.loads(str_response)
                 json_response_status = json_response.get('status_code')
                 if response.status_code != 200 or (json_response_status and json_response_status != 200):
                     # response.content: { status_code: 5xx, detial: 'xxx' }
-                    print(json_response)
-                    print(f'init Awaiting_Review order failed')
+                    logger.error(f'init Awaiting_Review order failed, response: {str_response}')
 
             if seller_resp is None:
                 break
@@ -774,7 +785,7 @@ class ShoporderUpdateViewSet(viewsets.ModelViewSet):
                 platform_id = item['platform_id']
                 shop_order = ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), shop_id=shop_id, platform_id=platform_id, is_delete=False).first()
                 if shop_order is None:
-                    print(f'Can not find shop order for platform_id: {platform_id}')
+                    logger.info(f'Can not find shop order for shop_id: {shop_id}, platform_id: {platform_id}')
                     continue
                 url = f'{settings.INNER_URL}/shoporder/{shop_order.id}/'
                 req_data = item
@@ -784,12 +795,12 @@ class ShoporderUpdateViewSet(viewsets.ModelViewSet):
                 }
 
                 response = requests.put(url, json=req_data, headers=headers)
-                json_response = json.loads(response.content.decode('UTF-8'))
+                str_response = response.content.decode('UTF-8')
+                json_response = json.loads(str_response)
                 json_response_status = json_response.get('status_code')
                 if response.status_code != 200 or (json_response_status and json_response_status != 200):
                     # response.content: { status_code: 5xx, detial: 'xxx' }
-                    print(json_response)
-                    print(f'update order {platform_id} to {args["status"]} failed')
+                    logger.info(f'update order {platform_id} to {args["status"]} failed, response: {json_response}')
 
             if seller_resp is None:
                 break
