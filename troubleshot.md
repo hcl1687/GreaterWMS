@@ -80,6 +80,8 @@ python manage.py createsuperuser
 ## Run Backend:
 ```bash
 cd GreaterWMS
+# win10: set GREATERWMS_ENV=dev
+export GREATERWMS_ENV=dev
 daphne -p 8008 greaterwms.asgi:application
 or
 daphne -b 0.0.0.0 -p 8008 greaterwms.asgi:application # lan

@@ -1,5 +1,7 @@
 import mimetypes, os, requests, django
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'greaterwms.settings')
+ENV = os.environ.get("GREATERWMS_ENV", "prod")
+print(f'GREATERWMS_ENV: {ENV}')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'greaterwms.settings.{0}'.format(ENV))
 os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
 django.setup()
 from django.conf import settings

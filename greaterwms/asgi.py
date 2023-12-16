@@ -3,7 +3,9 @@ import os
 from django.core.asgi import get_asgi_application
 from utils.websocket import websocket_application
 from myasgihandler.core import ASGIHandler
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'greaterwms.settings')
+ENV = os.environ.get("GREATERWMS_ENV", "prod")
+print(f'GREATERWMS_ENV: {ENV}')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'greaterwms.settings.{0}'.format(ENV))
 
 http_application = get_asgi_application()
 
