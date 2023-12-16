@@ -23,9 +23,9 @@ import requests
 import copy
 from utils.seller_api import SELLER_API
 from .status import Status, Handle_Status
-from datetime import datetime
 from dn.models import DnListModel
 import logging
+import time
 
 logger = logging.getLogger(__name__)
 
@@ -312,7 +312,7 @@ class APIViewSet(viewsets.ModelViewSet):
 
             goods_code = shopsku_obj.goods_code
             products_goods_code.append(goods_code)
-            # chedk stock
+            # check stock
             goods_qty_change = StockListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                         goods_code=goods_code).first()
             if goods_qty_change is None:
@@ -661,6 +661,8 @@ class ShoporderInitViewSet(viewsets.ModelViewSet):
             return
 
         seller_api = SELLER_API(shop_id)
+        count = 0
+        max_processing_time = 0
         offset = 0
         while True:
             params = {
@@ -671,7 +673,10 @@ class ShoporderInitViewSet(viewsets.ModelViewSet):
                 'warehouse_id': warehosue_id
             }
             seller_resp = seller_api.get_orders(params)
-            for item in seller_resp.get('items', []):
+            seller_resp_items = seller_resp.get('items', [])
+            count = count + len(seller_resp_items)
+            for item in seller_resp_items:
+                start_time = time.time()
                 item['shop'] = shop_id
                 url = f'{settings.INNER_URL}/shoporder/'
                 req_data = item
@@ -687,12 +692,17 @@ class ShoporderInitViewSet(viewsets.ModelViewSet):
                 if response.status_code != 200 or (json_response_status and json_response_status != 200):
                     # response.content: { status_code: 5xx, detial: 'xxx' }
                     logger.error(f'init Awaiting_Review order failed, response: {str_response}')
+                processing_time = time.time() - start_time
+                if processing_time > max_processing_time:
+                    max_processing_time = processing_time
 
             if seller_resp is None:
                 break
             if not seller_resp.get('has_next', False):
                 break
             offset = seller_resp['next']
+
+        logger.info(f'init order for shop_id: {shop_id}, count: {count}, max_processing_time: {max_processing_time:.6f} seconds')
 
 class ShoporderUpdateViewSet(viewsets.ModelViewSet):
     """
@@ -770,6 +780,8 @@ class ShoporderUpdateViewSet(viewsets.ModelViewSet):
             return
 
         seller_api = SELLER_API(shop_id)
+        count = 0
+        max_processing_time = 0
         offset = 0
         while True:
             params = {
@@ -780,7 +792,10 @@ class ShoporderUpdateViewSet(viewsets.ModelViewSet):
                 'warehouse_id': warehosue_id
             }
             seller_resp = seller_api.get_orders(params)
-            for item in seller_resp.get('items', []):
+            seller_resp_items = seller_resp.get('items', [])
+            count = count + len(seller_resp_items)
+            for item in seller_resp_items:
+                start_time = time.time()
                 item['shop'] = shop_id
                 platform_id = item['platform_id']
                 shop_order = ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), shop_id=shop_id, platform_id=platform_id, is_delete=False).first()
@@ -801,12 +816,17 @@ class ShoporderUpdateViewSet(viewsets.ModelViewSet):
                 if response.status_code != 200 or (json_response_status and json_response_status != 200):
                     # response.content: { status_code: 5xx, detial: 'xxx' }
                     logger.info(f'update order {platform_id} to {args["status"]} failed, response: {json_response}')
+                processing_time = time.time() - start_time
+                if processing_time > max_processing_time:
+                    max_processing_time = processing_time
 
             if seller_resp is None:
                 break
             if not seller_resp.get('has_next', False):
                 break
             offset = seller_resp['next']
+
+        logger.info(f'update order for shop_id: {shop_id}, count: {count}, max_processing_time: {max_processing_time:.6f} seconds')
 
 class FileDownloadView(viewsets.ModelViewSet):
     renderer_classes = (FileRenderCN,) + tuple(api_settings.DEFAULT_RENDERER_CLASSES)
