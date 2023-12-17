@@ -90,7 +90,7 @@ daphne -b 0.0.0.0 -p 8008 greaterwms.asgi:application # lan
 ## Run Frontend:
 ```bash
 cd templates
-quasar d
+npm run start
 ```
 
 ## uninstall docker-compose

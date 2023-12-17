@@ -188,7 +188,7 @@ export default {
     view_tradelist: {
       mode_code: '交易方式',
       bin_name: '库位名称',
-      goods_code: '商品编码',
+      goods_code: '系统SKU',
       goods_qty: '现有数量',
       creater: '创建人',
       update_time: '更新时间',
@@ -254,8 +254,8 @@ export default {
     downloadasntemplate: '下载收货单模板',
     uploadasnfile: '上传收货清单',
     updateupload: '更新上传',
-    downloadshopskuskutemplate: '下载商品编码模板',
-    uploadshopskuskufile: '上传商品编码文件'
+    downloadshopskuskutemplate: '下载系统SKU模板',
+    uploadshopskuskufile: '上传系统SKU文件'
   },
   download_center: {
     createTime: '创建时间',
@@ -276,7 +276,7 @@ export default {
     specs: '商品规格',
     origin: '商品产地',
     view_goodslist: {
-      goods_code: '商品编码',
+      goods_code: '系统SKU',
       goods_desc: '商品描述',
       goods_name: '商品名称',
       goods_supplier: '供应商',
@@ -295,7 +295,7 @@ export default {
       goods_cost: '商品成本',
       goods_price: '商品价格',
       print_goods_label: '打印商品标签',
-      error1: '请输入商品编码',
+      error1: '请输入系统SKU',
       error2: '请输入商品描述',
       error3: '请输入商品的供应商',
       error4: '商品重量必须大于0',
@@ -404,7 +404,7 @@ export default {
     emptybin: '空库位',
     occupiedbin: '有货库位',
     view_stocklist: {
-      goods_code: '商品编码',
+      goods_code: '系统SKU',
       goods_desc: '商品描述',
       goods_qty: '总数量',
       onhand_stock: '现有数量',
@@ -503,7 +503,7 @@ export default {
     scan_inventory: '盘点',
     scan_goodsquery: '货物查询',
     scan_locationquery: '库位查询',
-    scan_goods_code: '商品编码',
+    scan_goods_code: '系统SKU',
     scan_bin_name: '库位名称',
     scan_goods_label: '商品标签',
     scan_goods_label_error: '商品标签不存在',
@@ -549,7 +549,7 @@ export default {
     shoperror: '店铺名字已存在',
     field_required_error: '{field}必填',
     goodserror: {
-      goods_listerror: '商品编码已存在',
+      goods_listerror: '系统SKU已存在',
       goods_uniterror: '商品单位已存在',
       goods_classerror: '商品类别已存在',
       goods_colorerror: '商品颜色已存在',
