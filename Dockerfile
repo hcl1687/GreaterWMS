@@ -43,4 +43,7 @@ FROM --platform=linux/amd64 nginx:latest as front
 
 ADD docker/nginx/conf.d/default.conf /etc/nginx/conf.d
 
+WORKDIR /GreaterWMS/templates
+COPY --from=compile /GreaterWMS/templates/dist /GreaterWMS/templates/dist/
+
 CMD nginx -g 'daemon off;'

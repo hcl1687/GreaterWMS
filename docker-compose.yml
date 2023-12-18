@@ -14,10 +14,6 @@ services:
       - '8080:8080'
     depends_on:
       - backend
-      - compile
-    volumes:
-      - ./templates:/GreaterWMS/templates:rw
-      - ./web_start.sh:/GreaterWMS/templates/web_start.sh
     networks:
       - basic
   backend:
