@@ -25,7 +25,9 @@ RUN chmod +x /GreaterWMS/backend_start.sh
 CMD ["/GreaterWMS/backend_start.sh"]
 
 FROM --platform=linux/amd64 node:14.19.3-buster-slim AS compile
-COPY ./templates/package.json /GreaterWMS/templates/package.json
+# COPY ./templates/package.json /GreaterWMS/templates/package.json
+# COPY ./templates/quasar.conf.js /GreaterWMS/templates/quasar.conf.js
+COPY ./templates/ /GreaterWMS/templates/
 #COPY ./templates/node_modules/ /GreaterWMS/templates/node_modules/
 COPY ./web_start.sh /GreaterWMS/templates/web_start.sh
 ENV port = ${port}
