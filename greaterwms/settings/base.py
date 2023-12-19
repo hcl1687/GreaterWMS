@@ -66,7 +66,9 @@ INSTALLED_APPS = [
     'corsheaders',
     'drf_spectacular',
     'drf_spectacular_sidecar',
-    'rest_framework_simplejwt'
+    'rest_framework_simplejwt',
+    'django_celery_results',
+    'django_celery_beat'
     # 下面这个app用于刷新refresh_token后，将旧的加到到blacklist时使用
     # 'rest_framework_simplejwt.token_blacklist'
 ]

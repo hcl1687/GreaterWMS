@@ -113,3 +113,8 @@ vim handler.py
 ```bash
 curl -o /dev/null -s -w "@curl-format.txt" --header "Content-Type: application/json" --header "Client-Id: your-id" --header "Api-Key: your-key" --request POST --data '{"filter":{"cutoff_from":"2023-11-01T14:15:22Z","cutoff_to":"2023-11-11T14:15:22Z"},"limit":1,"offset":0}' https://api-seller.ozon.ru/v3/posting/fbs/unfulfilled/list
 ```
+
+## pip install
+```bash
+pip install package && pip freeze > requirements.txt
+```
