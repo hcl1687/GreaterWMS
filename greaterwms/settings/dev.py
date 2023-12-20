@@ -21,6 +21,7 @@ CELERYD_MAX_TASKS_PER_CHILD = 3  # 每个 worker 最多执行3个任务就会被
 # CELERY_RESULT_BACKEND = 'redis://127.0.0.1:6379/0'  # celery 结果返回，可用于跟踪结果
 CELERY_RESULT_BACKEND = 'django-db'  # 使用 database 作为结果存储
 CELERY_CACHE_BACKEND = 'django-cache'  # celery 后端缓存
+CELERY_RESULT_EXTENDED = True
 
 # celery 内容等消息的格式设置
 # Mac and Centos

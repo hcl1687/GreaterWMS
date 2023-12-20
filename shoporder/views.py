@@ -631,6 +631,7 @@ class ShoporderInitViewSet(viewsets.ModelViewSet):
             return self.http_method_not_allowed(request=self.request)
 
     def create(self, request, *args, **kwargs):
+        start_time = time.time()
         data = self.request.data
         since = data.get('since')
         to = data.get('to')
@@ -652,6 +653,9 @@ class ShoporderInitViewSet(viewsets.ModelViewSet):
             for shop in shop_list:
                 status = Status.Awaiting_Deliver
                 self.handle_shoporder(shop, since=since, to=to, status=status)
+
+        processing_time = time.time() - start_time
+        logger.info(f'init order for shop_id: {shop_id}, processing_time: {processing_time:.6f} seconds')
 
         return Response({"detail": "success"}, status=200)
 
@@ -707,7 +711,7 @@ class ShoporderInitViewSet(viewsets.ModelViewSet):
                 break
             offset = seller_resp['next']
 
-        logger.info(f'init order for shop_id: {shop_id}, count: {count}, max_processing_time: {max_processing_time:.6f} seconds')
+        logger.info(f'handle init order for shop_id: {shop_id}, count: {count}, max_processing_time: {max_processing_time:.6f} seconds')
 
 class ShoporderUpdateViewSet(viewsets.ModelViewSet):
     """
