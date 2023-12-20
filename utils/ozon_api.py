@@ -140,10 +140,8 @@ class OZON_API():
             since = params['since']
             to = params['to']
             if since:
-                since = datetime.fromtimestamp(since).strftime ("%Y-%m-%dT%H:%M:%SZ")
                 _params['filter']['since'] = since
             if to:
-                to = datetime.fromtimestamp(to).strftime ("%Y-%m-%dT%H:%M:%SZ")
                 _params['filter']['to'] = to
             # filter by warehouse id
             if params['warehouse_id']:

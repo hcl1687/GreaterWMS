@@ -3,8 +3,13 @@ import requests
 from celery import shared_task
 from django.core.cache import cache
 import logging
-import time
 from django.conf import settings
+import jwt
+from datetime import datetime
+from dateutil.relativedelta import relativedelta
+from shop.models import ListModel as ShopModel
+from greaterwms.celery import app
+import base64
 
 logger = logging.getLogger(__name__)
 
@@ -35,15 +40,81 @@ def task_send_dd_text(url, msg, atMoblies, atAll="flase"):
     # r = requests.post(url, headers=headers, data=json.dumps(body))
     print(body['text']['content'])
 
-@shared_task
-def task_order_init(name, password):
+@app.task(bind=True)
+def task_order_init(self, name, password):
     celeryuser = cache.get(f'celeryuser:{name}')
     if celeryuser is None:
         celeryuser = get_user(name, password)
     else:
         access_token = celeryuser['access_token']
-        
+        print('tttttttttttt')
+        print(access_token)
 
+        decoded = jwt.decode(access_token, settings.SECRET_KEY, algorithms=["HS256"])
+        print('ssfds')
+        print(decoded)
+        exp = int(decoded['exp'])
+        now = datetime.now().timestamp()
+        # if the span between exp and now is less than 1 hour, relogin
+        if exp - now < 3600:
+            celeryuser = get_user(name, password)
+
+    openid = celeryuser['openid']
+    shop_list = ShopModel.objects.filter(openid=openid, is_delete=False)
+    tasks = []
+    for shop in shop_list:
+        shop_id = shop.id
+        result = task_order_init_by_shopid.delay(shop_id, celeryuser)
+        print('wwww')
+        print(result)
+        tasks.append(result.task_id)
+
+    return {
+        tasks: tasks,
+        'status': 'success'
+    }
+
+@shared_task
+def task_order_init_by_shopid(shop_id, celeryuser):
+    print('fffffffffffff')
+    print(shop_id)
+    print(celeryuser)
+    default_now = datetime.now()
+    default_since = default_now + relativedelta(days=-1)
+    default_now = default_now.strftime ("%Y-%m-%dT%H:%M:%SZ")
+    default_since = default_since.strftime ("%Y-%m-%dT%H:%M:%SZ")
+
+    item = {
+        'shop_id': shop_id,
+        'mode': 'task',
+        'since': default_since,
+        'to': default_now
+    }
+    url = f'{settings.INNER_URL}/shoporder/init/'
+    req_data = item
+    headers = {
+        'Authorization': f"Bearer {celeryuser['access_token']}",
+        'Token': celeryuser['openid'],
+        'Operator': str(celeryuser['user_id'])
+    }
+
+    response = requests.post(url, json=req_data, headers=headers)
+    str_response = response.content.decode('UTF-8')
+    json_response = json.loads(str_response)
+    json_response_status = json_response.get('status_code')
+    if response.status_code != 200 or (json_response_status and json_response_status != 200):
+        # response.content: { status_code: 5xx, detial: 'xxx' }
+        logger.error(f'init order failed for shop_id {shop_id}, response: {str_response}')
+        return {
+            'shop_id': shop_id,
+            'status': 'failed',
+            'response': str_response
+        }
+
+    return {
+        'shop_id': shop_id,
+        'status': 'success'
+    }
 
 
 def get_user(name, password):

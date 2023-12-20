@@ -632,21 +632,26 @@ class ShoporderInitViewSet(viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         data = self.request.data
-        # timestamp
         since = data.get('since')
-        # timestamp
         to = data.get('to')
+        shop_id = data.get('shop_id')
+        # mode: task or ''
+        mode = data.get('mode')
 
-        shop_list = ShopModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), is_delete=False)
+        if shop_id:
+            shop_list = ShopModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=str(shop_id), is_delete=False)
+        else:
+            shop_list = ShopModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), is_delete=False)
 
         # init Awaiting_Review order
         for shop in shop_list:
             status = Status.Awaiting_Review
             self.handle_shoporder(shop, since=since, to=to, status=status)
         # init Awaiting_Deliver order
-        for shop in shop_list:
-            status = Status.Awaiting_Deliver
-            self.handle_shoporder(shop, since=since, to=to, status=status)
+        if mode != 'task':
+            for shop in shop_list:
+                status = Status.Awaiting_Deliver
+                self.handle_shoporder(shop, since=since, to=to, status=status)
 
         return Response({"detail": "success"}, status=200)
 

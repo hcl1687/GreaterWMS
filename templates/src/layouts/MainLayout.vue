@@ -1172,7 +1172,7 @@ export default {
       _this.isLoggedIn()
     }
 
-    _this.staff_type_list = ['Supplier']
+    _this.staff_type_list = ['Supplier', 'Inbount', 'Outbound', 'StockControl']
   },
   mounted () {
     var _this = this

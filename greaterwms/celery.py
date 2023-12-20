@@ -15,11 +15,7 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'greaterwms.settings.{0}'.format
 app = Celery(project_name)
 
 # 使用 django 的 settings 文件配置 celery
-app.config_from_object('django.conf:settings', namespace='CELERY')
+app.config_from_object(settings, namespace='CELERY')
 
 # Celery 加载所有注册的应用
-app.autodiscover_tasks(lambda: settings.INSTALLED_APPS)
-
-@app.task(bind=True)
-def debug_task(self):
-    print(f"Request: {self.request!r}")
+app.autodiscover_tasks()
