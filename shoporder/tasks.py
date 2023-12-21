@@ -10,6 +10,7 @@ from dateutil.relativedelta import relativedelta
 from shop.models import ListModel as ShopModel
 from greaterwms.celery import app
 import base64
+import time
 
 logger = logging.getLogger(__name__)
 
@@ -47,15 +48,12 @@ def task_order_init(self, name, password):
         celeryuser = get_user(name, password)
     else:
         access_token = celeryuser['access_token']
-
-        # decoded = jwt.decode(access_token, settings.SECRET_KEY, algorithms=["HS256"])
-        # print('ssfds')
-        # print(decoded)
-        # exp = int(decoded['exp'])
-        # now = datetime.now().timestamp()
-        # # if the span between exp and now is less than 1 hour, relogin
-        # if exp - now < 3600:
-        #     celeryuser = get_user(name, password)
+        decoded = jwt.decode(access_token, options={"verify_signature": False})
+        exp = int(decoded['exp'])
+        now = datetime.now().timestamp()
+        # if the span between exp and now is less than 1 hour, relogin
+        if exp - now < 3600:
+            celeryuser = get_user(name, password)
 
     openid = celeryuser['openid']
     shop_list = ShopModel.objects.filter(openid=openid, is_delete=False)
@@ -73,6 +71,7 @@ def task_order_init(self, name, password):
 
 @shared_task(name='task_order_init_by_shopid')
 def task_order_init_by_shopid(shop_id, celeryuser):
+    start_time = time.time()
     default_now = datetime.now()
     default_since = default_now + relativedelta(days=-1)
     default_now = default_now.strftime ("%Y-%m-%dT%H:%M:%SZ")
@@ -104,10 +103,14 @@ def task_order_init_by_shopid(shop_id, celeryuser):
             'status': 'failed',
             'response': str_response
         }
+    
+    processing_time = time.time() - start_time
+    logger.info(f'task_order_init_by_shopid for shop_id: {shop_id}, processing_time: {processing_time:.6f} seconds')
 
     return {
         'shop_id': shop_id,
-        'status': 'success'
+        'status': 'success',
+        'processing_time': f'{processing_time:.6f} seconds'
     }
 
 
