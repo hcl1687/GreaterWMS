@@ -43,18 +43,8 @@ def task_send_dd_text(url, msg, atMoblies, atAll="flase"):
 
 @app.task(bind=True, name='task_order_init')
 def task_order_init(self, name, password):
-    celeryuser = cache.get(f'celeryuser:{name}')
-    if celeryuser is None:
-        celeryuser = get_user(name, password)
-    else:
-        access_token = celeryuser['access_token']
-        decoded = jwt.decode(access_token, options={"verify_signature": False})
-        exp = int(decoded['exp'])
-        now = datetime.now().timestamp()
-        # if the span between exp and now is less than 1 hour, relogin
-        if exp - now < 3600:
-            celeryuser = get_user(name, password)
-
+    start_time = time.time()
+    celeryuser = get_user(name, password)
     openid = celeryuser['openid']
     shop_list = ShopModel.objects.filter(openid=openid, is_delete=False)
     tasks = []
@@ -64,9 +54,13 @@ def task_order_init(self, name, password):
         task_order_init_by_shopid.apply_async((shop_id, celeryuser), task_id=task_id)
         tasks.append(task_id)
 
+    processing_time = time.time() - start_time
+    logger.info(f'task_order_init, processing_time: {processing_time:.6f} seconds')
+
     return {
         'tasks': tasks,
-        'status': 'success'
+        'status': 'success',
+        'processing_time': f'{processing_time:.6f} seconds'
     }
 
 @shared_task(name='task_order_init_by_shopid')
