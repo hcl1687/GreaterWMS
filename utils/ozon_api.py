@@ -112,8 +112,8 @@ class OZON_API():
     def get_orders(self, params: dict) -> json:
         default_now = datetime.now()
         default_since = default_now + relativedelta(days=-300)
-        default_now = default_now.strftime ("%Y-%m-%dT%H:%M:%SZ")
-        default_since = default_since.strftime ("%Y-%m-%dT%H:%M:%SZ")
+        default_now = default_now.strftime("%Y-%m-%dT%H:%M:%SZ")
+        default_since = default_since.strftime("%Y-%m-%dT%H:%M:%SZ")
         if not params:
             _params = {
                 'offset': 0,

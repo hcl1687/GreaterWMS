@@ -4,13 +4,14 @@ from celery import shared_task, uuid
 from django.core.cache import cache
 import logging
 from django.conf import settings
-import jwt
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from shop.models import ListModel as ShopModel
 from greaterwms.celery import app
-import base64
 import time
+from .models import ListModel
+from django.db.models import Q
+from .status import Status
 
 logger = logging.getLogger(__name__)
 
@@ -59,6 +60,60 @@ def task_order_init(self, name, password):
 
     return {
         'tasks': tasks,
+        'status': 'success',
+        'processing_time': f'{processing_time:.6f} seconds'
+    }
+
+@app.task(bind=True, name='task_order_update')
+def task_order_update(self, name, password):
+    start_time = time.time()
+    celeryuser = get_user(name, password)
+    openid = celeryuser['openid']
+    shop_order_list = ListModel.objects.filter(Q(openid=openid, is_delete=False) &
+                                               (Q(status=Status.Awaiting_Review) | Q(status=Status.Awaiting_Deliver))
+                                               ).order_by('order_time')
+    shop_order_first = shop_order_list.first()
+    shop_order_last = shop_order_list.last()
+
+    default_to = datetime.now()
+    default_since = default_to + relativedelta(days=-7)
+    default_to = default_to.strftime("%Y-%m-%dT%H:%M:%SZ")
+    default_since = default_since.strftime("%Y-%m-%dT%H:%M:%SZ")
+    if shop_order_first:
+        default_since = shop_order_first.order_time + relativedelta(days=-1)
+        default_since = default_since.strftime("%Y-%m-%dT%H:%M:%SZ")
+    if shop_order_last:
+        default_to = shop_order_last.order_time + relativedelta(days=1)
+        default_to = default_to.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    item = {
+        'since': default_since,
+        'to': default_to
+    }
+    url = f'{settings.INNER_URL}/shoporder/update/'
+    req_data = item
+    headers = {
+        'Authorization': f"Bearer {celeryuser['access_token']}",
+        'Token': celeryuser['openid'],
+        'Operator': str(celeryuser['user_id'])
+    }
+
+    response = requests.post(url, json=req_data, headers=headers)
+    str_response = response.content.decode('UTF-8')
+    json_response = json.loads(str_response)
+    json_response_status = json_response.get('status_code')
+    if response.status_code != 200 or (json_response_status and json_response_status != 200):
+        # response.content: { status_code: 5xx, detial: 'xxx' }
+        logger.error(f'update order failed, response: {str_response}')
+        return {
+            'status': 'failed',
+            'response': str_response
+        }
+
+    processing_time = time.time() - start_time
+    logger.info(f'task_order_update, processing_time: {processing_time:.6f} seconds')
+
+    return {
         'status': 'success',
         'processing_time': f'{processing_time:.6f} seconds'
     }

@@ -756,9 +756,7 @@ class ShoporderUpdateViewSet(viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         data = self.request.data
-        # timestamp
         since = data.get('since')
-        # timestamp
         to = data.get('to')
 
         shop_list = ShopModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), is_delete=False)
@@ -809,7 +807,7 @@ class ShoporderUpdateViewSet(viewsets.ModelViewSet):
                 platform_id = item['platform_id']
                 shop_order = ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), shop_id=shop_id, platform_id=platform_id, is_delete=False).first()
                 if shop_order is None:
-                    logger.info(f'Can not find shop order for shop_id: {shop_id}, platform_id: {platform_id}')
+                    # logger.info(f'Can not find shop order for shop_id: {shop_id}, platform_id: {platform_id}')
                     continue
                 url = f'{settings.INNER_URL}/shoporder/{shop_order.id}/'
                 req_data = item
