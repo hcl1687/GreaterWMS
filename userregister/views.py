@@ -128,7 +128,7 @@ def register(request, *args, **kwargs):
                                     os.makedirs(os.path.join(settings.BASE_DIR, 'media/' + transaction_code + "/darwin"))
                                 data['openid'] = transaction_code
                             elif data.get('staff_type') and data.get('openid'):
-                                # create supplier
+                                # create supplier or StockControl
                                 if not StaffType.is_valid(str(data['staff_type'])):
                                     err_invalid_staff_type = FBMsg.err_invalid_staff_type()
                                     err_invalid_staff_type['ip'] = ip
@@ -149,14 +149,15 @@ def register(request, *args, **kwargs):
                                                         openid=str(data['openid']))
                                     user_id = staff.objects.filter(openid=str(data['openid']), staff_name=str(data['name']),
                                                         staff_type=str(data['staff_type']), check_code=check_code).first().id
-                                    supplier.objects.create(openid=str(data['openid']),
-                                                            supplier_name='S'+str(user_id),
-                                                            supplier_city='',
-                                                            supplier_address='',
-                                                            supplier_contact='',
-                                                            supplier_manager=str(data['name']),
-                                                            creater=str(data['name'])
-                                                            )
+                                    if str(data['staff_type']) == 'Supplier':
+                                        supplier.objects.create(openid=str(data['openid']),
+                                                                supplier_name='S'+str(user_id),
+                                                                supplier_city='',
+                                                                supplier_address='',
+                                                                supplier_contact='',
+                                                                supplier_manager=str(data['name']),
+                                                                creater=str(data['name'])
+                                                                )
                             else:
                                 err_no_openid_or_staff_type = FBMsg.err_no_openid_or_staff_type()
                                 err_no_openid_or_staff_type['ip'] = ip

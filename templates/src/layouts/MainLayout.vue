@@ -772,7 +772,6 @@
             v-model="registerform.openid"
             @keyup.enter="Register()"
           />
-          <q-input
           <q-select
             dense
             outlined
