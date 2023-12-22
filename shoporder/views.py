@@ -409,6 +409,7 @@ class APIViewSet(viewsets.ModelViewSet):
         headers = {
             'Authorization': self.request.headers['Authorization'],
             'Token': self.request.META.get('HTTP_TOKEN'),
+            'Operator': self.request.META.get('HTTP_OPERATOR')
         }
 
         response = requests.post(url, json=req_data, headers=headers)
@@ -434,7 +435,7 @@ class APIViewSet(viewsets.ModelViewSet):
         headers = {
             'Authorization': self.request.headers['Authorization'],
             'Token': self.request.META.get('HTTP_TOKEN'),
-            'Operator': str(self.request.user.id)
+            'Operator': self.request.META.get('HTTP_OPERATOR')
         }
 
         response = requests.post(url, json=req_data, headers=headers)
@@ -457,7 +458,7 @@ class APIViewSet(viewsets.ModelViewSet):
         headers = {
             'Authorization': self.request.headers['Authorization'],
             'Token': self.request.META.get('HTTP_TOKEN'),
-            'Operator': str(self.request.user.id)
+            'Operator': self.request.META.get('HTTP_OPERATOR')
         }
 
         response = requests.post(url, json=req_data, headers=headers)
@@ -474,7 +475,7 @@ class APIViewSet(viewsets.ModelViewSet):
         headers = {
             'Authorization': self.request.headers['Authorization'],
             'Token': self.request.META.get('HTTP_TOKEN'),
-            'Operator': str(self.request.user.id)
+            'Operator': self.request.META.get('HTTP_OPERATOR')
         }
 
         response = requests.put(url, json=req_data, headers=headers)
@@ -692,6 +693,7 @@ class ShoporderInitViewSet(viewsets.ModelViewSet):
                 headers = {
                     'Authorization': self.request.headers['Authorization'],
                     'Token': self.request.META.get('HTTP_TOKEN'),
+                    'Operator': self.request.META.get('HTTP_OPERATOR')
                 }
 
                 response = requests.post(url, json=req_data, headers=headers)
@@ -814,6 +816,7 @@ class ShoporderUpdateViewSet(viewsets.ModelViewSet):
                 headers = {
                     'Authorization': self.request.headers['Authorization'],
                     'Token': self.request.META.get('HTTP_TOKEN'),
+                    'Operator': self.request.META.get('HTTP_OPERATOR')
                 }
 
                 response = requests.put(url, json=req_data, headers=headers)

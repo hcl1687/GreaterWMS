@@ -12,47 +12,23 @@ import time
 from .models import ListModel
 from django.db.models import Q
 from .status import Status
+from staff.models import ListModel as StaffModel
 
 logger = logging.getLogger(__name__)
-
-@shared_task
-def task_send_dd_text(url, msg, atMoblies, atAll="flase"):
-    """
-    发送钉钉提醒
-    :param url:
-    :param msg:
-    :param atMoblies:
-    :param atAll:
-    :return:
-    """
-    body = {
-        "msgtype": "text",
-        "text": {
-            "content": msg
-        },
-        "at": {
-            "atMobiles": atMoblies,
-            "isAtAll": atAll
-        }
-
-
-    }
-    headers = {'content-type': 'application/json',
-               'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:22.0) Gecko/20100101 Firefox/22.0'}
-    # r = requests.post(url, headers=headers, data=json.dumps(body))
-    print(body['text']['content'])
 
 @app.task(bind=True, name='task_order_init')
 def task_order_init(self, name, password):
     start_time = time.time()
     celeryuser = get_user(name, password)
     openid = celeryuser['openid']
+    staff_obj = StaffModel.objects.filter(staff_name=str(name)).first()
+    staff_id = staff_obj.id
     shop_list = ShopModel.objects.filter(openid=openid, is_delete=False)
     tasks = []
     for shop in shop_list:
         shop_id = shop.id
         task_id = uuid()
-        task_order_init_by_shopid.apply_async((shop_id, celeryuser), task_id=task_id)
+        task_order_init_by_shopid.apply_async((shop_id, staff_id, celeryuser), task_id=task_id)
         tasks.append(task_id)
 
     processing_time = time.time() - start_time
@@ -69,6 +45,8 @@ def task_order_update(self, name, password):
     start_time = time.time()
     celeryuser = get_user(name, password)
     openid = celeryuser['openid']
+    staff_obj = StaffModel.objects.filter(staff_name=str(name)).first()
+    staff_id = staff_obj.id
     shop_order_list = ListModel.objects.filter(Q(openid=openid, is_delete=False) &
                                                (Q(status=Status.Awaiting_Review) | Q(status=Status.Awaiting_Deliver))
                                                ).order_by('order_time')
@@ -95,7 +73,7 @@ def task_order_update(self, name, password):
     headers = {
         'Authorization': f"Bearer {celeryuser['access_token']}",
         'Token': celeryuser['openid'],
-        'Operator': str(celeryuser['user_id'])
+        'Operator': str(staff_id)
     }
 
     response = requests.post(url, json=req_data, headers=headers)
@@ -119,7 +97,7 @@ def task_order_update(self, name, password):
     }
 
 @shared_task(name='task_order_init_by_shopid')
-def task_order_init_by_shopid(shop_id, celeryuser):
+def task_order_init_by_shopid(shop_id, staff_id, celeryuser):
     start_time = time.time()
     default_now = datetime.now()
     default_since = default_now + relativedelta(days=-1)
@@ -137,7 +115,7 @@ def task_order_init_by_shopid(shop_id, celeryuser):
     headers = {
         'Authorization': f"Bearer {celeryuser['access_token']}",
         'Token': celeryuser['openid'],
-        'Operator': str(celeryuser['user_id'])
+        'Operator': str(staff_id)
     }
 
     response = requests.post(url, json=req_data, headers=headers)
