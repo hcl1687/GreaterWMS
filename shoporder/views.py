@@ -101,6 +101,9 @@ class APIViewSet(viewsets.ModelViewSet):
                     total_weight = dn_obj.total_weight
                     item['total_weight'] = total_weight
                     item['dn_status'] = dn_obj.dn_status
+                    item['bar_code'] = dn_obj.bar_code
+                    item['dn_id'] = dn_obj.id
+                    item['customer'] = dn_obj.customer
 
             shop_id = item['shop']['id']
             warehouse_id = item['platform_warehouse_id']
@@ -903,6 +906,9 @@ class FileDownloadView(viewsets.ModelViewSet):
                     total_weight = dn_obj.total_weight
                     item['total_weight'] = total_weight
                     item['dn_status'] = dn_obj.dn_status
+                    item['bar_code'] = dn_obj.bar_code
+                    item['dn_id'] = dn_obj.id
+                    item['customer'] = dn_obj.customer
 
             shop_id = item['shop']['id']
             warehouse_id = item['platform_warehouse_id']

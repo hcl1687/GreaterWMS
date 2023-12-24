@@ -207,6 +207,27 @@
                 round
                 flat
                 push
+                color="secondary"
+                icon="print"
+                :disable="!props.row.dn_id"
+                @click="PrintPickingList(props.row)"
+              >
+                <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ $t('print') }}</q-tooltip>
+              </q-btn>
+              <q-btn
+                round
+                flat
+                push
+                color="dark"
+                icon="rv_hookup"
+                @click="handleDispatch(props.row)"
+              >
+                <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ $t('dispatch') }}</q-tooltip>
+              </q-btn>
+              <q-btn
+                round
+                flat
+                push
                 color="dark"
                 icon="delete"
                 :disable="props.row.handle_status !== 2"
@@ -272,6 +293,39 @@
         </q-markup-table>
       </q-card>
       <div style="float: right; padding: 15px 15px 15px 0"><q-btn color="primary" icon="print" v-print="printObj">print</q-btn></div>
+    </q-dialog>
+    <q-dialog v-model="viewPLForm">
+      <q-card id="printPL">
+        <q-bar class="bg-light-blue-10 text-white rounded-borders" style="height: 50px">
+          <div>{{ $t('print') }}</div>
+          <q-space />
+        </q-bar>
+        <div class="col-4" style="margin-top: 5%;"><img :src="bar_code" style="width: 21%;margin-left: 70%" /></div>
+        <q-markup-table>
+          <thead>
+            <tr>
+              <th class="text-left">{{ $t('outbound.view_dn.dn_code') }}</th>
+              <th class="text-right">{{ $t('warehouse.view_binset.bin_name') }}</th>
+              <th class="text-right">{{ $t('outbound.view_dn.goods_qty') }}</th>
+              <th class="text-right">{{ $t('outbound.pickstock') }}</th>
+              <th class="text-right">{{ $t('outbound.pickedstock') }}</th>
+              <th class="text-right">Comments</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(view, index) in pickinglist_print_table" :key="index">
+              <td class="text-left">{{ view.dn_code }}</td>
+              <td class="text-right">{{ view.bin_name }}</td>
+              <td class="text-right">{{ view.goods_code }}</td>
+              <td class="text-right">{{ view.pick_qty }}</td>
+              <td class="text-right" v-show="picklist_check === 0"></td>
+              <td class="text-right" v-show="picklist_check > 0">{{ view.picked_qty }}</td>
+              <td class="text-right"></td>
+            </tr>
+          </tbody>
+        </q-markup-table>
+      </q-card>
+      <div style="float: right; padding: 15px 15px 15px 0"><q-btn color="primary" icon="print" v-print="printPL">print</q-btn></div>
     </q-dialog>
     <q-dialog v-model="deleteForm">
       <q-card class="shadow-24">
@@ -343,7 +397,7 @@ export default {
         { name: 'creater', label: this.$t('creater'), field: 'creater', align: 'center' },
         { name: 'create_time', label: this.$t('createtime'), field: 'create_time', align: 'center' },
         { name: 'update_time', label: this.$t('updatetime'), field: 'update_time', align: 'center' },
-        { name: 'action', label: this.$t('action'), align: 'right' }
+        { name: 'action', label: this.$t('action'), align: 'center' }
       ],
       filter: '',
       filter_posting_number: '',
@@ -372,7 +426,28 @@ export default {
       deleteForm: false,
       deleteid: 0,
       supplier_list: [],
-      supplier_list1: []
+      supplier_list1: [],
+      bar_code: '',
+      pickinglist_print_table: [],
+      picklist_check: 0,
+      viewPLForm: false,
+      pickFormData: {
+        dn_code: '',
+        customer: '',
+        goodsData: [],
+        creater: ''
+      },
+      pickedid: 0,
+      pickedDataSubmitId: 0,
+      dispatchid: 0,
+      dispatchFormData: {
+        dn_code: '',
+        driver: ''
+      },
+      printPL: {
+        id: 'printPL',
+        popTitle: this.$t('outbound.pickinglist')
+      },
     }
   },
   computed: {
@@ -759,6 +834,160 @@ export default {
           return this.$t('outbound.received')
         default:
           return ''
+      }
+    },
+    PrintPickingList (e) {
+      var _this = this
+      var QRCode = require('qrcode')
+      QRCode.toDataURL(e.bar_code, [
+        {
+          errorCorrectionLevel: 'H',
+          mode: 'byte',
+          version: '2',
+          type: 'image/jpeg'
+        }
+      ])
+        .then(url => {
+          _this.bar_code = url
+        })
+        .catch(err => {
+          console.error(err)
+        })
+      _this.viewPLForm = true
+      getauth('dn/pickinglist/' + e.dn_id + '/')
+        .then(res => {
+          _this.pickinglist_print_table = []
+          _this.picklist_check = 0
+          res.forEach(item => {
+            if (item.picked_qty > 0) {
+              _this.picklist_check += 1
+            } else {
+            }
+          })
+          _this.pickinglist_print_table = res
+          _this.viewPLForm = true
+        })
+        .catch(err => {
+          _this.$q.notify({
+            message: err.detail,
+            icon: 'close',
+            color: 'negative'
+          })
+        })
+    },
+    async handleDispatch (e) {
+      try {
+        await this.pickedData(e)
+        await this.pickedDataSubmit()
+        await this.DispatchDN(e)
+        await this.dispatchDataSubmit()
+      } catch(e) {
+        console.error(e)
+      }
+    },
+    async pickedData (e) {
+      var _this = this
+      if (_this.getDnStatusText(e.dn_status) !== _this.$t('outbound.pickstock')) {
+        _this.$q.notify({
+          message: e.dn_code + ' DN Status Is Not ' + _this.$t('outbound.pickstock'),
+          icon: 'close',
+          color: 'negative'
+        })
+        throw new Error(e.dn_code + ' DN Status Is Not ' + _this.$t('outbound.pickstock'))
+      } else {
+        _this.pickedid = 0
+        _this.pickFormData = {
+          dn_code: '',
+          customer: '',
+          goodsData: [],
+          creater: ''
+        }
+        _this.pickFormData.dn_code = e.dn_code
+        _this.pickFormData.customer = e.customer
+        await getauth('dn/pickinglist/' + e.dn_id + '/').then(res => {
+          _this.pickedid = e.dn_id
+          _this.pickFormData.goodsData = res
+        })
+      }
+    },
+    async pickedDataSubmit () {
+      var _this = this
+      _this.pickFormData.creater = _this.login_name
+      _this.pickedDataSubmitId = 0
+      await postauth('dn/picked/' + _this.pickedid + '/', _this.pickFormData)
+        .then(res => {
+          if (!res.detail) {
+            _this.pickedDataSubmitId = _this.pickedid
+            _this.$q.notify({
+              message: 'Success Confirm Picking List',
+              icon: 'check',
+              color: 'green'
+            })
+          }
+        })
+        .catch(err => {
+          _this.$q.notify({
+            message: err.detail,
+            icon: 'close',
+            color: 'negative'
+          })
+        })
+    },
+    async DispatchDN (e) {
+      var _this = this
+      if (_this.pickedDataSubmitId !== e.dn_id) {
+        _this.$q.notify({
+          message: e.dn_code + ' DN Status Is Not ' + _this.$t('outbound.pickedstock'),
+          icon: 'close',
+          color: 'negative'
+        })
+        throw new Error(e.dn_code + ' DN Status Is Not ' + _this.$t('outbound.pickedstock'))
+      } else {
+        _this.dispatchFormData = {
+          dn_code: '',
+          driver: ''
+        }
+        _this.dispatchFormData.dn_code = e.dn_code
+        _this.dispatchFormData.driver = '-'
+        _this.dispatchid = e.dn_id
+      }
+    },
+    async dispatchDataSubmit () {
+      var _this = this
+      await postauth('dn/dispatch/' + _this.dispatchid + '/', _this.dispatchFormData)
+        .then(res => {
+          _this.table_list = []
+          _this.getList()
+          if (!res.detail) {
+            _this.dispatchDataClear()
+            _this.$q.notify({
+              message: 'Success Dispatch',
+              icon: 'check',
+              color: 'green'
+            })
+          }
+        })
+        .catch(err => {
+          _this.$q.notify({
+            message: err.detail,
+            icon: 'close',
+            color: 'negative'
+          })
+        })
+    },
+    dispatchDataClear () {
+      this.pickFormData = {
+        dn_code: '',
+        customer: '',
+        goodsData: [],
+        creater: ''
+      }
+      this.pickedid = 0
+      this.pickedDataSubmitId = 0
+      this.dispatchid = 0
+      this.dispatchFormData = {
+        dn_code: '',
+        driver: ''
       }
     }
   },
