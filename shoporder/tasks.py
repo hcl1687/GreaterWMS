@@ -17,7 +17,7 @@ from staff.models import ListModel as StaffModel
 logger = logging.getLogger(__name__)
 
 @app.task(bind=True, name='task_order_init')
-def task_order_init(self, name, password):
+def task_order_init(self, name, password, benchmark_count):
     start_time = time.time()
     celeryuser = get_user(name, password)
     openid = celeryuser['openid']
@@ -25,11 +25,16 @@ def task_order_init(self, name, password):
     staff_id = staff_obj.id
     shop_list = ShopModel.objects.filter(openid=openid, is_delete=False)
     tasks = []
-    for shop in shop_list:
-        shop_id = shop.id
-        task_id = uuid()
-        task_order_init_by_shopid.apply_async((shop_id, staff_id, celeryuser), task_id=task_id)
-        tasks.append(task_id)
+    count = 1
+    if benchmark_count:
+        count = benchmark_count
+
+    for i in range(count):
+        for shop in shop_list:
+            shop_id = shop.id
+            task_id = uuid()
+            task_order_init_by_shopid.apply_async((shop_id, staff_id, celeryuser), task_id=task_id)
+            tasks.append(task_id)
 
     processing_time = time.time() - start_time
     logger.info(f'task_order_init, processing_time: {processing_time:.6f} seconds')
