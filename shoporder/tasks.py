@@ -17,7 +17,7 @@ from staff.models import ListModel as StaffModel
 logger = logging.getLogger(__name__)
 
 @app.task(bind=True, name='task_order_init')
-def task_order_init(self, name, password, benchmark_count):
+def task_order_init(self, name, password, *args):
     start_time = time.time()
     celeryuser = get_user(name, password)
     openid = celeryuser['openid']
@@ -26,8 +26,8 @@ def task_order_init(self, name, password, benchmark_count):
     shop_list = ShopModel.objects.filter(openid=openid, is_delete=False)
     tasks = []
     count = 1
-    if benchmark_count:
-        count = benchmark_count
+    if len(args) > 0:
+        count = int(args[0])
 
     for i in range(count):
         for shop in shop_list:
