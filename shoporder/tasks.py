@@ -13,6 +13,7 @@ from .models import ListModel
 from django.db.models import Q
 from .status import Status
 from staff.models import ListModel as StaffModel
+from utils.seller_api import SELLER_API
 
 logger = logging.getLogger(__name__)
 
@@ -58,20 +59,20 @@ def task_order_update(self, name, password):
     shop_order_first = shop_order_list.first()
     shop_order_last = shop_order_list.last()
 
-    default_to = datetime.now()
-    default_since = default_to + relativedelta(days=-7)
-    default_to = default_to.strftime("%Y-%m-%dT%H:%M:%SZ")
-    default_since = default_since.strftime("%Y-%m-%dT%H:%M:%SZ")
+    to = datetime.now()
+    since = to + relativedelta(days=-7)
+    to = to.strftime("%Y-%m-%dT%H:%M:%SZ")
+    since = since.strftime("%Y-%m-%dT%H:%M:%SZ")
     if shop_order_first:
-        default_since = shop_order_first.order_time + relativedelta(days=-1)
-        default_since = default_since.strftime("%Y-%m-%dT%H:%M:%SZ")
+        since = shop_order_first.order_time + relativedelta(days=-1)
+        since = since.strftime("%Y-%m-%dT%H:%M:%SZ")
     if shop_order_last:
-        default_to = shop_order_last.order_time + relativedelta(days=1)
-        default_to = default_to.strftime("%Y-%m-%dT%H:%M:%SZ")
+        to = shop_order_last.order_time + relativedelta(days=1)
+        to = to.strftime("%Y-%m-%dT%H:%M:%SZ")
 
     item = {
-        'since': default_since,
-        'to': default_to
+        'since': since,
+        'to': to
     }
     url = f'{settings.INNER_URL}/shoporder/update/'
     req_data = item
@@ -87,7 +88,7 @@ def task_order_update(self, name, password):
     json_response_status = json_response.get('status_code')
     if response.status_code != 200 or (json_response_status and json_response_status != 200):
         # response.content: { status_code: 5xx, detial: 'xxx' }
-        logger.error(f'update order failed, response: {str_response}')
+        logger.error(f'task update order failed, response: {str_response}')
         return {
             'status': 'failed',
             'response': str_response
@@ -104,38 +105,16 @@ def task_order_update(self, name, password):
 @shared_task(name='task_order_init_by_shopid')
 def task_order_init_by_shopid(shop_id, staff_id, celeryuser):
     start_time = time.time()
-    default_now = datetime.now()
-    default_since = default_now + relativedelta(days=-1)
-    default_now = default_now.strftime ("%Y-%m-%dT%H:%M:%SZ")
-    default_since = default_since.strftime ("%Y-%m-%dT%H:%M:%SZ")
+    to = datetime.now()
+    # search orders since 10 minutes ago to now
+    since = to + relativedelta(minutes=-10)
+    to = to.strftime ("%Y-%m-%dT%H:%M:%SZ")
+    since = since.strftime ("%Y-%m-%dT%H:%M:%SZ")
 
-    item = {
-        'shop_id': shop_id,
-        'mode': 'task',
-        'since': default_since,
-        'to': default_now
-    }
-    url = f'{settings.INNER_URL}/shoporder/init/'
-    req_data = item
-    headers = {
-        'Authorization': f"Bearer {celeryuser['access_token']}",
-        'Token': celeryuser['openid'],
-        'Operator': str(staff_id)
-    }
+    shop = ShopModel.objects.filter(openid=celeryuser['openid'], id=str(shop_id), is_delete=False).first()
+    status = Status.Awaiting_Review
+    handle_shoporder(shop, celeryuser, staff_id, since=since, to=to, status=status)
 
-    response = requests.post(url, json=req_data, headers=headers)
-    str_response = response.content.decode('UTF-8')
-    json_response = json.loads(str_response)
-    json_response_status = json_response.get('status_code')
-    if response.status_code != 200 or (json_response_status and json_response_status != 200):
-        # response.content: { status_code: 5xx, detial: 'xxx' }
-        logger.error(f'init order failed for shop_id {shop_id}, response: {str_response}')
-        return {
-            'shop_id': shop_id,
-            'status': 'failed',
-            'response': str_response
-        }
-    
     processing_time = time.time() - start_time
     logger.info(f'task_order_init_by_shopid for shop_id: {shop_id}, processing_time: {processing_time:.6f} seconds')
 
@@ -144,6 +123,61 @@ def task_order_init_by_shopid(shop_id, staff_id, celeryuser):
         'status': 'success',
         'processing_time': f'{processing_time:.6f} seconds'
     }
+
+def handle_shoporder(shop, celeryuser, staff_id, **args):
+    shop_id = shop.id
+    shopwarehouse_list = shop.shopwarehouse.filter(is_delete=False)
+    warehosue_id = []
+    for warehouse in shopwarehouse_list:
+        warehosue_id.append(warehouse.platform_id)
+
+    if len(warehosue_id) == 0:
+        return
+
+    seller_api = SELLER_API(shop_id)
+    count = 0
+    max_processing_time = 0
+    offset = 0
+    while True:
+        params = {
+            'offset': offset,
+            'status':args['status'],
+            'since': args['since'],
+            'to': args['to'],
+            'warehouse_id': warehosue_id
+        }
+        seller_resp = seller_api.get_orders(params)
+        seller_resp_items = seller_resp.get('items', [])
+        count = count + len(seller_resp_items)
+        for item in seller_resp_items:
+            start_time = time.time()
+            item['shop'] = shop_id
+            url = f'{settings.INNER_URL}/shoporder/'
+            req_data = item
+            headers = {
+                'Authorization': f"Bearer {celeryuser['access_token']}",
+                'Token': celeryuser['openid'],
+                'Operator': str(staff_id)
+            }
+
+            response = requests.post(url, json=req_data, headers=headers)
+            str_response = response.content.decode('UTF-8')
+            json_response = json.loads(str_response)
+            json_response_status = json_response.get('status_code')
+            if response.status_code != 200 or (json_response_status and json_response_status != 200):
+                # response.content: { status_code: 5xx, detial: 'xxx' }
+                logger.error(f'task init Awaiting_Review order failed, response: {str_response}')
+            processing_time = time.time() - start_time
+            if processing_time > max_processing_time:
+                max_processing_time = processing_time
+
+        if seller_resp is None:
+            break
+        if not seller_resp.get('has_next', False):
+            break
+        offset = seller_resp['next']
+
+    logger.info(f'task handle init order for shop_id: {shop_id}, count: {count}, max_processing_time: {max_processing_time:.6f} seconds')
 
 
 def get_user(name, password):
