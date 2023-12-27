@@ -365,6 +365,12 @@ export default {
         $store.commit('loginauth/loginId', val)
       }
     })
+    const access_token = computed({
+      get: () => $store.state.loginauth.access_token,
+      set: val => {
+        $store.commit('loginauth/accessToken', val)
+      }
+    })
     const screenwidth = computed({
       get: () => $store.state.screenchange.screenwidth,
       set: val => {
@@ -440,6 +446,7 @@ export default {
       authin,
       login_name,
       operator,
+      access_token,
 
       cordovaDevice() {
          alert("Cordova version: " + device.cordova + "\n" +

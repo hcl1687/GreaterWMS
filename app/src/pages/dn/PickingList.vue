@@ -98,6 +98,9 @@ export default defineComponent({
     const operator = computed({
       get: () => $store.state.loginauth.operator,
     })
+    const access_token = computed({
+      get: () => $store.state.loginauth.access_token,
+    })
     const openid = computed({
       get: () => $store.state.settings.openid,
     })
@@ -206,7 +209,8 @@ export default defineComponent({
             "Content-Type": 'application/json, charset="utf-8"',
             "token" : openid.value,
             "language" : lang.value,
-            "operator" : operator.value
+            "operator" : operator.value,
+            "Authorization": `Bearer ${access_token.value}`,
           }
         }).then(res => {
           if (!res.data.detail) {
@@ -250,7 +254,8 @@ export default defineComponent({
             "Content-Type": 'application/json, charset="utf-8"',
             "token" : openid.value,
             "language" : lang.value,
-            "operator" : operator.value
+            "operator" : operator.value,
+            "Authorization": `Bearer ${access_token.value}`,
           }
         }).then(res => {
           if (!res.data.detail) {
@@ -291,7 +296,8 @@ export default defineComponent({
               "Content-Type": 'application/json',
               "token" : openid.value,
               "language" : lang.value,
-              "operator" : operator.value
+              "operator" : operator.value,
+              "Authorization": `Bearer ${access_token.value}`,
             }
           }).then(res => {
           if (!res.data.detail) {
@@ -363,6 +369,7 @@ export default defineComponent({
       login_name,
       openid,
       operator,
+      access_token,
       lang,
       requestauth,
       baseurl,

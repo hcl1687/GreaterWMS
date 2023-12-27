@@ -242,9 +242,6 @@ export default defineComponent({
             message: _this.$t('notice.mobile_userlogin.notice2')
           })
         } else {
-          if (_this.adminlogin.name === '3' && _this.adminlogin.password === '3') {
-            _this.$store.commit('settings/Server', 'https://production.56yhz.com/')
-          }
           _this.$axios.post(_this.baseurl + '/login/', _this.adminlogin)
             .then((res) => {
               if (res.data.code === '200') {
@@ -252,6 +249,7 @@ export default defineComponent({
                 _this.$store.commit('loginauth/loginAuth', '1')
                 _this.$store.commit('loginauth/loginName', res.data.data.name)
                 _this.$store.commit('loginauth/loginId', res.data.data.user_id)
+                _this.$store.commit('loginauth/accessToken', res.data.data.access_token)
                 _this.$q.notify({
                   message: _this.$t('notice.mobile_userlogin.notice6')
                 })

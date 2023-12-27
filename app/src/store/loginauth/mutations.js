@@ -9,3 +9,7 @@ export function loginName (state, opened) {
 export function loginId (state, opened) {
   state.operator = opened
 }
+
+export function accessToken (state, opened) {
+  state.access_token = opened
+}
