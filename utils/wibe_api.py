@@ -8,13 +8,18 @@ from dateutil.relativedelta import relativedelta
 from shoporder.status import Status
 import logging
 import time
+from urllib.parse import parse_qs
+from shop.models import ShopModel
 
 logger = logging.getLogger(__name__)
+PACK_WEIGHT_KEY = 'Вес товара с упаковкой (г)'
+PACK_WIDTH_KEY = 'Длина упаковки'
+PACK_HEIGHT_KEY = 'Высота упаковки'
+PACK_DEPTH_KEY = 'Ширина упаковки'
 
-class OZON_API():
+class WIBE_API():
     def __init__(self, shop_id: str, shop_data: dict):
         self._shop_id = shop_id
-        self._client_id = shop_data['client_id']
         self._api_key = shop_data['api_key']
         self._api_url = shop_data['api_url']
     
@@ -23,8 +28,7 @@ class OZON_API():
             headers = {}
             headers.update({'Content-Type': 'application/json'})
             headers.update({'Accept': 'application/json'})
-            headers.update({'Client-Id': self._client_id})
-            headers.update({'Api-Key': self._api_key})
+            headers.update({'Authorization': self._api_key})
             param_json = json.dumps(params, sort_keys=True, separators=(',', ':'))
             url = self._api_url + '{}'.format(path)
             logger.info(f'Request url: [{method}]{url} with params: {param_json}')
@@ -46,16 +50,33 @@ class OZON_API():
             return None
 
     def get_warehouses(self) -> json:
-        return self._request(path='/v1/warehouse/list')
+        warehouse_resp = self._request(path='/api/v3/warehouses', method='GET')
+        resp = {
+            'result': []
+        }
+        resp_list = resp['result']
+        for item in warehouse_resp:
+            resp_list.append({
+                'warehouse_id': item['id'],
+                'name': item['name']
+            })
+
+        return resp
 
     def get_products(self, params: dict) -> json:
-        if not params:
-            params = {
-                'last_id': '',
-                'limit': 30
-            }
-        product_resp = self._request(path='/v2/product/list', params=params)
-        product_list = product_resp.get('result', {}).get('items', [])
+        sort = self.get_sort_from_params(params)
+        _params = {
+            'sort': sort
+        }
+
+        shop_obj = ListModel.objects.filter(id=self._shop_id).first()
+        shopwarehouse_list = shop_obj.shopwarehouse.filter(is_delete=False)
+        warehosue_ids = []
+        for warehouse in shopwarehouse_list:
+            warehosue_ids.append(warehouse.platform_id)
+
+        product_resp = self._request(path='/v1/cards/cursor/list', params=_params)
+        product_list = product_resp.get('data', {}).get('cards', [])
         if len(product_list) == 0:
             return {
                 'count': 0,
@@ -63,55 +84,86 @@ class OZON_API():
                 'items': []
             }
 
-        product_id_list = []
+        vendor_code_list = []
+        sku_list = []
+        sku_nmid_map = {}
         for item in product_list:
-            product_id = item.get('product_id', '')
-            if product_id:
-                product_id_list.append(product_id)
+            nmid = item.get('nmID', '')
+            vendor_code = item.get('vendorCode', '')
+            if vendor_code:
+                vendor_code_list.append(vendor_code)
+            sizes = item.get('sizes', [])
+            if len(sizes) > 0:
+                size = sizes[0]
+                skus = size.get('skus', [])
+                if len(skus) > 0:
+                    sku_list.append(skus[0])
+                    sku_nmid_map[skus[0]] = nmid
 
         product_dict = {}
-        if len(product_id_list) > 0:
+        if len(vendor_code_list) > 0:
+            # get product detail info
             detail_params = {
-                'product_id': product_id_list,
+                'vendorCodes': vendor_code_list,
+                'allowedCategoriesOnly': True
             }
-            product_detail_resp = self._request(path='/v2/product/info/list', params=detail_params)
-            product_detail_list = product_detail_resp.get('result', {}).get('items', [])
+            product_detail_resp = self._request(path='/content/v1/cards/filter', params=detail_params)
+            product_detail_list = product_detail_resp.get('data', [])
             for item in product_detail_list:
-                id = item.get('id', '')
+                id = item.get('nmID', '')
                 if id:
                     product_dict[id] = item
 
-            attr_params = {
-                'filter': {
-                    'product_id': product_id_list,
-                },
-                'limit': params.get('limit')
+            # get product total stock
+            sku_stock_map = {}
+            stock_params = {
+                'skus': sku_list
             }
-            product_attr_resp = self._request(path='/v3/products/info/attributes', params=attr_params)
-            product_attr_list = product_attr_resp.get('result', [])
-            for item in product_attr_list:
-                id = item.get('id', '')
-                if id and product_dict.get(id):
-                    product_dict[id]['attr'] = item
+            for warehosue_id in warehosue_ids:
+                product_stock_resp = self._request(path=f'/api/v3/stocks/{warehosue_id}', params=stock_params)
+                product_stock_list = product_stock_resp.get('stocks', [])
+                for item in product_stock_list:
+                    sku = item.get('sku', '')
+                    stock = item.get('amount', 0)
+                    if not sku_stock_map[sku]:
+                        sku_stock_map[sku] = stock
+                    else:
+                        sku_stock_map[sku] += stock
+
+                    nmid = sku_nmid_map[sku]
+                    product_item = product_dict[nmid]
+                    if product_item:
+                        product_item['stock'] = sku_stock_map[sku]
 
         for item in product_list:
-            product_id = item.get('product_id', '')
-            if product_id and product_dict.get(product_id):
-                product_detail_dict = product_dict.get(product_id)
-                item['platform_id'] = product_id
-                item['platform_sku'] = product_detail_dict.get('fbs_sku', '')
-                item['name'] = product_detail_dict.get('name', '')
-                item['image'] = product_detail_dict.get('primary_image', '')
-                item['width'] = product_detail_dict.get('attr', {}).get('width', 0)
-                item['height'] = product_detail_dict.get('attr', {}).get('height', 0)
-                item['depth'] = product_detail_dict.get('attr', {}).get('depth', 0)
-                item['weight'] = product_detail_dict.get('attr', {}).get('weight', 0)
-                item['stock'] = product_detail_dict.get('stocks', {}).get('present', 0)
+            nmid = item.get('nmID', '')
+            if nmid and product_dict.get(nmid):
+                product_detail_dict = product_dict.get(nmid)
+                item['platform_id'] = nmid
+                item['platform_sku'] = nmid
+                item['name'] = item['title']
+                media_files = item.get('mediaFiles', [])
+                if len(media_files) > 0:
+                    item['image'] = media_files[0]
+                characteristics = product_detail_dict.get('characteristics', [])
+                for character in characteristics:
+                    if character[PACK_WIDTH_KEY]:
+                        item['width'] = int(character[PACK_WIDTH_KEY]) * 10
+                    elif character[PACK_HEIGHT_KEY]:
+                        item['height'] = int(character[PACK_HEIGHT_KEY]) * 10
+                    elif character[PACK_DEPTH_KEY]:
+                        item['depth'] = int(character[PACK_DEPTH_KEY]) * 10
+                    elif character[PACK_WEIGHT_KEY]:
+                        item['weight'] = int(character[PACK_WEIGHT_KEY])
+                item['stock'] = product_detail_dict.get('stock', 0)
 
+        cursor = product_resp.get('data', {}).get('cursor', {})
+        limit = sort['cursor']['limit']
+        last_id = self.get_last_id_from_cursor(cursor, limit)
         return {
-            'count': product_resp.get('result', {}).get('total', 0),
-            'last_id': product_resp.get('result', {}).get('last_id', ''),
-            'items': product_resp.get('result', {}).get('items', []),
+            'count': cursor.get('total', 0),
+            'last_id': last_id,
+            'items': product_resp.get('data', {}).get('cards', []),
         }
 
     def get_orders(self, params: dict) -> json:
@@ -208,4 +260,41 @@ class OZON_API():
             return Status.Cancelled
         else:
             return Status.Other
+
+    def get_sort_from_params(self, params):
+        sort = {
+            'cursor': {
+                'limit': 30
+            },
+            'filter': {
+                'withPhoto': -1
+            }
+        }
+
+        if not params:
+            return sort
+
+        last_id = params['last_id']
+        if last_id:
+            # last_id = 'updatedAt=2022-08-10T10:16:52Z&nmID=66964167'
+            last_obj = parse_qs(last_id)
+            if last_obj:
+                updated_at = last_obj.get('updatedAt')
+                nm_id = last_obj.get('nmID')
+                if updated_at:
+                    sort['cursor']['updatedAt'] = updated_at
+                if nm_id:
+                    sort['cursor']['nmID'] = nm_id
+
+        limit = params['limit']
+        if limit:
+            sort['cursor']['limit'] = int(limit)
+
+        return sort
+
+    def get_last_id_from_cursor(cursor, limit):
+        if cursor['total'] < limit:
+            return ''
+
+        return f"updatedAt={cursor['updatedAt']}&nmID={cursor['nmID']}"
 

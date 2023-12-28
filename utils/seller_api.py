@@ -2,6 +2,7 @@ from shop.models import ListModel
 import logging
 import json
 from utils.ozon_api import OZON_API
+from utils.wibe_api import WIBE_API
 
 class SELLER_API():
     def __init__(self, shop_id: str):
@@ -19,7 +20,9 @@ class SELLER_API():
             if shop_data:
                 self._api_data = shop_data
                 if shop_obj.shop_type == 'OZON':
-                    self._api = OZON_API(shop_data=shop_data)
+                    self._api = OZON_API(shop_id=shop_id, shop_data=shop_data)
+                elif shop_obj.shop_type == 'WIBE':
+                    self._api = WIBE_API(shop_id=shop_id, shop_data=shop_data)
 
     def get_warehouses(self) -> json:
         if self._api is None:
