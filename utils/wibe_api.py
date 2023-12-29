@@ -125,10 +125,10 @@ class WIBE_API():
                 for item in product_stock_list:
                     sku = item.get('sku', '')
                     stock = item.get('amount', 0)
-                    if not sku_stock_map[sku]:
-                        sku_stock_map[sku] = stock
-                    else:
+                    if sku_stock_map.has_key(sku):
                         sku_stock_map[sku] += stock
+                    else:
+                        sku_stock_map[sku] = stock
 
                     nmid = sku_nmid_map[sku]
                     product_item = product_dict[nmid]
