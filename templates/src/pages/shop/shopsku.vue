@@ -169,6 +169,7 @@
 <script>
 import { getauth, postauth, patchauth, deleteauth, getfile } from 'boot/axios_request'
 import { date, exportFile, LocalStorage } from 'quasar'
+const PAGE_SIZE = 100
 
 export default {
   name: 'Pageshopwarehouse',
@@ -201,7 +202,7 @@ export default {
       ],
       pagination: {
         page: 1,
-        rowsPerPage: '100'
+        rowsPerPage: PAGE_SIZE
       },
       editid: 0,
       editFormData: {},
@@ -277,10 +278,10 @@ export default {
           if (res.count === 0) {
             _this.max = 0
           } else {
-            if (Math.ceil(res.count / 30) === 1) {
+            if (Math.ceil(res.count / PAGE_SIZE) === 1) {
               _this.max = 0
             } else {
-              _this.max = Math.ceil(res.count / 30)
+              _this.max = Math.ceil(res.count / PAGE_SIZE)
             }
           }
         })

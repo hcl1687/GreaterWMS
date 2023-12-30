@@ -186,7 +186,7 @@ class APIViewSet(viewsets.ModelViewSet):
             qs_set = ListModel.objects.filter(openid=data['openid'])
             order_day =str(timezone.now().strftime('%Y%m%d'))
             if len(qs_set) > 0:
-                gc_last_code = qs_set.order_by('-id').first().goods_code
+                gc_last_code = qs_set.filter(goods_code__iregex=r'^GC\d{8}\d+$').order_by('-id').first().goods_code
                 if str(gc_last_code[2:10]) == order_day:
                     order_create_no = str(int(gc_last_code[10:]) + 1)
                     data['goods_code'] = 'GC' + order_day + order_create_no

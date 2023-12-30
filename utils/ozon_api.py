@@ -1,6 +1,3 @@
-from userprofile.models import Users
-from staff.models import ListModel, TypeListModel
-from supplier.models import ListModel as SupplierModel
 import requests
 import json
 from datetime import datetime

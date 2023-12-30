@@ -1,6 +1,3 @@
-from userprofile.models import Users
-from staff.models import ListModel, TypeListModel
-from supplier.models import ListModel as SupplierModel
 import requests
 import json
 from datetime import datetime
@@ -8,8 +5,8 @@ from dateutil.relativedelta import relativedelta
 from shoporder.status import Status
 import logging
 import time
-from urllib.parse import parse_qs
-from shop.models import ShopModel
+from urllib.parse import parse_qs, quote, unquote
+from shop.models import ListModel as ShopModel
 
 logger = logging.getLogger(__name__)
 PACK_WEIGHT_KEY = 'Вес товара с упаковкой (г)'
@@ -69,13 +66,13 @@ class WIBE_API():
             'sort': sort
         }
 
-        shop_obj = ListModel.objects.filter(id=self._shop_id).first()
+        shop_obj = ShopModel.objects.filter(id=self._shop_id).first()
         shopwarehouse_list = shop_obj.shopwarehouse.filter(is_delete=False)
         warehosue_ids = []
         for warehouse in shopwarehouse_list:
             warehosue_ids.append(warehouse.platform_id)
 
-        product_resp = self._request(path='/v1/cards/cursor/list', params=_params)
+        product_resp = self._request(path='/content/v1/cards/cursor/list', params=_params)
         product_list = product_resp.get('data', {}).get('cards', [])
         if len(product_list) == 0:
             return {
@@ -125,7 +122,7 @@ class WIBE_API():
                 for item in product_stock_list:
                     sku = item.get('sku', '')
                     stock = item.get('amount', 0)
-                    if sku_stock_map.has_key(sku):
+                    if sku in sku_stock_map:
                         sku_stock_map[sku] += stock
                     else:
                         sku_stock_map[sku] = stock
@@ -146,25 +143,60 @@ class WIBE_API():
                 if len(media_files) > 0:
                     item['image'] = media_files[0]
                 characteristics = product_detail_dict.get('characteristics', [])
+                item['width'] = 0
+                item['height'] = 0
+                item['depth'] = 0
+                item['weight'] = 0
                 for character in characteristics:
-                    if character[PACK_WIDTH_KEY]:
+                    if PACK_WIDTH_KEY in character:
                         item['width'] = int(character[PACK_WIDTH_KEY]) * 10
-                    elif character[PACK_HEIGHT_KEY]:
+                    elif PACK_HEIGHT_KEY in character:
                         item['height'] = int(character[PACK_HEIGHT_KEY]) * 10
-                    elif character[PACK_DEPTH_KEY]:
+                    elif PACK_DEPTH_KEY in character:
                         item['depth'] = int(character[PACK_DEPTH_KEY]) * 10
-                    elif character[PACK_WEIGHT_KEY]:
+                    elif PACK_WEIGHT_KEY in character:
                         item['weight'] = int(character[PACK_WEIGHT_KEY])
                 item['stock'] = product_detail_dict.get('stock', 0)
 
         cursor = product_resp.get('data', {}).get('cursor', {})
         limit = sort['cursor']['limit']
         last_id = self.get_last_id_from_cursor(cursor, limit)
+        count = self.get_products_count()
+
         return {
-            'count': cursor.get('total', 0),
+            'count': count,
             'last_id': last_id,
             'items': product_resp.get('data', {}).get('cards', []),
         }
+
+    def get_products_count(self) -> int:
+        limit = 1000
+        _params = {
+            'sort': {
+                'cursor': {
+                    'limit': limit
+                },
+                'filter': {
+                    'withPhoto': -1
+                }
+            }
+        }
+
+        count = 0
+        while True:
+            product_resp = self._request(path='/content/v1/cards/cursor/list', params=_params)
+            cursor = product_resp.get('data', {}).get('cursor', {})
+            total = cursor.get('total', 0)
+            count += total
+            nm_id = cursor.get('nmID', 0)
+            update_at = cursor.get('updatedAt', '')
+            if total < limit:
+                break
+            else:
+                _params['sort']['cursor']['nmID'] = nm_id
+                _params['sort']['cursor']['updatedAt'] = update_at
+
+        return count
 
     def get_orders(self, params: dict) -> json:
         default_now = datetime.now()
@@ -277,14 +309,18 @@ class WIBE_API():
         last_id = params['last_id']
         if last_id:
             # last_id = 'updatedAt=2022-08-10T10:16:52Z&nmID=66964167'
-            last_obj = parse_qs(last_id)
+            last_obj = parse_qs(unquote(last_id))
             if last_obj:
                 updated_at = last_obj.get('updatedAt')
                 nm_id = last_obj.get('nmID')
                 if updated_at:
-                    sort['cursor']['updatedAt'] = updated_at
+                    sort['cursor']['updatedAt'] = updated_at[0]
                 if nm_id:
-                    sort['cursor']['nmID'] = nm_id
+                    try:
+                        nm_id_value = int(nm_id[0])
+                        sort['cursor']['nmID'] = nm_id_value
+                    except ValueError:
+                        logger.error(f'parse nmId {nm_id} to int failed')
 
         limit = params['limit']
         if limit:
@@ -292,9 +328,9 @@ class WIBE_API():
 
         return sort
 
-    def get_last_id_from_cursor(cursor, limit):
+    def get_last_id_from_cursor(self, cursor, limit):
         if cursor['total'] < limit:
             return ''
 
-        return f"updatedAt={cursor['updatedAt']}&nmID={cursor['nmID']}"
+        return quote(f"updatedAt={cursor['updatedAt']}&nmID={cursor['nmID']}")
 
