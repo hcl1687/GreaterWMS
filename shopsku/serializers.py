@@ -6,6 +6,7 @@ from shop.serializers import ShopGetSerializer
 class ShopskuGetSerializer(serializers.ModelSerializer):
     platform_id = serializers.CharField(read_only=True, required=False)
     platform_sku = serializers.CharField(read_only=True, required=False)
+    platform_data = serializers.CharField(read_only=True, required=False)
     goods_code = serializers.CharField(read_only=True, required=False)
     supplier = serializers.CharField(read_only=True, required=False)
     creater = serializers.CharField(read_only=True, required=False)
@@ -58,6 +59,7 @@ class FileRenderSerializer(serializers.ModelSerializer):
     shop_type = serializers.CharField(source='shop.shop_type', read_only=False, required=True, validators=[datasolve.data_validate])
     platform_id = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     platform_sku = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
+    platform_data = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     goods_code = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     platform_stock = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     sys_stock = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])

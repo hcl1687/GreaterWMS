@@ -157,6 +157,9 @@ class WIBE_API():
                     elif PACK_WEIGHT_KEY in character:
                         item['weight'] = int(character[PACK_WEIGHT_KEY])
                 item['stock'] = product_detail_dict.get('stock', 0)
+                item['platform_data'] = json.dumps({
+                    'vendorCode': item['vendorCode']
+                })
 
         cursor = product_resp.get('data', {}).get('cursor', {})
         limit = sort['cursor']['limit']

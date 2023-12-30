@@ -127,6 +127,7 @@ class APIViewSet(viewsets.ModelViewSet):
             item['depth'] = seller_item['depth']
             item['weight'] = seller_item['weight']
             item['platform_stock'] = seller_item['stock']
+            item['platform_data'] = seller_item['platform_data']
             if seller_product_id in new_dict:
                 sys_item = new_dict[seller_product_id]
                 item['sys_id'] = sys_item['id']

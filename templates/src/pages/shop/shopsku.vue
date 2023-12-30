@@ -461,7 +461,7 @@ export default {
       try {
         for (let i = 0; i < selected.length; i++) {
           const item = selected[i]
-          if (item.goods_code) {
+          if (item.sys_id) {
             continue
           }
 
@@ -484,6 +484,18 @@ export default {
             goods_w: item['width'],
             goods_weight: item['weight']
           }
+
+          if (item.shop_type === 'WIBE') {
+            try {
+              const platform_data = JSON.parse(item.platform_data)
+              if (platform_data && platform_data.vendorCode) {
+                data.goods_code = platform_data.vendorCode
+              }
+            } catch (e) {
+              console.error(e)
+            }
+          }
+
           const res = await postauth('goods/', data)
 
           // bind
