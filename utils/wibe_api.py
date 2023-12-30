@@ -202,44 +202,11 @@ class WIBE_API():
         return count
 
     def get_orders(self, params: dict) -> json:
-        default_now = datetime.now()
-        default_since = default_now + relativedelta(days=-300)
-        default_now = default_now.strftime("%Y-%m-%dT%H:%M:%SZ")
-        default_since = default_since.strftime("%Y-%m-%dT%H:%M:%SZ")
-        if not params:
-            _params = {
-                'offset': 0,
-                'limit': 50,
-                'filter': {
-                    'since': default_since,
-                    'to': default_now,
-                    'status': ''
-                }
-            }
+        order_resp
+        if params['status'] == Status.Awaiting_Review:
+            order_resp = self.get_new_orders(params)
         else:
-            status = self.toPlatformStatus(params['status'])
-            _params = {
-                'offset': params.get('offset', 0),
-                'limit': params.get('limit', 50),
-                'filter': {
-                    'since': default_since,
-                    'to': default_now,
-                    'status': status
-                }
-            }
-
-            # params.since params.to are timestamp
-            since = params['since']
-            to = params['to']
-            if since:
-                _params['filter']['since'] = since
-            if to:
-                _params['filter']['to'] = to
-            # filter by warehouse id
-            if params['warehouse_id']:
-                _params['filter']['warehouse_id'] = params['warehouse_id']
-
-        order_resp = self._request(path='/v3/posting/fbs/list', params=_params)
+            order_resp = self.get_orders_by_filter(params)
         order_list = order_resp.get('result', {}).get('postings', [])
 
         order_dict = {
@@ -272,6 +239,69 @@ class WIBE_API():
 
         return order_dict
     
+    def get_new_orders(self, params: dict):
+        order_resp = self._request(path='/api/v3/orders/new', method='GET')
+        order_list = order_resp.get('orders', [])
+        result = order_list
+        if params['warehouse_id']:
+            warehouse_id = params['warehouse_id']
+            result = [item for item in order_list if str(item['warehouseId']) in warehouse_id]
+
+        return result
+    
+    def get_orders_by_filter(self, params: dict):
+        default_now = datetime.now()
+        default_since = default_now + relativedelta(days=-300)
+        default_now = int(default_now.timestamp())
+        default_since = int(default_since.timestamp())
+        if not params:
+            status = ''
+            warehouse_id = []
+            _params = {
+                'next': 0,
+                'limit': 1000,
+                'dateFrom': default_since,
+                'dateTo': default_now,
+                'status': ''
+            }
+        else:
+            status = self.toPlatformStatus(params['status'])
+            warehouse_id = params.get('warehouse_id', [])
+            _params = {
+                'next': params.get('offset', 0),
+                'limit': params.get('limit', 1000),
+                'dateFrom': default_since,
+                'dateTo': default_now,
+            }
+
+            # params.since params.to are timestamp
+            since = params['since']
+            to = params['to']
+            if since:
+                since = int(datetime.strptime(since, "%Y-%m-%dT%H:%M:%SZ").timestamp())
+                _params['dateFrom'] = since
+            if to:
+                to = int(datetime.strptime(to, "%Y-%m-%dT%H:%M:%SZ").timestamp())
+                _params['dateTo'] = to
+
+        order_resp = self._request(path='/api/v3/orders', method='GET', params=_params)
+        order_resp_next = order_resp.get('next', 0)
+        order_list = order_resp.get('orders', [])
+        order_dict = {}
+        for item in order_list:
+            order_dict[item.id] = item
+
+        # get orders' latest status
+        order_ids = [item.id for item in order_list]
+        status_params = {
+            'orders': order_ids
+        }
+        order_status_resp = self._request(path='/api/v3/orders/status', method='GET', params=status_params)
+        order_status_list = order_status_resp.get('orders', [])
+        for item in order_status_list:
+            order_item = order_dict[item.id]
+            order_item['status'] = item['supplierStatus']
+
     def toPlatformStatus(self, status):
         if status == Status.Awaiting_Review:
             return 'awaiting_packaging'
