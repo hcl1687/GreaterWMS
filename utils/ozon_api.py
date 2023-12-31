@@ -43,7 +43,13 @@ class OZON_API():
             return None
 
     def get_warehouses(self) -> json:
-        return self._request(path='/v1/warehouse/list')
+        resp = self._request(path='/v1/warehouse/list')
+        if resp is None:
+            resp = {
+                'result': []
+            }
+
+        return resp
 
     def get_products(self, params: dict) -> json:
         if not params:
@@ -52,7 +58,10 @@ class OZON_API():
                 'limit': 30
             }
         product_resp = self._request(path='/v2/product/list', params=params)
-        product_list = product_resp.get('result', {}).get('items', [])
+        if product_resp is None:
+            product_list = []
+        else:
+            product_list = product_resp.get('result', {}).get('items', [])
         if len(product_list) == 0:
             return {
                 'count': 0,
@@ -72,7 +81,10 @@ class OZON_API():
                 'product_id': product_id_list,
             }
             product_detail_resp = self._request(path='/v2/product/info/list', params=detail_params)
-            product_detail_list = product_detail_resp.get('result', {}).get('items', [])
+            if product_detail_resp is None:
+                product_detail_list = []
+            else:
+                product_detail_list = product_detail_resp.get('result', {}).get('items', [])
             for item in product_detail_list:
                 id = item.get('id', '')
                 if id:
@@ -85,7 +97,10 @@ class OZON_API():
                 'limit': params.get('limit')
             }
             product_attr_resp = self._request(path='/v3/products/info/attributes', params=attr_params)
-            product_attr_list = product_attr_resp.get('result', [])
+            if product_attr_resp is None:
+                product_attr_list = []
+            else:
+                product_attr_list = product_attr_resp.get('result', [])
             for item in product_attr_list:
                 id = item.get('id', '')
                 if id and product_dict.get(id):
@@ -151,10 +166,15 @@ class OZON_API():
                 _params['filter']['warehouse_id'] = params['warehouse_id']
 
         order_resp = self._request(path='/v3/posting/fbs/list', params=_params)
-        order_list = order_resp.get('result', {}).get('postings', [])
+        if order_resp is None:
+            has_next = False
+            order_list = []
+        else:
+            has_next = order_resp.get('result', {}).get('has_next', False)
+            order_list = order_resp.get('result', {}).get('postings', [])
 
         order_dict = {
-            'has_next': order_resp.get('result', {}).get('has_next', False),
+            'has_next': has_next,
             'next': _params['offset'] + _params['limit'],
             'items': []
         }

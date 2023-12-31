@@ -44,6 +44,7 @@
           <q-tr :props="props">
             <q-td key="shop_name" :props="props">{{ props.row.shop_name }}</q-td>
             <q-td key="shop_type" :props="props">{{ props.row.shop_type }}</q-td>
+            <q-td key="supplier" :props="props">{{ props.row.supplier }}</q-td>
             <q-td key="create_time" :props="props">{{ showLocalTime(props.row.create_time) }}</q-td>
             <q-td key="update_time" :props="props">{{ showLocalTime(props.row.update_time) }}</q-td>
             <q-td key="action" :props="props" style="width: 250px">
@@ -223,6 +224,7 @@ export default {
       columns: [
         { name: 'shop_name', required: true, label: this.$t('shop.shop_name'), align: 'left', field: 'shop_name' },
         { name: 'shop_type', label: this.$t('shoptype.shop_type'), field: 'shop_type', align: 'center' },
+        { name: 'supplier', required: true, label: this.$t('shop.supplier'), align: 'center', field: 'supplier' },
         { name: 'create_time', label: this.$t('createtime'), field: 'create_time', align: 'center' },
         { name: 'update_time', label: this.$t('updatetime'), field: 'update_time', align: 'center' },
         { name: 'action', label: this.$t('action'), align: 'center' }

@@ -7,6 +7,7 @@ import logging
 import time
 from urllib.parse import parse_qs, quote, unquote
 from shop.models import ListModel as ShopModel
+from shopsku.models import ListModel as ShopskuModel
 
 logger = logging.getLogger(__name__)
 PACK_WEIGHT_KEY = 'Вес товара с упаковкой (г)'
@@ -34,7 +35,7 @@ class WIBE_API():
             if method == 'POST':
                 response = requests.post(url=url, data=param_json, headers=headers)
             elif method == 'GET':
-                response = requests.get(url=url, params=param_json, headers=headers)
+                response = requests.get(url=url, params=params, headers=headers)
             processing_time = time.time() - start_time
             logger.info(f'Request url: [{method}]{url} took {processing_time:.6f} seconds.')
 
@@ -51,6 +52,9 @@ class WIBE_API():
         resp = {
             'result': []
         }
+        if warehouse_resp is None:
+            return resp
+
         resp_list = resp['result']
         for item in warehouse_resp:
             resp_list.append({
@@ -73,6 +77,13 @@ class WIBE_API():
             warehosue_ids.append(warehouse.platform_id)
 
         product_resp = self._request(path='/content/v1/cards/cursor/list', params=_params)
+        if product_resp is None:
+            return {
+                'count': 0,
+                'last_id': '',
+                'items': []
+            }
+
         product_list = product_resp.get('data', {}).get('cards', [])
         if len(product_list) == 0:
             return {
@@ -93,9 +104,9 @@ class WIBE_API():
             if len(sizes) > 0:
                 size = sizes[0]
                 skus = size.get('skus', [])
-                if len(skus) > 0:
-                    sku_list.append(skus[0])
-                    sku_nmid_map[skus[0]] = nmid
+                for sku in skus:
+                    sku_list.append(sku)
+                    sku_nmid_map[sku] = nmid
 
         product_dict = {}
         if len(vendor_code_list) > 0:
@@ -105,7 +116,11 @@ class WIBE_API():
                 'allowedCategoriesOnly': True
             }
             product_detail_resp = self._request(path='/content/v1/cards/filter', params=detail_params)
-            product_detail_list = product_detail_resp.get('data', [])
+            if product_detail_resp is None:
+                product_detail_list = []
+            else:
+                product_detail_list = product_detail_resp.get('data', [])
+
             for item in product_detail_list:
                 id = item.get('nmID', '')
                 if id:
@@ -118,7 +133,11 @@ class WIBE_API():
             }
             for warehosue_id in warehosue_ids:
                 product_stock_resp = self._request(path=f'/api/v3/stocks/{warehosue_id}', params=stock_params)
-                product_stock_list = product_stock_resp.get('stocks', [])
+                if product_stock_resp is None:
+                    product_stock_list = []
+                else:
+                    product_stock_list = product_stock_resp.get('stocks', [])
+
                 for item in product_stock_list:
                     sku = item.get('sku', '')
                     stock = item.get('amount', 0)
@@ -127,19 +146,25 @@ class WIBE_API():
                     else:
                         sku_stock_map[sku] = stock
 
-                    nmid = sku_nmid_map[sku]
+            # update product item's stock
+            for sku in list(sku_stock_map.keys()):
+                nmid = sku_nmid_map[sku]
+                if nmid in product_dict:
                     product_item = product_dict[nmid]
-                    if product_item:
+                    if 'stock' in product_item:
+                        product_item['stock'] += sku_stock_map[sku]
+                    else:
                         product_item['stock'] = sku_stock_map[sku]
 
         for item in product_list:
             nmid = item.get('nmID', '')
             if nmid and product_dict.get(nmid):
-                product_detail_dict = product_dict.get(nmid)
+                product_detail_dict = product_dict.get(nmid, {})
                 item['platform_id'] = nmid
                 item['platform_sku'] = nmid
                 item['name'] = item['title']
                 media_files = item.get('mediaFiles', [])
+                item['image'] = ''
                 if len(media_files) > 0:
                     item['image'] = media_files[0]
                 characteristics = product_detail_dict.get('characteristics', [])
@@ -188,6 +213,8 @@ class WIBE_API():
         count = 0
         while True:
             product_resp = self._request(path='/content/v1/cards/cursor/list', params=_params)
+            if product_resp is None:
+                break
             cursor = product_resp.get('data', {}).get('cursor', {})
             total = cursor.get('total', 0)
             count += total
@@ -202,35 +229,45 @@ class WIBE_API():
         return count
 
     def get_orders(self, params: dict) -> json:
-        order_resp
         if params['status'] == Status.Awaiting_Review:
             order_resp = self.get_new_orders(params)
         else:
             order_resp = self.get_orders_by_filter(params)
-        order_list = order_resp.get('result', {}).get('postings', [])
+
+        nm_ids = [item.get('nmId', 0) for item in order_resp['items']]
+        # remove duplicate elements
+        nm_ids = list(set(nm_ids))
+        shopsku_list = ShopskuModel.objects.filter(platform_id__in=nm_ids)
+        shopsku_dict = {}
+        for item in shopsku_list:
+            shopsku_dict[item.platform_id] = item
 
         order_dict = {
-            'has_next': order_resp.get('result', {}).get('has_next', False),
-            'next': _params['offset'] + _params['limit'],
+            'has_next': order_resp.get('has_next', False),
+            'next': order_resp.get('next', 0),
             'items': []
         }
+        for item in order_resp['items']:
+            nm_id = item.get('nmId', 0)
+            name = ''
+            if nm_id in shopsku_dict:
+                name = shopsku_dict[nm_id].name
+            order_products = [{
+                'name': name,
+                'sku': nm_id,
+                'quantity': 1
+            }]
 
-        for item in order_list:
-            products = item.get('products', [])
-            order_products = []
-            for product in products:
-                order_products.append({
-                    'name': product.get('name', ''),
-                    'sku': product.get('sku', 0),
-                    'quantity': product.get('quantity', 0)
-                })
+            create_time = item['createdAt']
+            shipment_time = datetime.strptime(create_time, "%Y-%m-%dT%H:%M:%SZ") + relativedelta(days=3)
+            shipment_time = shipment_time.strftime("%Y-%m-%dT%H:%M:%SZ")
 
             order_item = {
-                'platform_id': item['order_id'],
-                'platform_warehouse_id': item.get('delivery_method', {}).get('warehouse_id'),
-                'posting_number': item['posting_number'],
-                'order_time': item['in_process_at'],
-                'shipment_time': item['shipment_date'],
+                'platform_id': item['id'],
+                'platform_warehouse_id': item.get('warehouseId'),
+                'posting_number': item['id'],
+                'order_time': create_time,
+                'shipment_time': shipment_time,
                 'status': self.toSystemStatus(item['status']),
                 'order_data': json.dumps(item),
                 'order_products': json.dumps(order_products)
@@ -238,16 +275,64 @@ class WIBE_API():
             order_dict['items'].append(order_item)
 
         return order_dict
-    
-    def get_new_orders(self, params: dict):
-        order_resp = self._request(path='/api/v3/orders/new', method='GET')
-        order_list = order_resp.get('orders', [])
-        result = order_list
-        if params['warehouse_id']:
-            warehouse_id = params['warehouse_id']
-            result = [item for item in order_list if str(item['warehouseId']) in warehouse_id]
 
-        return result
+    def get_new_orders(self, params: dict):
+        default_now = datetime.now()
+        default_since = default_now + relativedelta(days=-300)
+        default_now = int(default_now.timestamp())
+        default_since = int(default_since.timestamp())
+        if not params:
+            warehouse_id = []
+            _params = {
+                'next': 0,
+                'limit': 1000,
+                'dateFrom': default_since,
+                'dateTo': default_now
+            }
+        else:
+            warehouse_id = params.get('warehouse_id', [])
+            _params = {
+                'next': params.get('offset', 0),
+                'limit': params.get('limit', 1000),
+                'dateFrom': default_since,
+                'dateTo': default_now,
+            }
+
+            # params.since params.to are timestamp
+            since = params['since']
+            to = params['to']
+            if since:
+                since = int(datetime.strptime(since, "%Y-%m-%dT%H:%M:%SZ").timestamp())
+                _params['dateFrom'] = since
+            if to:
+                to = int(datetime.strptime(to, "%Y-%m-%dT%H:%M:%SZ").timestamp())
+                _params['dateTo'] = to
+
+        order_resp = self._request(path='/api/v3/orders/new', method='GET')
+        if order_resp is None:
+            order_list = []
+        else:
+            order_list = order_resp.get('orders', [])
+
+        # filter by warehouse_id
+        if len(warehouse_id) > 0:
+            order_list = [item for item in order_list if str(item['warehouseId']) in warehouse_id]
+
+        # filter by date
+        items = []
+        for order in order_list:
+            created_at = int(datetime.strptime(order['createdAt'], "%Y-%m-%dT%H:%M:%SZ").timestamp())
+            if created_at >= _params['dateFrom'] and created_at <= _params['dateTo']:
+                order['status'] = 'new'
+                items.append(order)
+
+        logger.info(f'WIBE get_new_orders with {json.dumps(params)}, items length: {len(items)}')
+
+        return {
+            'has_next': False,
+            'next': 0,
+            'items': items
+        }
     
     def get_orders_by_filter(self, params: dict):
         default_now = datetime.now()
@@ -261,8 +346,7 @@ class WIBE_API():
                 'next': 0,
                 'limit': 1000,
                 'dateFrom': default_since,
-                'dateTo': default_now,
-                'status': ''
+                'dateTo': default_now
             }
         else:
             status = self.toPlatformStatus(params['status'])
@@ -285,43 +369,66 @@ class WIBE_API():
                 _params['dateTo'] = to
 
         order_resp = self._request(path='/api/v3/orders', method='GET', params=_params)
-        order_resp_next = order_resp.get('next', 0)
-        order_list = order_resp.get('orders', [])
+        if order_resp is None:
+            order_resp_next = 0
+            order_list = []
+        else:
+            order_resp_next = order_resp.get('next', 0)
+            order_list = order_resp.get('orders', [])
+        # filter by warehouse_id
+        if len(warehouse_id) > 0:
+            order_list = [item for item in order_list if str(item['warehouseId']) in warehouse_id]
         order_dict = {}
         for item in order_list:
-            order_dict[item.id] = item
+            order_dict[item['id']] = item
 
         # get orders' latest status
-        order_ids = [item.id for item in order_list]
-        status_params = {
-            'orders': order_ids
+        if len(order_list) > 0:
+            order_ids = [item['id'] for item in order_list]
+            status_params = {
+                'orders': order_ids
+            }
+            order_status_resp = self._request(path='/api/v3/orders/status', params=status_params)
+            if order_status_resp is None:
+                order_status_list = []
+            else:
+                order_status_list = order_status_resp.get('orders', [])
+            for item in order_status_list:
+                order_item = order_dict[item['id']]
+                order_item['status'] = item['supplierStatus']
+
+        # filter by status
+        if status:
+            order_list = [item for item in order_list if item['status'] == status]
+
+        logger.info(f'WIBE get_orders_by_filter with {json.dumps(params)}, items length: {len(order_list)}')
+
+        return {
+            'has_next': order_resp_next != 0,
+            'next': order_resp_next,
+            'items': order_list
         }
-        order_status_resp = self._request(path='/api/v3/orders/status', method='GET', params=status_params)
-        order_status_list = order_status_resp.get('orders', [])
-        for item in order_status_list:
-            order_item = order_dict[item.id]
-            order_item['status'] = item['supplierStatus']
 
     def toPlatformStatus(self, status):
         if status == Status.Awaiting_Review:
-            return 'awaiting_packaging'
+            return 'new'
         elif status == Status.Awaiting_Deliver:
-            return 'awaiting_deliver'
+            return 'confirm'
         elif status == Status.Delivering:
-            return 'delivering'
+            return 'complete'
         elif status == Status.Cancelled:
-            return 'cancelled'
+            return 'cancel'
         else:
             return ''
 
     def toSystemStatus(self, status):
-        if status == 'awaiting_packaging':
+        if status == 'new':
             return Status.Awaiting_Review
-        elif status == 'awaiting_deliver':
+        elif status == 'confirm':
             return Status.Awaiting_Deliver
-        elif status == 'delivering':
+        elif status == 'complete':
             return Status.Delivering
-        elif status == 'cancelled':
+        elif status == 'cancel':
             return Status.Cancelled
         else:
             return Status.Other
