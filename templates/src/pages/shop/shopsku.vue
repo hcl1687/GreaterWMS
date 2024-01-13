@@ -494,6 +494,15 @@ export default {
             } catch (e) {
               console.error(e)
             }
+          } else if (item.shop_type === 'YADE') {
+            try {
+              const platform_data = JSON.parse(item.platform_data)
+              if (platform_data && platform_data.barcode) {
+                data.goods_code = platform_data.barcode
+              }
+            } catch (e) {
+              console.error(e)
+            }
           }
 
           const res = await postauth('goods/', data)
@@ -580,11 +589,11 @@ export default {
   },
   mounted () {
     var _this = this
-    if (_this.$q.platform.is.electron) {
-      _this.height = String(_this.$q.screen.height - 290) + 'px'
-    } else {
-      _this.height = _this.$q.screen.height - 290 + '' + 'px'
-    }
+    // if (_this.$q.platform.is.electron) {
+    //   _this.height = String(_this.$q.screen.height - 290) + 'px'
+    // } else {
+    //   _this.height = _this.$q.screen.height - 290 + '' + 'px'
+    // }
   },
   updated () {
   },
