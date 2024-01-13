@@ -742,6 +742,7 @@ export default {
     search_dn_code: 'Search by dn code',
     today: 'Today',
     tomorrow: 'Tomorrow',
-    after_tomorrow: 'The day after tomorrow'
+    after_tomorrow: 'The day after tomorrow',
+    can_order_stock: 'Stock'
   }
 }

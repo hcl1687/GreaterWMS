@@ -1862,6 +1862,10 @@ class DnPickingListViewSet(viewsets.ModelViewSet):
         else:
             picking_qs = PickingListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), dn_code=qs.dn_code)
             serializer = serializers.DNPickingListGetSerializer(picking_qs, many=True)
+            for item in serializer.data:
+                goods_qty_change = stocklist.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
+                                                            goods_code=str(item['goods_code'])).first()
+                item['can_order_stock'] = goods_qty_change.can_order_stock
             return Response(serializer.data, status=200)
 
 class DnPickingListFilterViewSet(viewsets.ModelViewSet):

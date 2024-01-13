@@ -722,7 +722,7 @@ export default {
     platform_id: '平台ID',
     platform_warehouse_id: '平台仓库ID',
     platform_warehouse_name: '平台仓库名字',
-    posting_number: '平台发货单号',
+    posting_number: '客户单号',
     order_time: '平台下单时间',
     shipment_time: '平台发货时间',
     status: '状态',
@@ -743,6 +743,7 @@ export default {
     search_dn_code: '发货单号搜索',
     today: '今天',
     tomorrow: '明天',
-    after_tomorrow: '后天'
+    after_tomorrow: '后天',
+    can_order_stock: '库存'
   }
 }

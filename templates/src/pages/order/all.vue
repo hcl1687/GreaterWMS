@@ -300,26 +300,29 @@
           <div>{{ $t('print') }}</div>
           <q-space />
         </q-bar>
-        <div class="col-4" style="margin-top: 5%;"><img :src="bar_code" style="width: 21%;margin-left: 70%" /></div>
+        <div class="col-4" style="margin-top: 5%;"><img :src="printPickingListData.bar_code" style="width: 21%;margin-left: 70%" /></div>
         <q-markup-table>
           <thead>
             <tr>
               <th class="text-left">{{ $t('outbound.view_dn.dn_code') }}</th>
+              <th class="text-left">{{ $t('order.posting_number') }}</th>
+              <th class="text-right">{{ $t('shopsku.goods_code') }}</th>
               <th class="text-right">{{ $t('warehouse.view_binset.bin_name') }}</th>
-              <th class="text-right">{{ $t('outbound.view_dn.goods_qty') }}</th>
               <th class="text-right">{{ $t('outbound.pickstock') }}</th>
               <th class="text-right">{{ $t('outbound.pickedstock') }}</th>
+              <th class="text-left">{{ $t('order.can_order_stock') }}</th>
               <th class="text-right">Comments</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="(view, index) in pickinglist_print_table" :key="index">
               <td class="text-left">{{ view.dn_code }}</td>
+              <td class="text-left">{{ printPickingListData.posting_number }}</td>
+              <td class="text-right">{{ view.goods_code }}</td> 
               <td class="text-right">{{ view.bin_name }}</td>
-              <td class="text-right">{{ view.goods_code }}</td>
               <td class="text-right">{{ view.pick_qty }}</td>
-              <td class="text-right" v-show="picklist_check === 0"></td>
-              <td class="text-right" v-show="picklist_check > 0">{{ view.picked_qty }}</td>
+              <td class="text-right">{{ picklist_check > 0 ? view.picked_qty : '' }}</td>
+              <td class="text-right">{{ view.can_order_stock }}</td>
               <td class="text-right"></td>
             </tr>
           </tbody>
@@ -427,7 +430,7 @@ export default {
       deleteid: 0,
       supplier_list: [],
       supplier_list1: [],
-      bar_code: '',
+      printPickingListData: {},
       pickinglist_print_table: [],
       picklist_check: 0,
       viewPLForm: false,
@@ -509,7 +512,27 @@ export default {
       }
 
       this.filter_shipment_date_range = `${start},${end}`
-      this.getList()
+      this.getList().then(() => {
+        if (val === 'today') {
+          this.shipmentDate3Options = [
+            { label: `${this.$t('order.today')}(${this.total})`, value: 'today' },
+            { label: this.$t('order.tomorrow'), value: 'tomorrow' },
+            { label: this.$t('order.after_tomorrow'), value: 'after_tomorrow' }
+          ]
+        } else if (val === 'tomorrow') {
+          this.shipmentDate3Options = [
+            { label: this.$t('order.today'), value: 'today' },
+            { label: `${this.$t('order.tomorrow')}(${this.total})`, value: 'tomorrow' },
+            { label: this.$t('order.after_tomorrow'), value: 'after_tomorrow' }
+          ]
+        } else if (val === 'after_tomorrow') {
+          this.shipmentDate3Options = [
+            { label: this.$t('order.today'), value: 'today' },
+            { label: this.$t('order.tomorrow'), value: 'tomorrow' },
+            { label: `${this.$t('order.after_tomorrow')}(${this.total})`, value: 'after_tomorrow' }
+          ]
+        }
+      })
     }
   },
   methods: {
@@ -538,7 +561,7 @@ export default {
       if (_this.filter_supplier) {
         url = `${url}&supplier__icontains=${_this.filter_supplier}`
       }
-      getauth(url, {})
+      return getauth(url, {})
       .then(res => {
         _this.table_list = []
         _this.total = res.count
@@ -565,6 +588,8 @@ export default {
           icon: 'close',
           color: 'negative'
         })
+
+        throw err
       })
     },
     changePageEnter(e) {
@@ -839,6 +864,8 @@ export default {
     PrintPickingList (e) {
       var _this = this
       var QRCode = require('qrcode')
+
+      _this.printPickingListData.posting_number = e.posting_number
       QRCode.toDataURL(e.bar_code, [
         {
           errorCorrectionLevel: 'H',
@@ -848,7 +875,7 @@ export default {
         }
       ])
         .then(url => {
-          _this.bar_code = url
+          _this.printPickingListData.bar_code = url
         })
         .catch(err => {
           console.error(err)
@@ -1016,11 +1043,12 @@ export default {
   },
   mounted () {
     var _this = this
-    if (_this.$q.platform.is.electron) {
-      _this.height = String(_this.$q.screen.height - 420) + 'px'
-    } else {
-      _this.height = _this.$q.screen.height - 420 + '' + 'px'
-    }
+    // if (_this.$q.platform.is.electron) {
+    //   _this.height = String(_this.$q.screen.height - 420) + 'px'
+    // } else {
+    //   _this.height = _this.$q.screen.height - 420 + '' + 'px'
+    // }
+    // _this.height = '800px'
   },
   updated () {},
   destroyed () {}
