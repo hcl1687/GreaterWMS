@@ -187,7 +187,7 @@ class YADE_API():
         count = 0
         while True:
             query = f'page_token={page_token}&limit={limit}'
-            product_resp = self._request(path=f'/businesses/{business_id}/offer-mappings?{query}', method='GET')
+            product_resp = self._request(path=f'/businesses/{business_id}/offer-mappings?{query}')
             if product_resp is None:
                 break
             next_page_token = product_resp.get('result', {}).get('paging', {}).get('nextPageToken', '')
