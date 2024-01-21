@@ -195,27 +195,24 @@ class APIViewSet(viewsets.ModelViewSet):
         supplier_name = Staff.get_supplier_name(self.request.user)
         if supplier_name and shop_supplier != supplier_name:
             raise APIException({"detail": "The shop is not belong to your supplier"})
-        
+
         # status: 1: awaiting_packaging; 2: awaiting_deliver; 3: delivering; 4: cancelled; 5: delivered;
         status = data.get('status', Status.Awaiting_Review)
-        need_update_handle_status = False
         if status == Status.Awaiting_Deliver:
             if qs.status != Status.Awaiting_Review:
                 logger.info(f'This Shop order does not in Awaiting Review Status for shop_id: {shop_id}, platform_id: {qs.platform_id}')
-                return Response({"detail": "This Shop order does not in Awaiting Review Status"}, status=200)
-            try:
-                self.handle_awaiting_deliver(data, shop_id, shop_supplier, qs)
-            except APIException as e:
-                logger.error(str(e))
-                need_update_handle_status = True
-                data['handle_status'] = Handle_Status.Abnormal
-                data['handle_message'] = e.detail['detail']
+            else:
+                try:
+                    self.handle_awaiting_deliver(data, shop_id, shop_supplier, qs)
+                except APIException as e:
+                    logger.error(str(e))
+                    data['handle_status'] = Handle_Status.Abnormal
+                    data['handle_message'] = e.detail['detail']
         elif status == Status.Delivering:
             try:
                 self.handle_delivering(data, shop_id, shop_supplier, qs)
             except APIException as e:
                 logger.error(str(e))
-                need_update_handle_status = True
                 data['handle_status'] = Handle_Status.Abnormal
                 data['handle_message'] = e.detail['detail']
         elif status == Status.Delivered:
@@ -223,7 +220,6 @@ class APIViewSet(viewsets.ModelViewSet):
                 self.handle_delivered(data, shop_id, shop_supplier, qs)
             except APIException as e:
                 logger.error(str(e))
-                need_update_handle_status = True
                 data['handle_status'] = Handle_Status.Abnormal
                 data['handle_message'] = e.detail['detail']
         elif status == Status.Cancelled:
@@ -231,17 +227,17 @@ class APIViewSet(viewsets.ModelViewSet):
                 self.handle_cancelled(data, shop_id, shop_supplier, qs)
             except APIException as e:
                 logger.error(str(e))
-                need_update_handle_status = True
                 data['handle_status'] = Handle_Status.Abnormal
                 data['handle_message'] = e.detail['detail']
         else:
             return Response({"detail": "Not awaiting_deliver or delivering or cancelled data"}, status=200)
 
-        if need_update_handle_status:
-            qs.refresh_from_db()
-            serializer = self.get_serializer(qs, data=data, partial=True)
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
+        # update order if platform's data has changed.
+        # for example: ozon order's shipment time has changed.
+        qs.refresh_from_db()
+        serializer = self.get_serializer(qs, data=data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
 
         return Response(data, status=200)
 
@@ -452,7 +448,6 @@ class APIViewSet(viewsets.ModelViewSet):
         # save order first
         qs.refresh_from_db()
         qs.dn_code = dn_code
-        qs.status = Status.Awaiting_Deliver
         qs.save()
 
         # confirm order
@@ -490,12 +485,12 @@ class APIViewSet(viewsets.ModelViewSet):
             raise APIException({"detail": f'Cannot generate pick order for dn: {dn_code}'})
 
     def handle_delivering(self, data, shop_id, shop_supplier, qs):
-        qs.status = Status.Delivering
-        qs.save()
+        # do nothing
+        return
 
     def handle_delivered(self, data, shop_id, shop_supplier, qs):
-        qs.status = Status.Delivered
-        qs.save()
+        # do nothing
+        return
 
     def handle_cancelled(self, data, shop_id, shop_supplier, qs):
         if qs.status == Status.Awaiting_Review:
@@ -589,7 +584,7 @@ class APIViewSet(viewsets.ModelViewSet):
                     logger.info(f'Cannot discard dn of shop order: {qs.id}, response: {str_response}')
                     raise APIException({"detail": f'Cannot discard dn of shop order: {qs.id}'})
 
-        qs.status = Status.Cancelled
+        qs.refresh_from_db()
         qs.dn_code = ''
         qs.save()
 
