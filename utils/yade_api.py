@@ -8,8 +8,11 @@ import time
 from urllib.parse import parse_qs, quote, unquote
 from shop.models import ListModel as ShopModel
 from shopsku.models import ListModel as ShopskuModel
+from pytz import timezone
+import pytz
 
 logger = logging.getLogger(__name__)
+moscow = timezone('Europe/Moscow')
 
 class YADE_API():
     def __init__(self, shop_id: str, shop_data: dict):
@@ -201,34 +204,134 @@ class YADE_API():
         return count
 
     def get_orders(self, params: dict) -> json:
+        default_now = datetime.now()
+        default_since = default_now + relativedelta(days=-30)
+        # to moscow time
+        default_now = default_now.astimezone(moscow).strftime("%d-%m-%Y")
+        # to moscow time
+        default_since = default_since.astimezone(moscow).strftime("%d-%m-%Y")
+        if not params:
+            _params = {
+                'page': 1,
+                'pageSize': 50,
+                'fake': False,
+                'fromDate': default_since,
+                'toDate': default_now
+            }
+        else:
+            status_obj = self.toPlatformStatus(params['status'])
+            offset = params.get('offset', 0)
+            page_size = params.get('limit', 50)
+            page = int(offset / page_size) + 1
+            _params = {
+                'page': page,
+                'pageSize': page_size,
+                'fake': False,
+                'fromDate': default_since,
+                'toDate': default_now
+            }
+
+            # params.since params.to are timestamp
+            since = params['since']
+            to = params['to']
+            if since:
+                since = datetime.strptime(since, "%Y-%m-%dT%H:%M:%SZ")
+                since = since.astimezone(moscow).strftime("%d-%m-%Y")
+                _params['fromDate'] = since
+            if to:
+                to = datetime.strptime(to, "%Y-%m-%dT%H:%M:%SZ")
+                to = to.astimezone(moscow).strftime("%d-%m-%Y")
+                _params['toDate'] = to
+            # filter by status
+            if 'status' in status_obj:
+                _params['status'] = status_obj['status']
+            if 'substatus' in status_obj:
+                _params['substatus'] = status_obj['substatus']
+
+        order_resp = self._request(path=f'/campaigns/{self._platform_shop_id}/orders', method='GET', params=_params)
+        if order_resp is None:
+            has_next = False
+            order_list = []
+            next = 0
+        else:
+            total = order_resp.get('pager', {}).get('total', 0)
+            current_page = order_resp.get('pager', {}).get('currentPage', 1)
+            page_size = order_resp.get('pager', {}).get('pageSize', 50)
+            has_next = total > (current_page * page_size)
+            order_list = order_resp.get('orders', [])
+            next = 0
+            if has_next:
+                next = current_page * page_size
+
         order_dict = {
-            'has_next': False,
-            'next': 0,
+            'has_next': has_next,
+            'next': next,
             'items': []
         }
+
+        for item in order_list:
+            products = item.get('items', [])
+            order_products = []
+            for product in products:
+                order_products.append({
+                    'name': product.get('offerName', ''),
+                    'sku': product.get('offerId', ''),
+                    'quantity': product.get('count', 0)
+                })
+
+            order_item = {
+                'platform_id': item['id'],
+                'platform_warehouse_id': self._warehouse_id,
+                'posting_number': item['id'],
+                'order_time': '',
+                'shipment_time': '',
+                'status': self.toSystemStatus(item['status'], item['substatus']),
+                'order_data': json.dumps(item),
+                'order_products': json.dumps(order_products)
+            }
+            if item.get('creationDate', '') :
+                # creationDate: DD-MM-YYYY HH:MM:SS, default Time zone - UTC+03:00 (Moscow).
+                create_date = f'{item["creationDate"]}+03:00'
+                create_date = datetime.strptime(create_date, "%d-%m-%Y %H:%M:%S%z")
+                create_date = create_date.astimezone(pytz.utc)
+                shipment_time = create_date + relativedelta(days=3)
+                order_item['order_time'] = create_date.strftime("%Y-%m-%dT%H:%M:%SZ")
+                order_item['shipment_time'] = shipment_time.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+            order_dict['items'].append(order_item)
 
         return order_dict
 
     def toPlatformStatus(self, status):
         if status == Status.Awaiting_Review:
-            return 'new'
+            return {
+                'status': 'PROCESSING',
+                'substatus': 'STARTED'
+            }
         elif status == Status.Awaiting_Deliver:
-            return 'confirm'
+            return {
+                'status': 'PROCESSING',
+                'substatus': 'READY_TO_SHIP'
+            }
         elif status == Status.Delivering:
-            return 'complete'
+            return {
+                'status': 'DELIVERY'
+            }
         elif status == Status.Cancelled:
-            return 'cancel'
+            return {
+                'status': 'CANCELLED'
+            }
         else:
-            return ''
+            return {}
 
-    def toSystemStatus(self, status):
-        if status == 'new':
+    def toSystemStatus(self, status, substatus):
+        if status == 'PROCESSING' and substatus == 'STARTED':
             return Status.Awaiting_Review
-        elif status == 'confirm':
+        elif status == 'PROCESSING' and substatus == 'READY_TO_SHIP':
             return Status.Awaiting_Deliver
-        elif status == 'complete':
+        elif status == 'DELIVERY':
             return Status.Delivering
-        elif status == 'cancel':
+        elif status == 'CANCELLED':
             return Status.Cancelled
         else:
             return Status.Other
