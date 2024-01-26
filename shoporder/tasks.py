@@ -14,16 +14,18 @@ from django.db.models import Q
 from .status import Status
 from staff.models import ListModel as StaffModel
 from utils.seller_api import SELLER_API
+import re
 
 logger = logging.getLogger(__name__)
 
 @app.task(bind=True, name='task_order_init')
 def task_order_init(self, name, password, *args):
     default_now = datetime.now()
-    time_prefix = datetime.strptime(default_now, "%H:%M:%S")
+    time_prefix = default_now.strftime("%H:%M:%S")
     start_time = time.time()
     celeryuser = get_user(name, password)
     openid = celeryuser['openid']
+    parent_id = self.request.id
     staff_obj = StaffModel.objects.filter(staff_name=str(name)).first()
     staff_id = staff_obj.id
     shop_list = ShopModel.objects.filter(openid=openid, is_delete=False)
@@ -36,7 +38,9 @@ def task_order_init(self, name, password, *args):
         for shop in shop_list:
             shop_id = shop.id
             task_id = uuid()
-            task_order_init_by_shopid.apply_async((shop_id, staff_id, celeryuser), task_id=task_id)
+            # 43685fdc-7295-423e-94e6-2116f2a597e5 to 12:01:30-7295-423e-94e6-2116f2a597e5
+            task_id = re.sub('^[^-]+', time_prefix, task_id)
+            task_order_init_by_shopid.apply_async((shop_id, staff_id, parent_id, celeryuser), task_id=task_id)
             tasks.append(task_id)
 
     processing_time = time.time() - start_time
@@ -45,6 +49,7 @@ def task_order_init(self, name, password, *args):
     return {
         'tasks': tasks,
         'status': 'success',
+        'start_time': default_now.strftime("%Y-%m-%dT%H:%M:%SZ"),
         'processing_time': f'{processing_time:.6f} seconds'
     }
 
@@ -105,7 +110,7 @@ def task_order_update(self, name, password):
     }
 
 @shared_task(name='task_order_init_by_shopid')
-def task_order_init_by_shopid(shop_id, staff_id, celeryuser):
+def task_order_init_by_shopid(shop_id, staff_id, parent_id, celeryuser):
     start_time = time.time()
     to = datetime.now()
     # search orders since 10 minutes ago to now
@@ -121,6 +126,7 @@ def task_order_init_by_shopid(shop_id, staff_id, celeryuser):
     logger.info(f'task_order_init_by_shopid for shop_id: {shop_id}, processing_time: {processing_time:.6f} seconds')
 
     return {
+        'parent_id': parent_id,
         'shop_id': shop_id,
         'status': 'success',
         'processing_time': f'{processing_time:.6f} seconds'
