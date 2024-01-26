@@ -285,7 +285,7 @@ class WIBE_API():
             warehouse_id = []
             _params = {
                 'next': 0,
-                'limit': 1000,
+                'limit': 100,
                 'dateFrom': default_since,
                 'dateTo': default_now
             }
@@ -293,7 +293,7 @@ class WIBE_API():
             warehouse_id = params.get('warehouse_id', [])
             _params = {
                 'next': params.get('offset', 0),
-                'limit': params.get('limit', 1000),
+                'limit': params.get('limit', 100),
                 'dateFrom': default_since,
                 'dateTo': default_now,
             }
@@ -344,7 +344,7 @@ class WIBE_API():
             warehouse_id = []
             _params = {
                 'next': 0,
-                'limit': 1000,
+                'limit': 100,
                 'dateFrom': default_since,
                 'dateTo': default_now
             }
@@ -353,7 +353,7 @@ class WIBE_API():
             warehouse_id = params.get('warehouse_id', [])
             _params = {
                 'next': params.get('offset', 0),
-                'limit': params.get('limit', 1000),
+                'limit': params.get('limit', 100),
                 'dateFrom': default_since,
                 'dateTo': default_now,
             }

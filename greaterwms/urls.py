@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.conf import settings
 from django.urls import path, include, re_path
-from django.views.generic.base import TemplateView
+# from django.views.generic.base import TemplateView
 from django.contrib.staticfiles.views import serve
 from django.views.static import serve as static_serve
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
@@ -14,7 +14,7 @@ def return_static(request, path, insecure=True, **kwargs):
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', TemplateView.as_view(template_name='dist/spa/index.html')),
+    # path('', TemplateView.as_view(template_name='dist/spa/index.html')),
     path('myip/', views.myip, name='myip'),
     path('asn/', include('asn.urls')),
     path('dn/', include('dn.urls')),

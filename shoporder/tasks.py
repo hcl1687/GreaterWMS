@@ -19,6 +19,8 @@ logger = logging.getLogger(__name__)
 
 @app.task(bind=True, name='task_order_init')
 def task_order_init(self, name, password, *args):
+    default_now = datetime.now()
+    time_prefix = datetime.strptime(default_now, "%H:%M:%S")
     start_time = time.time()
     celeryuser = get_user(name, password)
     openid = celeryuser['openid']
