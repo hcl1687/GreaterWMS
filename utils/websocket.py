@@ -1,5 +1,6 @@
 import re, datetime, os, urllib, json, django
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'greaterwms.settings')
+ENV = os.environ.get("GREATERWMS_ENV", "prod")
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'greaterwms.settings.{0}'.format(ENV))
 os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
 django.setup()
 from rest_framework.exceptions import APIException

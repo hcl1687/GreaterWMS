@@ -1,6 +1,7 @@
 from .base import *
 
 DEBUG = True
+INNER_URL='http://127.0.0.1:8008'
 
 # django 缓存
 CACHES = {
