@@ -118,3 +118,6 @@ curl -o /dev/null -s -w "@curl-format.txt" --header "Content-Type: application/j
 ```bash
 pip install package && pip freeze > requirements.txt
 ```
+
+## celery
+celery do not support win10. Should use docker under win10.

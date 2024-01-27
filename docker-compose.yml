@@ -35,6 +35,42 @@ services:
       - redis
     networks:
       - basic
+  worker:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+      target: backend
+    container_name: greaterwms_worker
+    restart: always
+    privileged: true
+    volumes:
+      - ./:/GreaterWMS/:rw
+      - ./supervisord_worker.conf:/etc/supervisor/supervisord.conf
+    environment:
+      PYTHONUNBUFFERED: 1
+    depends_on:
+      - backend
+      - redis
+    networks:
+      - basic
+  beat:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+      target: backend
+    container_name: greaterwms_beat
+    restart: always
+    privileged: true
+    volumes:
+      - ./:/GreaterWMS/:rw
+      - ./supervisord_beat.conf:/etc/supervisor/supervisord.conf
+    environment:
+      PYTHONUNBUFFERED: 1
+    depends_on:
+      - worker
+      - redis
+    networks:
+      - basic
   redis:
     image: "redis:alpine"
     container_name: greaterwms_redis
