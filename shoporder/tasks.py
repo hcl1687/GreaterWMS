@@ -21,7 +21,10 @@ logger = logging.getLogger(__name__)
 @app.task(bind=True, name='task_order_init')
 def task_order_init(self, name, password, *args):
     default_now = datetime.now()
-    time_prefix = default_now.strftime("%H:%M:%S")
+    time_postfix = default_now.strftime("%Y%m%d%H%M%S")
+    # remove first 2 chars to make sure the time_postfix' length is 12.
+    # for example: 20240127094800 to 240127094800
+    time_postfix = time_postfix[2:]
     start_time = time.time()
     celeryuser = get_user(name, password)
     openid = celeryuser['openid']
@@ -38,8 +41,8 @@ def task_order_init(self, name, password, *args):
         for shop in shop_list:
             shop_id = shop.id
             task_id = uuid()
-            # 43685fdc-7295-423e-94e6-2116f2a597e5 to 12:01:30-7295-423e-94e6-2116f2a597e5
-            task_id = re.sub('^[^-]+', time_prefix, task_id)
+            # 43685fdc-7295-423e-94e6-2116f2a597e5 to 43685fdc-7295-423e-94e6-240127094800
+            task_id = re.sub('[^-]+$', time_postfix, task_id)
             task_order_init_by_shopid.apply_async((shop_id, staff_id, parent_id, celeryuser), task_id=task_id)
             tasks.append(task_id)
 
@@ -55,6 +58,7 @@ def task_order_init(self, name, password, *args):
 
 @app.task(bind=True, name='task_order_update')
 def task_order_update(self, name, password):
+    default_now = datetime.now()
     start_time = time.time()
     celeryuser = get_user(name, password)
     openid = celeryuser['openid']
@@ -106,6 +110,7 @@ def task_order_update(self, name, password):
 
     return {
         'status': 'success',
+        'start_time': default_now.strftime("%Y-%m-%dT%H:%M:%SZ"),
         'processing_time': f'{processing_time:.6f} seconds'
     }
 
