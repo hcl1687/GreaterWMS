@@ -14,3 +14,4 @@ greaterwms_server_access.log
 templates/web_start.sh
 templates/dist/
 env/
+.env

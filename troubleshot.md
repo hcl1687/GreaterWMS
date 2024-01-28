@@ -121,3 +121,14 @@ pip install package && pip freeze > requirements.txt
 
 ## celery
 celery do not support win10. Should use docker under win10.
+
+# 20240128
+## config flower account
+create a .env file before deploy
+
+```
+FLOWER_ADMIN=xxx
+FLOWER_PASSWORD=xxxxx
+```
+
+
