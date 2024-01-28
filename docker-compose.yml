@@ -71,6 +71,25 @@ services:
       - redis
     networks:
       - basic
+  flower:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+      target: backend
+    container_name: greaterwms_flower
+    restart: always
+    privileged: true
+    volumes:
+      - ./:/GreaterWMS/:rw
+      - ./supervisord.conf:/etc/supervisor/supervisord_flower.conf
+    ports:
+      - '5555:5555'
+    environment:
+      PYTHONUNBUFFERED: 1
+    depends_on:
+      - worker
+    networks:
+      - basic
   redis:
     image: "redis:alpine"
     container_name: greaterwms_redis

@@ -286,7 +286,9 @@ class YADE_API():
                 'order_time': '',
                 'shipment_time': '',
                 'status': self.toSystemStatus(item['status'], item['substatus']),
-                'order_data': json.dumps(item),
+                # do not same platform order data to reduce table size.
+                # 'order_data': json.dumps(item),
+                'order_data': json.dumps({}),
                 'order_products': json.dumps(order_products)
             }
             if item.get('creationDate', '') :

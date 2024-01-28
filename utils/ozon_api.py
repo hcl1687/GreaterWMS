@@ -196,7 +196,9 @@ class OZON_API():
                 'order_time': item['in_process_at'],
                 'shipment_time': item['shipment_date'],
                 'status': self.toSystemStatus(item['status']),
-                'order_data': json.dumps(item),
+                # do not same platform order data to reduce table size.
+                # 'order_data': json.dumps(item),
+                'order_data': json.dumps({}),
                 'order_products': json.dumps(order_products)
             }
             order_dict['items'].append(order_item)
