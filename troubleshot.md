@@ -57,7 +57,7 @@ location /admin {
   error_page 403 = @goaway;
 }
 
-location /flower {
+location /flower/ {
   # First attempt to serve request as file, then
   # as directory, then fall back to displaying a 404.
 
@@ -157,4 +157,7 @@ FLOWER_ADMIN=xxx
 FLOWER_PASSWORD=xxxxx
 ```
 
+## 20240129
+order-init task period: 1min, expired time: 45s
+order-update task period: 10min, expired time: 480s
 
