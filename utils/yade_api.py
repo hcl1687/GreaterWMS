@@ -286,12 +286,31 @@ class YADE_API():
                     'quantity': product.get('count', 0)
                 })
 
+            shipments = item.get('delivery', {}).get('shipments', [])
+            order_shipments = []
+            for shipment in shipments:
+                # shipment_date: "12-11-2023"
+                shipment_date_str = shipment.get('shipmentDate', '')
+                # shipment_time: "15:30"
+                shipment_time_str = shipment.get('shipmentTime', '')
+                if shipment_date_str and shipment_time_str:
+                    shipment_datetime = f'{shipment_date_str} {shipment_time_str}:00+03:00'
+                    shipment_datetime = datetime.strptime(shipment_datetime, "%d-%m-%Y %H:%M:%S%z")
+                    shipment_datetime = shipment_datetime.astimezone(pytz.utc)
+                    order_shipments.append(shipment_datetime)
+
+            shipment_time = ''
+            if len(order_shipments) > 0:
+                # find the nearest shipment time
+                order_shipments.sort()
+                shipment_time = order_shipments[0].strftime("%Y-%m-%dT%H:%M:%SZ")
+
             order_item = {
                 'platform_id': item['id'],
                 'platform_warehouse_id': self._warehouse_id,
                 'posting_number': item['id'],
                 'order_time': '',
-                'shipment_time': '',
+                'shipment_time': shipment_time,
                 'status': self.toSystemStatus(item['status'], item['substatus']),
                 # do not same platform order data to reduce table size.
                 # 'order_data': json.dumps(item),
@@ -303,9 +322,7 @@ class YADE_API():
                 create_date = f'{item["creationDate"]}+03:00'
                 create_date = datetime.strptime(create_date, "%d-%m-%Y %H:%M:%S%z")
                 create_date = create_date.astimezone(pytz.utc)
-                shipment_time = create_date + relativedelta(days=3)
                 order_item['order_time'] = create_date.strftime("%Y-%m-%dT%H:%M:%SZ")
-                order_item['shipment_time'] = shipment_time.strftime("%Y-%m-%dT%H:%M:%SZ")
 
             order_dict['items'].append(order_item)
 
