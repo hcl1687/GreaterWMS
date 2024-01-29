@@ -715,13 +715,25 @@ export default {
       return LocalStorage.getItem('staff_type') === 'Supplier'
     },
     async fetchOrder () {
-      await postauth('shoporder/init/', {})
+      const shopList = await this.drainShopList()
+      for(let i = 0; i < shopList.length; i++) {
+        const shop = shopList[i]
+        await postauth('shoporder/init/', {
+          shop_id: shop.id
+        })
+      }
       this.current = 1;
       this.paginationIpt = 1;
       this.getList()
     },
     async updateOrder () {
-      await postauth('shoporder/update/', {})
+      const shopList = await this.drainShopList()
+      for(let i = 0; i < shopList.length; i++) {
+        const shop = shopList[i]
+        await postauth('shoporder/update/', {
+          shop_id: shop.id
+        })
+      }
       this.current = 1;
       this.paginationIpt = 1;
       this.getList()
@@ -1016,7 +1028,24 @@ export default {
         dn_code: '',
         driver: ''
       }
-    }
+    },
+    async drainShopList () {
+      let current = 1
+      let total = 0
+      let table_list = []
+      let isDrained = false
+      while (!isDrained) {
+        const res = await getauth('shop/?page=' + '' + current, {})
+        table_list = table_list.concat(res.results)
+        total = res.count
+
+        if (total <= table_list.length) {
+          isDrained = true
+        }
+      }
+
+      return table_list
+    },
   },
   created () {
     var _this = this

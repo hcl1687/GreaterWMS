@@ -758,8 +758,12 @@ class ShoporderUpdateViewSet(viewsets.ModelViewSet):
         data = self.request.data
         since = data.get('since')
         to = data.get('to')
+        shop_id = data.get('shop_id')
 
-        shop_list = ShopModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), is_delete=False)
+        if shop_id:
+            shop_list = ShopModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=str(shop_id), is_delete=False)
+        else:
+            shop_list = ShopModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), is_delete=False)
 
         # update Awaiting_Deliver order
         for shop in shop_list:

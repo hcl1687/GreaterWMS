@@ -44,11 +44,33 @@ location /api/ {
 location /admin {
   # First attempt to serve request as file, then
   # as directory, then fall back to displaying a 404.
+
+  # allow yourIp;
+  # deny all;
+
   proxy_redirect off;
   proxy_set_header Host $host;
   proxy_set_header X-Real-IP $remote_addr;
   proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
   proxy_pass http://localhost:8008/admin;
+
+  error_page 403 = @goaway;
+}
+
+location /flower {
+  # First attempt to serve request as file, then
+  # as directory, then fall back to displaying a 404.
+
+  # allow yourIp;
+  # deny all;
+
+  proxy_redirect off;
+  proxy_set_header Host $host;
+  proxy_set_header X-Real-IP $remote_addr;
+  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+  proxy_pass http://localhost:5555;
+
+  error_page 403 = @goaway;
 }
 
 location /static/ {
@@ -57,6 +79,10 @@ location /static/ {
 
 location /media/ {
   alias /root/GreaterWMS/media/;
+}
+
+location @goaway {
+  return 404;
 }
 ```
 

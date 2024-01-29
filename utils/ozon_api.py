@@ -24,13 +24,17 @@ class OZON_API():
             headers.update({'Api-Key': self._api_key})
             param_json = json.dumps(params, sort_keys=True, separators=(',', ':'))
             url = self._api_url + '{}'.format(path)
-            logger.info(f'Request url: [{method}]{url} with params: {param_json}')
+
+            shot_param_str = param_json
+            if len(param_json) > 1000:
+                shot_param_str = param_json[0:1000] + "..."
+            logger.info(f'Request url: [{method}]{url} with params: {shot_param_str}')
 
             start_time = time.time()
             if method == 'POST':
-                response = requests.post(url=url, data=param_json, headers=headers)
+                response = requests.post(url=url, data=param_json, headers=headers, timeout=60)
             elif method == 'GET':
-                response = requests.get(url=url, params=param_json, headers=headers)
+                response = requests.get(url=url, params=param_json, headers=headers, timeout=60)
             processing_time = time.time() - start_time
             logger.info(f'Request url: [{method}]{url} took {processing_time:.6f} seconds.')
 
@@ -38,6 +42,9 @@ class OZON_API():
                 logger.error(f'Request url: [{method}]{url} with response status code: {response.status_code}')
                 return None
             return json.loads(response.content)
+        except requests.exceptions.Timeout:
+            logger.error(f'Request url: [{method}]{url} timeout')
+            return None
         except Exception as e:
             logger.exception('{}'.format(e))
             return None

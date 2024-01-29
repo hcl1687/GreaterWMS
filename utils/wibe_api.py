@@ -29,13 +29,17 @@ class WIBE_API():
             headers.update({'Authorization': self._api_key})
             param_json = json.dumps(params, sort_keys=True, separators=(',', ':'))
             url = self._api_url + '{}'.format(path)
-            logger.info(f'Request url: [{method}]{url} with params: {param_json}')
+
+            shot_param_str = param_json
+            if len(param_json) > 1000:
+                shot_param_str = param_json[0:1000] + "..."
+            logger.info(f'Request url: [{method}]{url} with params: {shot_param_str}')
 
             start_time = time.time()
             if method == 'POST':
-                response = requests.post(url=url, data=param_json, headers=headers)
+                response = requests.post(url=url, data=param_json, headers=headers, timeout=60)
             elif method == 'GET':
-                response = requests.get(url=url, params=params, headers=headers)
+                response = requests.get(url=url, params=params, headers=headers, timeout=60)
             processing_time = time.time() - start_time
             logger.info(f'Request url: [{method}]{url} took {processing_time:.6f} seconds.')
 
@@ -43,6 +47,9 @@ class WIBE_API():
                 logger.error(f'Request url: [{method}]{url} with response status code: {response.status_code}')
                 return None
             return json.loads(response.content)
+        except requests.exceptions.Timeout:
+            logger.error(f'Request url: [{method}]{url} timeout')
+            return None
         except Exception as e:
             logger.exception('{}'.format(e))
             return None
@@ -287,7 +294,7 @@ class WIBE_API():
             warehouse_id = []
             _params = {
                 'next': 0,
-                'limit': 100,
+                'limit': 1000,
                 'dateFrom': default_since,
                 'dateTo': default_now
             }
@@ -295,7 +302,7 @@ class WIBE_API():
             warehouse_id = params.get('warehouse_id', [])
             _params = {
                 'next': params.get('offset', 0),
-                'limit': params.get('limit', 100),
+                'limit': params.get('limit', 1000),
                 'dateFrom': default_since,
                 'dateTo': default_now,
             }
@@ -346,7 +353,7 @@ class WIBE_API():
             warehouse_id = []
             _params = {
                 'next': 0,
-                'limit': 100,
+                'limit': 1000,
                 'dateFrom': default_since,
                 'dateTo': default_now
             }
@@ -355,7 +362,7 @@ class WIBE_API():
             warehouse_id = params.get('warehouse_id', [])
             _params = {
                 'next': params.get('offset', 0),
-                'limit': params.get('limit', 100),
+                'limit': params.get('limit', 1000),
                 'dateFrom': default_since,
                 'dateTo': default_now,
             }
