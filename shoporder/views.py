@@ -171,9 +171,6 @@ class APIViewSet(viewsets.ModelViewSet):
         qs = self.get_object()
         if qs.openid != self.request.META.get('HTTP_TOKEN'):
             raise APIException({"detail": "Cannot update data which not yours"})
-        
-        if qs.handle_status != Handle_Status.Normal:
-            raise APIException({"detail": "This Shop order is abnormal"})
 
         data = self.request.data
         data['openid'] = self.request.META.get('HTTP_TOKEN')
@@ -195,6 +192,15 @@ class APIViewSet(viewsets.ModelViewSet):
         supplier_name = Staff.get_supplier_name(self.request.user)
         if supplier_name and shop_supplier != supplier_name:
             raise APIException({"detail": "The shop is not belong to your supplier"})
+
+        if qs.handle_status != Handle_Status.Normal:
+            # update order if platform's data has changed.
+            # for example: ozon order's status has changed.
+            qs.refresh_from_db()
+            serializer = self.get_serializer(qs, data=data, partial=True)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            raise APIException({"detail": "This Shop order is abnormal"})
 
         # status: 1: awaiting_packaging; 2: awaiting_deliver; 3: delivering; 4: cancelled; 5: delivered;
         status = data.get('status', Status.Awaiting_Review)

@@ -408,7 +408,7 @@ class WIBE_API():
 
         # filter by status
         if status:
-            order_list = [item for item in order_list if item['status'] == status]
+            order_list = [item for item in order_list if item.get('status', '') == status]
 
         logger.info(f'WIBE get_orders_by_filter with {json.dumps(params)}, items length: {len(order_list)}')
 
