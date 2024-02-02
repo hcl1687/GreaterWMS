@@ -106,7 +106,9 @@ python manage.py createsuperuser
 ## Run Backend:
 ```bash
 cd GreaterWMS
-# win10: set GREATERWMS_ENV=dev
+# win10 
+set GREATERWMS_ENV=dev
+# linux
 export GREATERWMS_ENV=dev
 daphne -p 8008 greaterwms.asgi:application
 or

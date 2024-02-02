@@ -77,12 +77,13 @@ def task_order_update(self, name, password):
     since = to + relativedelta(days=-7)
     to  = to.strftime("%Y-%m-%dT%H:%M:%SZ")
     since = since.strftime("%Y-%m-%dT%H:%M:%SZ")
-    if shop_order_first:
-        since = shop_order_first.order_time + relativedelta(days=-1)
-        since = since.strftime("%Y-%m-%dT%H:%M:%SZ")
-    if shop_order_last:
-        to = shop_order_last.order_time + relativedelta(days=1)
-        to = to.strftime("%Y-%m-%dT%H:%M:%SZ")
+    if shop_order_first and shop_order_last:
+        since = shop_order_first.order_time
+        to = shop_order_last.order_time
+        during_time = to - since
+        if during_time.seconds < 7 * 24 * 3600:
+            since = since.strftime("%Y-%m-%dT%H:%M:%SZ")
+            to = to.strftime("%Y-%m-%dT%H:%M:%SZ")
 
     for shop in shop_list:
         shop_id = shop.id

@@ -128,6 +128,30 @@
                   </template>
                 </q-select>
               </div>
+              <div class="col-auto q-mb-md q-ml-md">
+                <q-select
+                  clearable
+                  use-input
+                  fill-input
+                  hide-selected
+                  input-debounce="0"
+                  dense
+                  outlined
+                  v-model="filter_handle_status"
+                  :options="handle_status_list"
+                  @input="getList()"
+                  :label="$t('order.handle_status')"
+                  style="margin-bottom: 5px"
+                >
+                  <template v-slot:Sno-option>
+                    <q-item>
+                      <q-item-section class="text-grey">
+                        No Result
+                      </q-item-section>
+                    </q-item>
+                  </template>
+                </q-select>
+              </div>
             </div>
             <div class="row items-center relative-position">
               <div class="col-auto q-mb-md">
@@ -409,6 +433,7 @@ export default {
       filter_shop_name: '',
       filter_dn_code: '',
       filter_supplier: '',
+      filter_handle_status: '',
       pagination: {
         page: 1,
         rowsPerPage: '30'
@@ -430,6 +455,8 @@ export default {
       deleteid: 0,
       supplier_list: [],
       supplier_list1: [],
+      handle_status_list: [],
+      handle_status_map: {},
       printPickingListData: {},
       pickinglist_print_table: [],
       picklist_check: 0,
@@ -560,6 +587,10 @@ export default {
       }
       if (_this.filter_supplier) {
         url = `${url}&supplier__icontains=${_this.filter_supplier}`
+      }
+      if (_this.filter_handle_status) {
+        const handle_status = _this.handle_status_map[_this.filter_handle_status]
+        url = `${url}&handle_status__iexact=${handle_status}`
       }
       return getauth(url, {})
       .then(res => {
@@ -852,6 +883,19 @@ export default {
           })
         })
     },
+    getHandleStatusList () {
+      const normalLabel = this.getHandleStatusMsg(1)
+      const abnormalLabel = this.getHandleStatusMsg(2)
+      const handleStatus = [
+        normalLabel,
+        abnormalLabel
+      ]
+      this.handle_status_list = handleStatus
+      this.handle_status_map = {
+        [normalLabel]: 1,
+        [abnormalLabel]: 2
+      }
+    },
     getFieldRequiredMessage (field) {
       return this.$t('notice.field_required_error', { field })
     },
@@ -1065,6 +1109,7 @@ export default {
       _this.authin = '1'
       _this.table_list = []
       _this.getSupplierList()
+      _this.getHandleStatusList()
       _this.getList()
     } else {
       _this.authin = '0'
