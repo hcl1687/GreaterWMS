@@ -1193,13 +1193,15 @@ class AsnfileAddViewSet(views.APIView):
                     if mode == 'diff':
                         goods_qty_change = StockListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'),
                                                         goods_code=goods_obj.goods_code).first()
-                        if goods_qty_change is None:
-                            continue
-                        can_order_stock = goods_qty_change.can_order_stock
-                        diff_qty = goods_qty - can_order_stock
-                        if diff_qty <= 0:
-                            continue
-                        goods_qty = diff_qty
+                        if goods_qty_change:
+                            can_order_stock = goods_qty_change.can_order_stock
+                            diff_qty = goods_qty - can_order_stock
+                            if diff_qty <= 0:
+                                continue
+                            goods_qty = diff_qty
+                        else:
+                            # new add
+                            pass
 
                     # create asn
                     url = f'{settings.INNER_URL}/asn/list/'

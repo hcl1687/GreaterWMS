@@ -118,7 +118,11 @@ class OZON_API():
             if product_id and product_dict.get(product_id):
                 product_detail_dict = product_dict.get(product_id)
                 item['platform_id'] = product_id
-                item['platform_sku'] = product_detail_dict.get('fbs_sku', '')
+                # Todo: need to consider how to support fbo
+                platform_sku = product_detail_dict.get('fbs_sku', 0)
+                if platform_sku == 0:
+                    platform_sku = product_detail_dict.get('sku', 0)
+                item['platform_sku'] = platform_sku
                 item['name'] = product_detail_dict.get('name', '')
                 item['image'] = product_detail_dict.get('primary_image', '')
                 item['width'] = product_detail_dict.get('attr', {}).get('width', 0)
