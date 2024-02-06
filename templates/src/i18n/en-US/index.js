@@ -732,6 +732,7 @@ export default {
     delivering: 'Delivering',
     cancelled: 'Cancelled',
     delivered: 'Delivered',
+    other: 'Other',
     normal: 'Normal',
     abnormal: 'Abnormal',
     normal_delete_tip: 'Can not delete normal order',

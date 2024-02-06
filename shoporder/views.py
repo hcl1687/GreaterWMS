@@ -236,7 +236,8 @@ class APIViewSet(viewsets.ModelViewSet):
                 data['handle_status'] = Handle_Status.Abnormal
                 data['handle_message'] = e.detail['detail']
         else:
-            return Response({"detail": "Not awaiting_deliver or delivering or cancelled data"}, status=200)
+            # Not awaiting_deliver or delivering or cancelled data, do nothing, just update platform's data at the end.
+            pass
 
         # update order if platform's data has changed.
         # for example: ozon order's shipment time has changed.
@@ -771,18 +772,9 @@ class ShoporderUpdateViewSet(viewsets.ModelViewSet):
         else:
             shop_list = ShopModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), is_delete=False)
 
-        # update Awaiting_Deliver order
+        # update order
         for shop in shop_list:
-            status = Status.Awaiting_Deliver
-            self.handle_shoporder(shop, since=since, to=to, status=status)
-        # update Delivering order
-        for shop in shop_list:
-            status = Status.Delivering
-            self.handle_shoporder(shop, since=since, to=to, status=status)
-        # update Cancelled order
-        for shop in shop_list:
-            status = Status.Cancelled
-            self.handle_shoporder(shop, since=since, to=to, status=status)
+            self.handle_shoporder(shop, since=since, to=to, status='')
 
         return Response({"detail": "success"}, status=200)
 

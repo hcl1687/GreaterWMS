@@ -233,6 +233,8 @@ class OZON_API():
             return Status.Delivering
         elif status == 'cancelled':
             return Status.Cancelled
+        elif status == 'delivered':
+            return Status.Delivered
         else:
             return Status.Other
 

@@ -132,18 +132,9 @@ def task_order_update_by_shopid(shop_id, staff_id, parent_id, since, to, celeryu
     shop_list = ShopModel.objects.filter(openid=celeryuser['openid'], id=str(shop_id), is_delete=False)
 
     # the shop_list has only one element at most.
-    # update Awaiting_Deliver order
+    # update order
     for shop in shop_list:
-        status = Status.Awaiting_Deliver
-        handle_update_shoporder(shop, celeryuser, staff_id, since=since, to=to, status=status)
-    # update Delivering order
-    for shop in shop_list:
-        status = Status.Delivering
-        handle_update_shoporder(shop, celeryuser, staff_id, since=since, to=to, status=status)
-    # update Cancelled order
-    for shop in shop_list:
-        status = Status.Cancelled
-        handle_update_shoporder(shop, celeryuser, staff_id, since=since, to=to, status=status)
+        handle_update_shoporder(shop, celeryuser, staff_id, since=since, to=to, status='')
 
     processing_time = time.time() - start_time
     logger.info(f'task_order_update_by_shopid for shop_id: {shop_id}, processing_time: {processing_time:.6f} seconds')

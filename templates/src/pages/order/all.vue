@@ -782,7 +782,7 @@ export default {
       } else if (status === 5) {
         msg = this.$t('order.delivered')
       } else {
-        msg = 'N/A'
+        msg = this.$t('order.other')
       }
 
       return msg

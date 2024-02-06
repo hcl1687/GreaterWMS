@@ -275,7 +275,7 @@ class WIBE_API():
                 'posting_number': item['id'],
                 'order_time': create_time,
                 'shipment_time': shipment_time,
-                'status': self.toSystemStatus(item['status']),
+                'status': self.toSystemStatus(item.get('status', ''), item.get('wbStatus', '')),
                 # do not same platform order data to reduce table size.
                 # 'order_data': json.dumps(item),
                 'order_data': json.dumps({}),
@@ -333,6 +333,7 @@ class WIBE_API():
             created_at = int(datetime.strptime(order['createdAt'], "%Y-%m-%dT%H:%M:%SZ").timestamp())
             if created_at >= _params['dateFrom'] and created_at <= _params['dateTo']:
                 order['status'] = 'new'
+                order['wbStatus'] = 'waiting'
                 items.append(order)
 
         logger.info(f'WIBE get_new_orders with {json.dumps(params)}, items length: {len(items)}')
@@ -405,6 +406,7 @@ class WIBE_API():
             for item in order_status_list:
                 order_item = order_dict[item['id']]
                 order_item['status'] = item['supplierStatus']
+                order_item['wbStatus'] = item['wbStatus']
 
         # filter by status
         if status:
@@ -430,15 +432,17 @@ class WIBE_API():
         else:
             return ''
 
-    def toSystemStatus(self, status):
+    def toSystemStatus(self, status, wbStatus):
         if status == 'new':
             return Status.Awaiting_Review
         elif status == 'confirm':
             return Status.Awaiting_Deliver
-        elif status == 'complete':
+        elif status == 'complete' and wbStatus != 'sold':
             return Status.Delivering
         elif status == 'cancel':
             return Status.Cancelled
+        elif wbStatus == 'sold':
+            return Status.Delivered
         else:
             return Status.Other
 

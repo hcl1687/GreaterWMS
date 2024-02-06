@@ -359,6 +359,8 @@ class YADE_API():
             return Status.Delivering
         elif status == 'CANCELLED':
             return Status.Cancelled
+        elif status == 'DELIVERED':
+            return Status.Delivered
         else:
             return Status.Other
 
