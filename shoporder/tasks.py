@@ -67,30 +67,13 @@ def task_order_update(self, name, password):
     staff_id = staff_obj.id
     shop_list = ShopModel.objects.filter(openid=openid, is_delete=False)
     tasks = []
-    shop_order_list = ListModel.objects.filter(Q(openid=openid, is_delete=False) &
-                                               (Q(status=Status.Awaiting_Review) | Q(status=Status.Awaiting_Deliver))
-                                               ).order_by('order_time')
-    shop_order_first = shop_order_list.first()
-    shop_order_last = shop_order_list.last()
-
-    to = datetime.now()
-    since = to + relativedelta(days=-7)
-    to  = to.strftime("%Y-%m-%dT%H:%M:%SZ")
-    since = since.strftime("%Y-%m-%dT%H:%M:%SZ")
-    if shop_order_first:
-        during_time = shop_order_last.order_time - shop_order_first.order_time
-        if during_time.seconds < 7 * 24 * 3600:
-            since = shop_order_first.order_time + relativedelta(days=-1)
-            to = shop_order_last.order_time + relativedelta(days=1)
-            since = since.strftime("%Y-%m-%dT%H:%M:%SZ")
-            to = to.strftime("%Y-%m-%dT%H:%M:%SZ")
 
     for shop in shop_list:
         shop_id = shop.id
         task_id = uuid()
         # 43685fdc-7295-423e-94e6-2116f2a597e5 to 43685fdc-7295-423e-94e6-240127094800
         task_id = re.sub('[^-]+$', time_postfix, task_id)
-        task_order_update_by_shopid.apply_async((shop_id, staff_id, parent_id, since, to, celeryuser), task_id=task_id)
+        task_order_update_by_shopid.apply_async((shop_id, staff_id, parent_id, celeryuser), task_id=task_id)
         tasks.append(task_id)
 
     processing_time = time.time() - start_time
@@ -127,9 +110,28 @@ def task_order_init_by_shopid(shop_id, staff_id, parent_id, celeryuser):
     }
 
 @shared_task(name='task_order_update_by_shopid')
-def task_order_update_by_shopid(shop_id, staff_id, parent_id, since, to, celeryuser):
+def task_order_update_by_shopid(shop_id, staff_id, parent_id, celeryuser):
     start_time = time.time()
     shop_list = ShopModel.objects.filter(openid=celeryuser['openid'], id=str(shop_id), is_delete=False)
+    shop_order_list = ListModel.objects.filter(Q(openid=celeryuser['openid'], shop_id=shop_id, is_delete=False) &
+                                               ~Q(status=Status.Delivered)
+                                               ).order_by('order_time')
+    shop_order_first = shop_order_list.first()
+    shop_order_last = shop_order_list.last()
+
+    max_days = 30
+    to = datetime.now()
+    since = to + relativedelta(days=-max_days)
+    to  = to.strftime("%Y-%m-%dT%H:%M:%SZ")
+    since = since.strftime("%Y-%m-%dT%H:%M:%SZ")
+    if shop_order_first:
+        during_time = shop_order_last.order_time - shop_order_first.order_time
+        # update order in 30 days at most.
+        if during_time.total_seconds() < max_days * 24 * 3600:
+            since = shop_order_first.order_time + relativedelta(days=-1)
+            to = shop_order_last.order_time + relativedelta(days=1)
+            since = since.strftime("%Y-%m-%dT%H:%M:%SZ")
+            to = to.strftime("%Y-%m-%dT%H:%M:%SZ")
 
     # the shop_list has only one element at most.
     # update order
