@@ -5,6 +5,7 @@ from dateutil.relativedelta import relativedelta
 from shoporder.status import Status
 import logging
 import time
+import math
 
 logger = logging.getLogger(__name__)
 
@@ -215,6 +216,68 @@ class OZON_API():
             order_dict['items'].append(order_item)
 
         return order_dict
+
+    def update_stock(self, params: dict) -> json:
+        if not params:
+            return None
+
+        # params: {'warehouse_id': 123, stocks: [{'product_id': 456, 'stock': 100}]}
+        stocks = params.get('stocks', [])
+        if len(stocks) == 0:
+            return None
+
+        warehouse_id = params.get('warehouse_id', '')
+        if not warehouse_id:
+            return None
+
+        for item in stocks:
+            item['warehouse_id'] = warehouse_id
+
+        res = []
+        size = 100
+        times = math.ceil(len(stocks) / size)
+
+        for i in range(times):
+            sub_stocks = stocks[i * size, (i + 1) * size]
+            _params = {
+                'stocks': sub_stocks
+            }
+            stock_resp = self._request(path='/v2/products/stocks', params=_params)
+            if stock_resp is None:
+                for item in sub_stocks:
+                    res.append({
+                        'product_id': item['product_id'],
+                        'updated': False,
+                        'message': 'api no response'
+                    })
+                return
+
+            stock_result = stock_resp.get('result', [])
+            stock_result_dict = {}
+            for item in stock_result:
+                updated = item.get('updated', True)
+                message = ''
+                if not updated:
+                    errors = item.get('errors', [])
+                    if len(errors) > 0:
+                        message = errors[0].get('code', '')
+                stock_result_dict[item['product_id']] = {
+                    'product_id': item['product_id'],
+                    'updated': updated,
+                    'message': message
+                }
+
+            for item in sub_stocks:
+                stock_result_item = stock_result_dict.get(item['product_id'])
+                if not stock_result_item:
+                    stock_result_item = {
+                        'product_id': item['product_id'],
+                        'updated': False,
+                        'message': 'no result'
+                    }
+                res.append(stock_result_item)
+
+        return res
     
     def toPlatformStatus(self, status):
         if status == Status.Awaiting_Review:
