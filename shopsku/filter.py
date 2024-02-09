@@ -9,6 +9,8 @@ class Filter(FilterSet):
             "platform_id": ['exact', 'iexact', 'contains', 'icontains'],
             "platform_sku": ['exact', 'iexact', 'contains', 'icontains'],
             "goods_code": ['exact', 'iexact', 'contains', 'icontains'],
+            "sync_status": ['exact', 'iexact', 'gt', 'gte', 'lt', 'lte', 'isnull', 'in', 'range'],
+            "sync_time": ['year', 'month', 'day', 'week_day', 'gt', 'gte', 'lt', 'lte', 'range'],
             "openid": ['exact', 'iexact', 'contains', 'icontains'],
             "supplier": ['exact', 'iexact', 'contains', 'icontains'],
             "creater": ['exact', 'iexact', 'contains', 'icontains'],

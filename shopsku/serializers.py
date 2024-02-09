@@ -8,6 +8,9 @@ class ShopskuGetSerializer(serializers.ModelSerializer):
     platform_sku = serializers.CharField(read_only=True, required=False)
     platform_data = serializers.CharField(read_only=True, required=False)
     goods_code = serializers.CharField(read_only=True, required=False)
+    sync_status = serializers.IntegerField(read_only=True, required=False)
+    sync_message = serializers.CharField(read_only=True, required=False)
+    sync_time = serializers.DateTimeField(read_only=True)
     supplier = serializers.CharField(read_only=True, required=False)
     creater = serializers.CharField(read_only=True, required=False)
     create_time = serializers.DateTimeField(read_only=True)
@@ -27,6 +30,7 @@ class ShopskuPostSerializer(serializers.ModelSerializer):
     platform_id = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     platform_sku = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     goods_code = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
+    sync_message = serializers.CharField(read_only=False, required=False, validators=[datasolve.data_validate])
     supplier = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     creater = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     class Meta:
@@ -38,6 +42,7 @@ class ShopskuUpdateSerializer(serializers.ModelSerializer):
     platform_id = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     platform_sku = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     goods_code = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
+    sync_message = serializers.CharField(read_only=False, required=False, validators=[datasolve.data_validate])
     creater = serializers.CharField(read_only=True, required=False, validators=[datasolve.data_validate])
     class Meta:
         model = ListModel
@@ -48,6 +53,7 @@ class ShopskuPartialUpdateSerializer(serializers.ModelSerializer):
     platform_id = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     platform_sku = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     goods_code = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
+    sync_message = serializers.CharField(read_only=False, required=False, validators=[datasolve.data_validate])
     creater = serializers.CharField(read_only=True, required=False, validators=[datasolve.data_validate])
     class Meta:
         model = ListModel
@@ -63,6 +69,9 @@ class FileRenderSerializer(serializers.ModelSerializer):
     goods_code = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     platform_stock = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     sys_stock = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
+    sync_status = serializers.IntegerField(read_only=False, required=False)
+    sync_message = serializers.CharField(read_only=False, required=False, validators=[datasolve.data_validate])
+    sync_time = serializers.DateTimeField(read_only=True)
     supplier = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     creater = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     create_time = serializers.DateTimeField(read_only=True)

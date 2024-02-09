@@ -6,6 +6,7 @@ from shoporder.status import Status
 import logging
 import time
 import math
+from shopsku.status import Sync_Status
 
 logger = logging.getLogger(__name__)
 
@@ -226,17 +227,23 @@ class OZON_API():
         if len(stocks) == 0:
             return None
 
+        res = []
         warehouse_id = params.get('warehouse_id', '')
         if not warehouse_id:
-            return None
+            for item in stocks:
+                res.append({
+                    'product_id': item['product_id'],
+                    'status': Sync_Status.Failed,
+                    'message': 'no warehouse_id'
+                })
+            return res
 
         for item in stocks:
             item['warehouse_id'] = warehouse_id
 
-        res = []
+        # only 100 products in one request at most.
         size = 100
         times = math.ceil(len(stocks) / size)
-
         for i in range(times):
             sub_stocks = stocks[i * size, (i + 1) * size]
             _params = {
@@ -247,10 +254,10 @@ class OZON_API():
                 for item in sub_stocks:
                     res.append({
                         'product_id': item['product_id'],
-                        'updated': False,
+                        'status': Sync_Status.Failed,
                         'message': 'api no response'
                     })
-                return
+                return res
 
             stock_result = stock_resp.get('result', [])
             stock_result_dict = {}
@@ -261,9 +268,12 @@ class OZON_API():
                     errors = item.get('errors', [])
                     if len(errors) > 0:
                         message = errors[0].get('code', '')
+                status = Sync_Status.Success
+                if not updated:
+                    status = Sync_Status.Failed
                 stock_result_dict[item['product_id']] = {
                     'product_id': item['product_id'],
-                    'updated': updated,
+                    'status': status,
                     'message': message
                 }
 
@@ -272,7 +282,7 @@ class OZON_API():
                 if not stock_result_item:
                     stock_result_item = {
                         'product_id': item['product_id'],
-                        'updated': False,
+                        'status': Sync_Status.Failed,
                         'message': 'no result'
                     }
                 res.append(stock_result_item)
