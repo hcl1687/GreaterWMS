@@ -81,3 +81,32 @@ class FileRenderSerializer(serializers.ModelSerializer):
         model = ListModel
         ref_name = 'ShopskuFileRenderSerializer'
         exclude = ['openid', 'is_delete', ]
+
+class StockSyncGetSerializer(serializers.ModelSerializer):
+    platform_id = serializers.CharField(read_only=True, required=False)
+    platform_sku = serializers.CharField(read_only=True, required=False)
+    goods_code = serializers.CharField(read_only=True, required=False)
+    sync_status = serializers.IntegerField(read_only=True, required=False)
+    sync_message = serializers.CharField(read_only=True, required=False)
+    sync_time = serializers.DateTimeField(read_only=True)
+    supplier = serializers.CharField(read_only=True, required=False)
+    creater = serializers.CharField(read_only=True, required=False)
+    create_time = serializers.DateTimeField(read_only=True)
+    update_time = serializers.DateTimeField(read_only=True)
+
+    class Meta:
+        model = ListModel
+        exclude = ['openid', 'is_delete', ]
+        read_only_fields = ['id', ]
+
+    def to_representation(self, instance):
+        self.fields['shop'] =  ShopGetSerializer(read_only=True)
+        return super(ShopskuGetSerializer, self).to_representation(instance)
+
+class StockSyncPostSerializer(serializers.ModelSerializer):
+    goods_code = serializers.ListField(child=serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate]))
+
+    class Meta:
+        model = ListModel
+        exclude = ['is_delete', ]
+        read_only_fields = ['id', 'create_time', 'update_time', ]

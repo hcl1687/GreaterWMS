@@ -7,7 +7,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.response import Response
 from .filter import Filter
 from rest_framework.exceptions import APIException
-from .serializers import ShopskuGetSerializer, FileRenderSerializer
+from .serializers import ShopskuGetSerializer
 from rest_framework import permissions
 from utils.staff import Staff
 from utils.seller_api import SELLER_API
@@ -17,6 +17,7 @@ from .files import FileRenderCN, FileRenderEN
 from rest_framework.settings import api_settings
 from django.http import StreamingHttpResponse
 from stock.models import StockListModel
+from .tasks import stock_manual_update
 
 class APIViewSet(viewsets.ModelViewSet):
     """
@@ -398,3 +399,114 @@ class FileDownloadView(viewsets.ModelViewSet):
                 break
 
         return res
+
+class StockSyncViewSet(viewsets.ModelViewSet):
+    """
+        retrieve:
+            Response a data list（get）
+
+        list:
+            Response a data list（all）
+
+        create:
+            Create a data line（post）
+
+        delete:
+            Delete a data line（delete)
+
+        partial_update:Partial_update a data（patch：partial_update）
+
+        update:
+            Update a data（put：update）
+    """
+    pagination_class = MyPageNumberPagination
+    filter_backends = [DjangoFilterBackend, OrderingFilter, ]
+    ordering_fields = ['id', "create_time", "update_time", ]
+    filter_class = Filter
+    permission_classes = (permissions.DjangoModelPermissions,)
+
+    def get_project(self):
+        try:
+            id = self.kwargs.get('pk')
+            return id
+        except:
+            return None
+
+    def get_queryset(self):
+        id = self.get_project()
+        shop_id = str(self.request.GET.get('shop_id') or self.request.data.get('shop'))
+        if self.request.user:
+            supplier_name = Staff.get_supplier_name(self.request.user)
+            if supplier_name:
+                if id is None:
+                    return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), supplier=supplier_name, shop_id=shop_id, is_delete=False)
+                else:
+                    return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), supplier=supplier_name, id=id, is_delete=False)
+            else:
+                if id is None:
+                    return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), shop_id=shop_id, is_delete=False)
+                else:
+                    return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=id, is_delete=False)
+        else:
+            return ListModel.objects.none()
+
+    def get_serializer_class(self):
+        if self.action in ['list']:
+            return serializers.StockSyncGetSerializer
+        elif self.action in ['create']:
+            return serializers.StockSyncPostSerializer
+        else:
+            return self.http_method_not_allowed(request=self.request)
+
+    def list(self, request, *args, **kwargs):
+        shop_id = str(request.GET.get('shop_id'))
+        if not shop_id:
+            raise APIException({"detail": "The shop id does not exist"})
+        
+        shop_obj = ShopModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=shop_id).first()
+        if shop_obj is None:
+            raise APIException({"detail": "The shop does not exist"})
+
+        data = super().list(request=request).data
+        # add extra info to data here
+
+        return Response(data, status=200)
+
+    def create(self, request, *args, **kwargs):
+        data = self.request.data
+        data['openid'] = self.request.META.get('HTTP_TOKEN')
+
+        shop_id = data.get('shop', '')
+        if not shop_id:
+            raise APIException({"detail": "The shop id does not exist"})
+        
+        shop_obj = ShopModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=shop_id, is_delete=False).first()
+        if shop_obj is None:
+            raise APIException({"detail": "The shop does not exist"})
+
+        shop_supplier = shop_obj.supplier
+        supplier_name = Staff.get_supplier_name(self.request.user)
+        if supplier_name and shop_supplier != supplier_name:
+            raise APIException({"detail": "The shop is not belong to your supplier"})
+
+        goods_code = data.get('goods_code', '')
+        if not goods_code:
+            raise APIException({"detail": "The goods code does not exist"})
+        
+        if len(goods_code) == 0:
+            raise APIException({"detail": "The goods code is empty"})
+
+        # remove duplicate
+        goods_code_list = list(set(goods_code))
+        goods_obj_list = GoodsModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), goods_supplier=shop_supplier, goods_code__in=goods_code_list, is_delete=False)
+        if len(goods_obj_list) == 0:
+            raise APIException({"detail": "The goods does not exist"})
+
+        goods_code_list = [item.goods_code for item in goods_obj_list]
+        celeryuser = self.request.user
+        task_id = stock_manual_update(goods_code_list, celeryuser)
+
+        return Response(task_id, status=200)
+
+    def retrieve(self, request, pk):
+        return Response('', status=200)

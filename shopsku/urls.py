@@ -9,5 +9,9 @@ re_path(r'^(?P<pk>\d+)/$', views.APIViewSet.as_view({
     'put': 'update',
     'patch': 'partial_update',
     'delete': 'destroy'
-}), name="shopsku")
+}), name="shopsku"),
+path(r'sync/', views.StockSyncView.as_view({"get": "list", "post": "create"}), name="shopskusync"),
+re_path(r'^(?P<pk>\d+)/$', views.APIViewSet.as_view({
+    'get': 'retrieve'
+}), name="shopskusync"),
 ]
