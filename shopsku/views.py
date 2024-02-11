@@ -135,6 +135,9 @@ class APIViewSet(viewsets.ModelViewSet):
                 sys_item = new_dict[seller_product_id]
                 item['sys_id'] = sys_item['id']
                 item['goods_code'] = sys_item['goods_code']
+                item['sync_status'] = sys_item['sync_status']
+                item['sync_message'] = sys_item['sync_message']
+                item['sync_time'] = sys_item['sync_time']
                 item['supplier'] = sys_item['supplier']
                 item['creater'] = sys_item['creater']
                 item['create_time'] = sys_item['create_time']
@@ -453,9 +456,7 @@ class SyncViewSet(viewsets.ModelViewSet):
             return ListModel.objects.none()
 
     def get_serializer_class(self):
-        if self.action in ['list']:
-            return serializers.StockSyncGetSerializer
-        elif self.action in ['create']:
+        if self.action in ['create']:
             return serializers.StockSyncPostSerializer
         else:
             return self.http_method_not_allowed(request=self.request)
@@ -467,7 +468,7 @@ class SyncViewSet(viewsets.ModelViewSet):
         shop_id = data.get('shop', '')
         if not shop_id:
             raise APIException({"detail": "The shop id does not exist"})
-        
+
         shop_obj = ShopModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=shop_id, is_delete=False).first()
         if shop_obj is None:
             raise APIException({"detail": "The shop does not exist"})
@@ -498,8 +499,11 @@ class SyncViewSet(viewsets.ModelViewSet):
             'openid': self.request.META.get('HTTP_TOKEN')
         }
         task_id = stock_manual_update(goods_code_list, celeryuser)
+        data = {
+            'task_id': task_id
+        }
 
-        return Response(task_id, status=200)
+        return Response(data, status=200)
 
 
 class TaskViewSet(viewsets.ModelViewSet):
@@ -539,7 +543,7 @@ class TaskViewSet(viewsets.ModelViewSet):
 
     def get_serializer_class(self):
         if self.action in ['list']:
-            return serializers.StockSyncGetSerializer
+            return serializers.ShopskuGetSerializer
         else:
             return self.http_method_not_allowed(request=self.request)
 
