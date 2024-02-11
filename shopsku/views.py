@@ -18,6 +18,8 @@ from rest_framework.settings import api_settings
 from django.http import StreamingHttpResponse
 from stock.models import StockListModel
 from .tasks import stock_manual_update
+from celery.result import AsyncResult
+from greaterwms.celery import app
 
 class APIViewSet(viewsets.ModelViewSet):
     """
@@ -509,4 +511,5 @@ class StockSyncViewSet(viewsets.ModelViewSet):
         return Response(task_id, status=200)
 
     def retrieve(self, request, pk):
-        return Response('', status=200)
+        res = AsyncResult(pk, app=app)
+        return Response(res.state, status=200)
