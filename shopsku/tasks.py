@@ -101,7 +101,7 @@ def task_stock_update(self, name, password):
         'processing_time': f'{processing_time:.6f} seconds'
     }
 
-def stock_manual_update(self, goods_code_list, celeryuser):
+def stock_manual_update(goods_code_list, celeryuser):
     default_now = datetime.now()
     time_postfix = default_now.strftime("%Y%m%d%H%M%S")
     # remove first 2 chars to make sure the time_postfix' length is 12.
@@ -109,7 +109,12 @@ def stock_manual_update(self, goods_code_list, celeryuser):
     time_postfix = time_postfix[2:]
     start_time = time.time()
     openid = celeryuser['openid']
-    parent_id = uuid()
+    # create parent_id
+    task_id = uuid()
+    # 43685fdc-7295-423e-94e6-2116f2a597e5 to 43685fdc-7295-423e-94e6-240127094800
+    task_id = re.sub('[^-]+$', time_postfix, task_id)
+    parent_id = task_id
+
     staff_obj = StaffModel.objects.filter(staff_name=celeryuser['name']).first()
     staff_id = staff_obj.id
     shop_list = ShopModel.objects.filter(openid=openid, is_delete=False)
@@ -127,19 +132,18 @@ def stock_manual_update(self, goods_code_list, celeryuser):
                 shops[shop.id].append(goods_code)
 
     task_sig_list = []
-    for shop in shop_list:
-        shop_id = shop.id
+    for shop_id in list(shops.keys()):
         goods_code_list = shops.get(shop_id, [])
         task_id = uuid()
         # 43685fdc-7295-423e-94e6-2116f2a597e5 to 43685fdc-7295-423e-94e6-240127094800
         task_id = re.sub('[^-]+$', time_postfix, task_id)
-        task_sig = task_stock_manual_update_by_shopid.s((shop_id, staff_id, parent_id, goods_code_list, celeryuser), task_id=task_id)
+        task_sig = task_stock_manual_update_by_shopid.s(shop_id, staff_id, parent_id, goods_code_list, celeryuser).set(task_id=str(task_id))
         task_sig_list.append(task_sig)
 
     task_id = uuid()
     # 43685fdc-7295-423e-94e6-2116f2a597e5 to 43685fdc-7295-423e-94e6-240127094800
     task_id = re.sub('[^-]+$', time_postfix, task_id)
-    callback_sig = task_stock_manual_update_callback.s((staff_id, parent_id, celeryuser), task_id=task_id)
+    callback_sig = task_stock_manual_update_callback.s(staff_id, parent_id, celeryuser).set(task_id=str(task_id))
     res = chord(task_sig_list, callback_sig)()
 
     processing_time = time.time() - start_time
@@ -197,8 +201,8 @@ def task_stock_manual_update_by_shopid(shop_id, staff_id, parent_id, goods_code_
         'processing_time': f'{processing_time:.6f} seconds'
     }
 
-@shared_task(name='task_stock_manual_update_by_shopid')
-def task_stock_manual_update_callback(staff_id, parent_id, celeryuser):
+@shared_task(name='task_stock_manual_update_callback')
+def task_stock_manual_update_callback(ret, staff_id, parent_id, celeryuser):
     return {
         'parent_id': parent_id,
         'status': 'success'

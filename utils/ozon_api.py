@@ -245,7 +245,7 @@ class OZON_API():
         size = 100
         times = math.ceil(len(stocks) / size)
         for i in range(times):
-            sub_stocks = stocks[i * size, (i + 1) * size]
+            sub_stocks = stocks[i * size : (i + 1) * size]
             _params = {
                 'stocks': sub_stocks
             }
@@ -271,14 +271,14 @@ class OZON_API():
                 status = Sync_Status.Success
                 if not updated:
                     status = Sync_Status.Failed
-                stock_result_dict[item['product_id']] = {
-                    'product_id': item['product_id'],
+                stock_result_dict[str(item['product_id'])] = {
+                    'product_id': str(item['product_id']),
                     'status': status,
                     'message': message
                 }
 
             for item in sub_stocks:
-                stock_result_item = stock_result_dict.get(item['product_id'])
+                stock_result_item = stock_result_dict.get(str(item['product_id']))
                 if not stock_result_item:
                     stock_result_item = {
                         'product_id': item['product_id'],

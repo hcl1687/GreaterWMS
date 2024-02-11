@@ -402,7 +402,7 @@ class FileDownloadView(viewsets.ModelViewSet):
 
         return res
 
-class StockSyncViewSet(viewsets.ModelViewSet):
+class SyncViewSet(viewsets.ModelViewSet):
     """
         retrieve:
             Response a data list（get）
@@ -505,11 +505,59 @@ class StockSyncViewSet(viewsets.ModelViewSet):
             raise APIException({"detail": "The goods does not exist"})
 
         goods_code_list = [item.goods_code for item in goods_obj_list]
-        celeryuser = self.request.user
+        user = self.request.user
+        celeryuser = {
+            'user_id': user.id,
+            'name': user.username,
+            'openid': self.request.META.get('HTTP_TOKEN')
+        }
         task_id = stock_manual_update(goods_code_list, celeryuser)
 
         return Response(task_id, status=200)
 
-    def retrieve(self, request, pk):
-        res = AsyncResult(pk, app=app)
+
+class TaskViewSet(viewsets.ModelViewSet):
+    """
+        retrieve:
+            Response a data list（get）
+
+        list:
+            Response a data list（all）
+
+        create:
+            Create a data line（post）
+
+        delete:
+            Delete a data line（delete)
+
+        partial_update:Partial_update a data（patch：partial_update）
+
+        update:
+            Update a data（put：update）
+    """
+    pagination_class = MyPageNumberPagination
+    filter_backends = [DjangoFilterBackend, OrderingFilter, ]
+    ordering_fields = ['id', "create_time", "update_time", ]
+    filter_class = Filter
+    permission_classes = (permissions.DjangoModelPermissions,)
+
+    def get_project(self):
+        try:
+            id = self.kwargs.get('pk')
+            return id
+        except:
+            return None
+
+    def get_queryset(self):
+        return ListModel.objects.none()
+
+    def get_serializer_class(self):
+        if self.action in ['list']:
+            return serializers.StockSyncGetSerializer
+        else:
+            return self.http_method_not_allowed(request=self.request)
+
+    def list(self, request, *args, **kwargs):
+        task_id = str(request.GET.get('task_id'))
+        res = AsyncResult(task_id, app=app)
         return Response(res.state, status=200)

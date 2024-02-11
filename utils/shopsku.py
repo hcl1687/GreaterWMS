@@ -6,7 +6,6 @@ import logging
 from datetime import datetime
 from shop.models import ListModel as ShopModel
 
-
 logger = logging.getLogger(__name__)
 sku_key = 'stock_sku'
 timeout = 15
@@ -33,14 +32,14 @@ class Shopsku(object):
 
         # get latest stock
         stocks = []
-        goods_qty_change_list = StockListModel.objects.filter(openid=celeryuser['openid'], is_delete=False,
+        goods_qty_change_list = StockListModel.objects.filter(openid=celeryuser['openid'],
                                                             goods_code__in=goods_code_list)
         for goods_qty_change in goods_qty_change_list:
             goods_code = goods_qty_change.goods_code
             if goods_code in product_id_dict:
                 product_id = product_id_dict[goods_code]
                 can_order_stock = goods_qty_change.can_order_stock
-                stocks.push({
+                stocks.append({
                     'product_id': product_id,
                     'stock': can_order_stock
                 })
@@ -48,7 +47,7 @@ class Shopsku(object):
         seller_api = SELLER_API(shop_id)
         params = {
             'stocks': stocks,
-            'warehosue_id': warehosue_id
+            'warehouse_id': warehosue_id
         }
         seller_resp = seller_api.update_stock(params)
 
@@ -59,7 +58,7 @@ class Shopsku(object):
                 if shopsku_obj:
                     shopsku_obj.sync_status = stock_item['status']
                     shopsku_obj.sync_message = stock_item['message']
-                    shopsku_obj.sync_time = datetime.now()
+                    shopsku_obj.sync_time = datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
                     shopsku_obj.save()
 
 
