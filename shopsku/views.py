@@ -437,7 +437,7 @@ class SyncViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         id = self.get_project()
         shop_id = str(self.request.GET.get('shop_id') or self.request.data.get('shop'))
-        if self.request.user:
+        if self.request.user and shop_id:
             supplier_name = Staff.get_supplier_name(self.request.user)
             if supplier_name:
                 if id is None:
@@ -459,20 +459,6 @@ class SyncViewSet(viewsets.ModelViewSet):
             return serializers.StockSyncPostSerializer
         else:
             return self.http_method_not_allowed(request=self.request)
-
-    def list(self, request, *args, **kwargs):
-        shop_id = str(request.GET.get('shop_id'))
-        if not shop_id:
-            raise APIException({"detail": "The shop id does not exist"})
-        
-        shop_obj = ShopModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=shop_id).first()
-        if shop_obj is None:
-            raise APIException({"detail": "The shop does not exist"})
-
-        data = super().list(request=request).data
-        # add extra info to data here
-
-        return Response(data, status=200)
 
     def create(self, request, *args, **kwargs):
         data = self.request.data

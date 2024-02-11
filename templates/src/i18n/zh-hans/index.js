@@ -669,7 +669,10 @@ export default {
     supplier: '供应商',
     shop_name: '店铺名字',
     error1: '请输入店铺名字',
-    error2: '请输入店铺类型'
+    error2: '请输入店铺类型',
+    sync: '是否同步',
+    sync_true: '是',
+    sync_false: '否'
   },
   shoptype: {
     shop_type: '店铺类型',

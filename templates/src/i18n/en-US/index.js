@@ -668,7 +668,10 @@ export default {
     supplier: 'Supplier',
     shop_name: 'Shop Name',
     error1: 'Please Enter The Shop Name',
-    error2: 'Please Enter The Shop Type'
+    error2: 'Please Enter The Shop Type',
+    sync: 'Sync',
+    sync_true: 'True',
+    sync_false: 'Fasle'
   },
   shoptype: {
     shop_type: 'Shop Type',

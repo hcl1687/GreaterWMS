@@ -324,6 +324,11 @@ const routes = [{
         path: 'shopsku/:shop_id',
         name: 'shopsku',
         component: () => import('pages/shop/shopsku.vue')
+      },
+      {
+        path: 'shopsync/:shop_id',
+        name: 'shopsync',
+        component: () => import('pages/shop/shopsync.vue')
       }
       ]
     },

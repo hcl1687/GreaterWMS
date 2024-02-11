@@ -45,6 +45,7 @@
             <q-td key="shop_name" :props="props">{{ props.row.shop_name }}</q-td>
             <q-td key="shop_type" :props="props">{{ props.row.shop_type }}</q-td>
             <q-td key="supplier" :props="props">{{ props.row.supplier }}</q-td>
+            <q-td key="sync" :props="props">{{ getSyncLabel(props.row.sync) }}</q-td>
             <q-td key="create_time" :props="props">{{ showLocalTime(props.row.create_time) }}</q-td>
             <q-td key="update_time" :props="props">{{ showLocalTime(props.row.update_time) }}</q-td>
             <q-td key="action" :props="props" style="width: 250px">
@@ -67,6 +68,16 @@
                 @click="showSku(props.row)"
               >
                 <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ $t('shopsku.shop_sku') }}</q-tooltip>
+              </q-btn>
+              <q-btn
+                round
+                flat
+                push
+                color="purple"
+                icon="category"
+                @click="showSync(props.row)"
+              >
+                <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ $t('shopsync.shop_sync') }}</q-tooltip>
               </q-btn>
               <q-btn
                 round
@@ -154,6 +165,19 @@
             dense
             outlined
             square
+            v-model="formData.sync"
+            :options="sync_label_list"
+            transition-show="scale"
+            transition-hide="scale"
+            :label="$t('shop.sync')"
+            :rules="[val => (val && val.length > 0) || getFieldRequiredMessage('sync')]"
+            @keyup.enter="dataSubmit()"
+            style="margin-top: 5px"
+          />
+          <q-select
+            dense
+            outlined
+            square
             v-model="formData.shop_type"
             :options="shop_type_name_list"
             transition-show="scale"
@@ -225,6 +249,7 @@ export default {
         { name: 'shop_name', required: true, label: this.$t('shop.shop_name'), align: 'left', field: 'shop_name' },
         { name: 'shop_type', label: this.$t('shoptype.shop_type'), field: 'shop_type', align: 'center' },
         { name: 'supplier', required: true, label: this.$t('shop.supplier'), align: 'center', field: 'supplier' },
+        { name: 'sync', label: this.$t('shop.sync'), field: 'sync', align: 'center' },
         { name: 'create_time', label: this.$t('createtime'), field: 'create_time', align: 'center' },
         { name: 'update_time', label: this.$t('updatetime'), field: 'update_time', align: 'center' },
         { name: 'action', label: this.$t('action'), align: 'center' }
@@ -248,7 +273,8 @@ export default {
       total: 0,
       paginationIpt: 1,
       current_shop_type: '',
-      supplier_list: []
+      supplier_list: [],
+      sync_list: [true, false]
     }
   },
   computed: {
@@ -274,6 +300,15 @@ export default {
     },
     supplier_name_list: function() {
       return this.supplier_list.map(item => item.supplier_name)
+    },
+    sync_label_list: function() {
+      return this.sync_list.map(val => {
+        if (val) {
+          return this.$t('shop.sync_true')
+        }
+
+        return this.$t('shop.sync_false')
+      })
     }
   },
   watch: {
@@ -459,6 +494,15 @@ export default {
         return
       }
 
+      if (!_this.formData.sync) {
+        _this.$q.notify({
+          message: _this.getFieldRequiredMessage('sync'),
+          icon: 'close',
+          color: 'negative'
+        })
+        return
+      }
+
       const shopTypeFields = _this.shopTypeFields
       const shop_data = {}
       for (let i = 0; i < shopTypeFields.length; i++) {
@@ -477,8 +521,14 @@ export default {
       const data = {
         supplier: _this.formData.supplier,
         shop_name: _this.formData.shop_name,
+        sync: _this.formData.sync,
         shop_type: _this.formData.shop_type,
         shop_data: JSON.stringify(shop_data)
+      }
+
+      const index = _this.sync_label_list.indexOf(_this.formData.sync)
+      if (index >= 0) {
+        data.sync = _this.sync_list[index]
       }
 
       if (!_this.editid) {
@@ -536,6 +586,7 @@ export default {
       _this.formData = {
         supplier: e.supplier,
         shop_name: e.shop_name,
+        sync: _this.getSyncLabel(e.sync),
         shop_type: e.shop_type,
         ...JSON.parse(e.shop_data)
       }
@@ -614,6 +665,18 @@ export default {
           shop_id: e.id
         }
       })
+    },
+    showSync (e) {
+      this.$router.push({
+        name: 'shopsync',
+        params: {
+          shop_id: e.id
+        }
+      })
+    },
+    getSyncLabel (sync) {
+      const index = this.sync_list.indexOf(sync)
+      return this.sync_label_list[index]
     }
   },
   created () {

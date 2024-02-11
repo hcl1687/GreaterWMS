@@ -101,7 +101,7 @@ class StockSyncGetSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         self.fields['shop'] =  ShopGetSerializer(read_only=True)
-        return super(ShopskuGetSerializer, self).to_representation(instance)
+        return super(StockSyncGetSerializer, self).to_representation(instance)
 
 class StockSyncPostSerializer(serializers.ModelSerializer):
     goods_code = serializers.ListField(child=serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate]))
