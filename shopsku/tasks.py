@@ -80,7 +80,7 @@ def task_stock_update(self, name, password):
     parent_id = self.request.id
     staff_obj = StaffModel.objects.filter(staff_name=str(name)).first()
     staff_id = staff_obj.id
-    shop_list = ShopModel.objects.filter(openid=openid, is_delete=False)
+    shop_list = ShopModel.objects.filter(openid=openid, is_delete=False, sync=True)
     tasks = []
 
     for shop in shop_list:
@@ -117,7 +117,6 @@ def stock_manual_update(goods_code_list, celeryuser):
 
     staff_obj = StaffModel.objects.filter(staff_name=celeryuser['name']).first()
     staff_id = staff_obj.id
-    shop_list = ShopModel.objects.filter(openid=openid, is_delete=False)
     shops = {}
     for goods_code in goods_code_list:
         # find related shops

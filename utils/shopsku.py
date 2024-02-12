@@ -25,13 +25,13 @@ class Shopsku(object):
 
         # get product id
         product_id_dict = {}
-        shopsku_list = ShopskuModel.objects.filter(openid=celeryuser['openid'], is_delete=False,
+        shopsku_list = ShopskuModel.objects.filter(openid=celeryuser['openid'], is_delete=False, shop_id=shop_id,
                                                 goods_code__in=goods_code_list)
         for shopsku_item in shopsku_list:
             product_id_dict[shopsku_item.goods_code] = shopsku_item.platform_id
 
         # get latest stock
-        stocks = []
+        stocks_dict = {}
         goods_qty_change_list = StockListModel.objects.filter(openid=celeryuser['openid'],
                                                             goods_code__in=goods_code_list)
         for goods_qty_change in goods_qty_change_list:
@@ -39,10 +39,17 @@ class Shopsku(object):
             if goods_code in product_id_dict:
                 product_id = product_id_dict[goods_code]
                 can_order_stock = goods_qty_change.can_order_stock
-                stocks.append({
-                    'product_id': product_id,
-                    'stock': can_order_stock
-                })
+                stocks_dict[product_id] = can_order_stock
+
+        stocks = []
+        for product_id in list(product_id_dict.values()):
+            stock = 0
+            if product_id in stocks_dict:
+                stock = stocks_dict[product_id]
+            stocks.append({
+                'product_id': product_id,
+                'stock': stock
+            })
 
         seller_api = SELLER_API(shop_id)
         params = {
