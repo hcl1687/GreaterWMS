@@ -1,4 +1,5 @@
 from django.db import models
+from utils.cache_tool import CacheTool
 
 class StockListModel(models.Model):
     goods_code = models.CharField(max_length=255, verbose_name="Goods Code")
@@ -23,11 +24,25 @@ class StockListModel(models.Model):
     create_time = models.DateTimeField(auto_now_add=True, verbose_name="Create Time")
     update_time = models.DateTimeField(auto_now=True, blank=True, null=True, verbose_name="Update Time")
 
+    __original_can_order_stock = None
+
     class Meta:
         db_table = 'stocklist'
         verbose_name = 'Stock List'
         verbose_name_plural = "Stock List"
         ordering = ['-id']
+
+    def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.__original_can_order_stock = self.can_order_stock
+
+    def save(self, force_insert=False, force_update=False, *args, **kwargs):
+        if self.can_order_stock != self.__original_can_order_stock:
+            # can_order_stock changed - do something here
+            CacheTool.lock_and_add_sku([self.goods_code])
+
+        super().save(force_insert, force_update, *args, **kwargs)
+        self.__original_can_order_stock = self.can_order_stock
 
 class StockBinModel(models.Model):
     bin_name = models.CharField(max_length=255, verbose_name="Bin Name")

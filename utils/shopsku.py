@@ -1,4 +1,3 @@
-from django.core.cache import cache
 from shopsku.models import ListModel as ShopskuModel
 from stock.models import StockListModel
 from utils.seller_api import SELLER_API
@@ -7,8 +6,6 @@ from datetime import datetime
 from shop.models import ListModel as ShopModel
 
 logger = logging.getLogger(__name__)
-sku_key = 'stock_sku'
-timeout = 15
 
 class Shopsku(object):
     def update_stock(shop_id, goods_code_list, celeryuser, **args):
@@ -67,33 +64,3 @@ class Shopsku(object):
                     shopsku_obj.sync_message = stock_item['message']
                     shopsku_obj.sync_time = datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
                     shopsku_obj.save()
-
-
-    def lock_and_add_sku(goods_code_list):
-        if not goods_code_list:
-            return
-        if len(goods_code_list):
-            return
-        
-        goods_code_list = [goods_code for goods_code in goods_code_list if goods_code]
-
-        with cache.lock(sku_key, timeout=timeout):
-            goods_code_dict = cache.get(sku_key)
-            if not goods_code_dict:
-                goods_code_dict = {}
-            
-            for sku in goods_code_list:
-                goods_code_dict[sku] = 1
-
-            cache.set(sku_key, goods_code_dict)
-
-    def lock_and_clear_sku():
-        goods_code_dict = {}
-        with cache.lock(sku_key, timeout=timeout):
-            goods_code_dict = cache.get(sku_key)
-            cache.set(sku_key, {})
-
-        return goods_code_dict
-
-
-

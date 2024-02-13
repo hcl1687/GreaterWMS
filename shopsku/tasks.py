@@ -16,6 +16,7 @@ from utils.seller_api import SELLER_API
 import re
 from django.core.cache import cache
 from utils.shopsku import Shopsku
+from utils.cache_tool import CacheTool
 from shopsku.models import ListModel as ShopskuModel
 
 logger = logging.getLogger(__name__)
@@ -34,7 +35,7 @@ def task_stock_patch(self, name, password, *args):
     staff_obj = StaffModel.objects.filter(staff_name=str(name)).first()
     staff_id = staff_obj.id
     tasks = []
-    goods_code_dict = Shopsku.lock_and_clear_sku()
+    goods_code_dict = CacheTool.lock_and_clear_sku()
     goods_code_list = list(goods_code_dict.keys())
     shops = {}
     for goods_code in goods_code_list:
