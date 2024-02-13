@@ -55,12 +55,18 @@ class Shopsku(object):
         }
         seller_resp = seller_api.update_stock(params)
 
-        if seller_resp:
-            for stock_item in seller_resp:
-                shopsku_obj = ShopskuModel.objects.filter(openid=celeryuser['openid'], is_delete=False, shop_id=shop_id,
-                                                            platform_id=stock_item['product_id']).first()
-                if shopsku_obj:
-                    shopsku_obj.sync_status = stock_item['status']
-                    shopsku_obj.sync_message = stock_item['message']
-                    shopsku_obj.sync_time = datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
-                    shopsku_obj.save()
+        res_dict = {}
+        for stock_item in seller_resp:
+            res_dict[stock_item['product_id']] = stock_item
+        
+        product_id_list = list(res_dict.keys())
+        shopsku_obj_list = ShopskuModel.objects.filter(openid=celeryuser['openid'], is_delete=False, shop_id=shop_id,
+                                                            platform_id__in=product_id_list)
+        for shopsku_obj in shopsku_obj_list:
+            product_id = shopsku_obj.platform_id
+            stock_item = res_dict[product_id]
+            shopsku_obj.sync_status = stock_item['status']
+            shopsku_obj.sync_message = stock_item['message']
+            shopsku_obj.sync_time = datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
+
+        ShopskuModel.objects.bulk_update(shopsku_obj_list, ['sync_status', 'sync_message', 'sync_time'])

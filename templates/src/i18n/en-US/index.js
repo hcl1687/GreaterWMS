@@ -712,7 +712,10 @@ export default {
     previous_tip: 'Go to previous page',
     next_tip: 'Go to next page',
     platform_stock: 'Platform Stock',
-    sys_stock: 'System Stock'
+    sys_stock: 'System Stock',
+    sync_status: 'Sync Status',
+    sync_message: 'Sync Message',
+    sync_time: 'Sync Time'
   },
   order: {
     all: 'All',
@@ -748,5 +751,15 @@ export default {
     tomorrow: 'Tomorrow',
     after_tomorrow: 'The day after tomorrow',
     can_order_stock: 'Stock'
+  },
+  shopsync: {
+    shop_sync: 'Shop Sync',
+    batch_sync: 'Batch Sync',
+    batch_sync_tip: 'Batch sync system\'s stock to platform',
+    sync_tip: 'Sync system\'s stock to platform',
+    sync_title: 'Sync Stock',
+    sync_confirm_tip: 'Are you sure to sync system\'s stock to platform?',
+    status_success: 'Success',
+    status_failed: 'Failed'
   }
 }

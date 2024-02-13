@@ -19,7 +19,7 @@
               <q-route-tab name="shopsku" :label="$t('shopsku.shop_sku')" icon="category" :to="{ name: 'shopsku' }" exact/>
             </transition>
             <transition v-if="$route.name === 'shopsync'" appear enter-active-class="animated zoomIn">
-              <q-route-tab name="shopsync" :label="$t('shopsku.shop_sync')" icon="category" :to="{ name: 'shopsync' }" exact/>
+              <q-route-tab name="shopsync" :label="$t('shopsync.shop_sync')" icon="ios_share" :to="{ name: 'shopsync' }" exact/>
             </transition>
           </q-tabs>
         </div>

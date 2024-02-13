@@ -27,8 +27,8 @@
             <q-btn :label="$t('refresh')" icon="refresh" @click="reFresh()">
               <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ $t('refreshtip') }}</q-tooltip>
             </q-btn>
-            <q-btn :label="$t('shopsku.batch_sync')" icon="link" :disable="selected.length === 0" @click="batchSyncData()">
-              <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ $t('shopsku.batch_sync_tip') }}</q-tooltip>
+            <q-btn :label="$t('shopsync.batch_sync')" icon="ios_share" :disable="selected.length === 0" @click="batchSyncData()">
+              <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ $t('shopsync.batch_sync_tip') }}</q-tooltip>
             </q-btn>
           </q-btn-group>
         </template>
@@ -63,11 +63,11 @@
                 flat
                 push
                 color="dark"
-                icon="delete"
+                icon="ios_share"
                 :disable="!props.row.sys_id"
                 @click="syncData(props.row)"
               >
-                <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ $t('sync_tip') }}</q-tooltip>
+                <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ $t('shopsync.sync_tip') }}</q-tooltip>
               </q-btn>
             </q-td>
           </q-tr>
@@ -93,13 +93,13 @@
     <q-dialog v-model="syncForm">
       <q-card class="shadow-24">
         <q-bar class="bg-light-blue-10 text-white rounded-borders" style="height: 50px">
-          <div>{{ $t('sync_title') }}</div>
+          <div>{{ $t('shopsync.sync_title') }}</div>
           <q-space />
           <q-btn dense flat icon="close" v-close-popup>
             <q-tooltip content-class="bg-amber text-black shadow-4">{{ $t('index.close') }}</q-tooltip>
           </q-btn>
         </q-bar>
-        <q-card-section style="max-height: 325px; width: 400px" class="scroll">{{ $t('sync_confirm_tip') }}</q-card-section>
+        <q-card-section style="max-height: 325px; width: 400px" class="scroll">{{ $t('shopsync.sync_confirm_tip') }}</q-card-section>
         <div style="float: right; padding: 15px 15px 15px 0">
           <q-btn color="white" text-color="black" style="margin-right: 25px" @click="syncDataCancel()">{{ $t('cancel') }}</q-btn>
           <q-btn color="primary" @click="syncDataSubmit()">{{ $t('submit') }}</q-btn>

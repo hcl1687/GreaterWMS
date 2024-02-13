@@ -74,7 +74,7 @@
                 flat
                 push
                 color="purple"
-                icon="category"
+                icon="ios_share"
                 @click="showSync(props.row)"
               >
                 <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ $t('shopsync.shop_sync') }}</q-tooltip>

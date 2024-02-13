@@ -713,7 +713,10 @@ export default {
     previous_tip: '跳转前一页',
     next_tip: '跳转下一页',
     platform_stock: '平台库存',
-    sys_stock: '系统库存'
+    sys_stock: '系统库存',
+    sync_status: '同步状态',
+    sync_message: '同步消息',
+    sync_time: '同步时间'
   },
   order: {
     all: '所有',
@@ -749,5 +752,15 @@ export default {
     tomorrow: '明天',
     after_tomorrow: '后天',
     can_order_stock: '库存'
+  },
+  shopsync: {
+    shop_sync: '库存同步',
+    batch_sync: '批量同步',
+    batch_sync_tip: '批量同步系统库存到平台',
+    sync_tip: '同步系统库存到平台',
+    sync_title: '同步库存',
+    sync_confirm_tip: '您确定要同步系统库存到平台吗？',
+    status_success: '成功',
+    status_failed: '失败'
   }
 }
