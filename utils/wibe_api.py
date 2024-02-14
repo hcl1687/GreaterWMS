@@ -492,7 +492,7 @@ class WIBE_API():
                 'stocks': sku_stocks
             }
             stock_resp = self._request(path=f'/api/v3/stocks/{warehouse_id}', method='PUT', params=_params, raw=True)
-            if stock_resp.status_code == 200:
+            if stock_resp.status_code == 204:
                 for item in sub_stocks:
                     res.append({
                         'product_id': item['product_id'],
