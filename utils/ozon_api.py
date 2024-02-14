@@ -37,6 +37,8 @@ class OZON_API():
                 response = requests.post(url=url, data=param_json, headers=headers, timeout=60)
             elif method == 'GET':
                 response = requests.get(url=url, params=param_json, headers=headers, timeout=60)
+            elif method == 'PUT':
+                response = requests.put(url=url, data=param_json, headers=headers, timeout=60)
             processing_time = time.time() - start_time
             logger.info(f'Request url: [{method}]{url} took {processing_time:.6f} seconds.')
 
@@ -257,38 +259,37 @@ class OZON_API():
                         'status': Sync_Status.Failed,
                         'message': 'api no response'
                     })
-                return res
-
-            stock_result = stock_resp.get('result', [])
-            stock_result_dict = {}
-            for item in stock_result:
-                updated = item.get('updated', True)
-                message = ''
-                if not updated:
-                    errors = item.get('errors', [])
-                    if len(errors) > 0:
-                        message = errors[0].get('code', '')
-                status = Sync_Status.Success
-                if not updated:
-                    status = Sync_Status.Failed
-                stock_result_dict[str(item['product_id'])] = {
-                    'product_id': str(item['product_id']),
-                    'status': status,
-                    'message': message
-                }
-
-            for item in sub_stocks:
-                stock_result_item = stock_result_dict.get(str(item['product_id']))
-                if not stock_result_item:
-                    stock_result_item = {
-                        'product_id': item['product_id'],
-                        'status': Sync_Status.Failed,
-                        'message': 'no result'
+            else:
+                stock_result = stock_resp.get('result', [])
+                stock_result_dict = {}
+                for item in stock_result:
+                    updated = item.get('updated', True)
+                    message = ''
+                    if not updated:
+                        errors = item.get('errors', [])
+                        if len(errors) > 0:
+                            message = errors[0].get('code', '')
+                    status = Sync_Status.Success
+                    if not updated:
+                        status = Sync_Status.Failed
+                    stock_result_dict[str(item['product_id'])] = {
+                        'product_id': str(item['product_id']),
+                        'status': status,
+                        'message': message
                     }
-                res.append(stock_result_item)
+
+                for item in sub_stocks:
+                    stock_result_item = stock_result_dict.get(str(item['product_id']))
+                    if not stock_result_item:
+                        stock_result_item = {
+                            'product_id': item['product_id'],
+                            'status': Sync_Status.Failed,
+                            'message': 'no result'
+                        }
+                    res.append(stock_result_item)
 
         return res
-    
+
     def toPlatformStatus(self, status):
         if status == Status.Awaiting_Review:
             return 'awaiting_packaging'

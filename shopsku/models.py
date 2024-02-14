@@ -9,6 +9,7 @@ class ListModel(models.Model):
     sync_status = models.BigIntegerField(default=1, verbose_name="Sync Status")
     sync_message = models.CharField(max_length=255, default='', verbose_name="Sync Message")
     sync_time = models.DateTimeField(auto_now=False, blank=True, null=True, verbose_name="Sync Time")
+    platform_data = models.TextField(default='', verbose_name="Platform Data")
     supplier = models.CharField(max_length=255, verbose_name="Supplier")
     openid = models.CharField(max_length=255, verbose_name="Openid")
     creater = models.CharField(max_length=255, verbose_name="Who Created")

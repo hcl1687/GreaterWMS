@@ -20,6 +20,7 @@ from stock.models import StockListModel
 from .tasks import stock_manual_update
 from celery.result import AsyncResult
 from greaterwms.celery import app
+import json
 
 class APIViewSet(viewsets.ModelViewSet):
     """
@@ -176,6 +177,14 @@ class APIViewSet(viewsets.ModelViewSet):
         goods_code = data.get('goods_code', '')
         if not goods_code:
             raise APIException({"detail": "The goods code does not exist"})
+
+        platform_data = data.get('platform_data', '')
+        if not platform_data:
+            raise APIException({"detail": "The platform_data does not exist"})
+        try:
+            json.loads(platform_data)
+        except json.JSONDecodeError:
+            raise APIException({"detail": "The platform_data decode error"})
 
         goods_obj = GoodsModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), goods_supplier=shop_supplier, goods_code=goods_code, is_delete=False).first()
         if goods_obj is None:

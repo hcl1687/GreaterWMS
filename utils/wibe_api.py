@@ -8,6 +8,8 @@ import time
 from urllib.parse import parse_qs, quote, unquote
 from shop.models import ListModel as ShopModel
 from shopsku.models import ListModel as ShopskuModel
+import math
+from shopsku.status import Sync_Status
 
 logger = logging.getLogger(__name__)
 PACK_WEIGHT_KEY = 'Вес товара с упаковкой (г)'
@@ -21,7 +23,7 @@ class WIBE_API():
         self._api_key = shop_data['api_key']
         self._api_url = shop_data['api_url']
     
-    def _request(self, path: str, method: str = 'POST', params: dict = {}) -> json:
+    def _request(self, path: str, method: str = 'POST', params: dict = {}, raw: bool = False) -> json:
         try:
             headers = {}
             headers.update({'Content-Type': 'application/json'})
@@ -40,8 +42,13 @@ class WIBE_API():
                 response = requests.post(url=url, data=param_json, headers=headers, timeout=60)
             elif method == 'GET':
                 response = requests.get(url=url, params=params, headers=headers, timeout=60)
+            elif method == 'PUT':
+                response = requests.put(url=url, data=param_json, headers=headers, timeout=60)
             processing_time = time.time() - start_time
             logger.info(f'Request url: [{method}]{url} took {processing_time:.6f} seconds.')
+
+            if raw:
+                return response
 
             if response.status_code != 200:
                 logger.error(f'Request url: [{method}]{url} with response status code: {response.status_code}')
@@ -189,8 +196,14 @@ class WIBE_API():
                     elif PACK_WEIGHT_KEY in character:
                         item['weight'] = int(character[PACK_WEIGHT_KEY])
                 item['stock'] = product_detail_dict.get('stock', 0)
+                skus = []
+                sizes = item.get('sizes', [])
+                if len(sizes) > 0:
+                    size = sizes[0]
+                    skus = size.get('skus', [])
                 item['platform_data'] = json.dumps({
-                    'vendorCode': item['vendorCode']
+                    'vendorCode': item['vendorCode'],
+                    'skus': skus
                 })
 
         cursor = product_resp.get('data', {}).get('cursor', {})
@@ -244,7 +257,7 @@ class WIBE_API():
         nm_ids = [item.get('nmId', 0) for item in order_resp['items']]
         # remove duplicate elements
         nm_ids = list(set(nm_ids))
-        shopsku_list = ShopskuModel.objects.filter(platform_id__in=nm_ids)
+        shopsku_list = ShopskuModel.objects.filter(shop_id=self._shop_id, is_delete=False, platform_id__in=nm_ids)
         shopsku_dict = {}
         for item in shopsku_list:
             shopsku_dict[item.platform_id] = item
@@ -419,6 +432,131 @@ class WIBE_API():
             'next': order_resp_next,
             'items': order_list
         }
+
+    def update_stock(self, params: dict) -> json:
+        if not params:
+            return None
+
+        # params: {'warehouse_id': 123, stocks: [{'product_id': 456, 'stock': 100}]}
+        stocks = params.get('stocks', [])
+        if len(stocks) == 0:
+            return None
+
+        res = []
+        warehouse_id = params.get('warehouse_id', '')
+        if not warehouse_id:
+            for item in stocks:
+                res.append({
+                    'product_id': item['product_id'],
+                    'status': Sync_Status.Failed,
+                    'message': 'no warehouse_id'
+                })
+            return res
+
+        # only 1000 products in one request at most.
+        size = 1000
+        times = math.ceil(len(stocks) / size)
+        for i in range(times):
+            sub_stocks = stocks[i * size : (i + 1) * size]
+
+            product_id_list = [item['product_id'] for item in sub_stocks]
+            shopsku_obj_list = ShopskuModel.objects.filter(shop_id=self._shop_id, is_delete=False,
+                                                            platform_id__in=product_id_list)
+            product_id_sku_dict = {}
+            for shopsku_obj in shopsku_obj_list:
+                if shopsku_obj is None:
+                    continue
+                platform_id = shopsku_obj.platform_id
+                platform_data = shopsku_obj.platform_data
+                try:
+                    platform_data = json.loads(platform_data)
+                    skus = platform_data.get('skus', [])
+                    # only support one sku
+                    if len(skus) > 0:
+                        product_id_sku_dict[platform_id] = skus[0]
+                except json.JSONDecodeError:
+                    logger.error(f'The platform_data of platform_id: {platform_id} decode error')
+                except Exception as e:
+                    logger.exception('{}'.format(e))
+
+            sku_stocks = []
+            for sub_stock in sub_stocks:
+                product_id = sub_stock['product_id']
+                stock = sub_stock['stock']
+                if product_id in product_id_sku_dict:
+                    sku_stocks.append({
+                        'sku': product_id_sku_dict[product_id],
+                        'amount': stock
+                    })
+            _params = {
+                'stocks': sku_stocks
+            }
+            stock_resp = self._request(path=f'/api/v3/stocks/{warehouse_id}', method='PUT', params=_params, raw=True)
+            if stock_resp.status_code == 200:
+                for item in sub_stocks:
+                    res.append({
+                        'product_id': item['product_id'],
+                        'status': Sync_Status.Success,
+                        'message': ''
+                    })
+            elif stock_resp.status_code == 409:
+                try:
+                    content = json.loads(stock_resp.content)
+                except json.JSONDecodeError:
+                    logger.error(f'stock_resp content decode error')
+                    content = None
+
+                if content is None:
+                    for item in sub_stocks:
+                        res.append({
+                            'product_id': item['product_id'],
+                            'status': Sync_Status.Failed,
+                            'message': 'stock_resp content decode error'
+                        })
+                else:
+                    resp_sku_dict = {}
+                    for item in content:
+                        code = item.get('code', '')
+                        data = item.get('data', [])
+                        for data_item in data:
+                            sku = data_item.get('sku', '')
+                            if sku:
+                                resp_sku_dict[sku] = {
+                                    'message': code
+                                }
+                    for item in sub_stocks:
+                        sku = product_id_sku_dict.get(item['product_id'], '')
+                        if not sku:
+                            res.append({
+                                'product_id': item['product_id'],
+                                'status': Sync_Status.Failed,
+                                'message': 'sku not exist'
+                            })
+                            continue
+                        resp_sku = resp_sku_dict.get(sku, None)
+                        if not resp_sku:
+                            res.append({
+                                'product_id': item['product_id'],
+                                'status': Sync_Status.Success,
+                                'message': ''
+                            })
+                            continue
+                        res.append({
+                            'product_id': item['product_id'],
+                            'status': Sync_Status.Failed,
+                            'message': resp_sku['message']
+                        })
+            else:
+                # other satus code
+                logger.error(f'Request url: [PUT]/api/v3/stocks/{warehouse_id} with response status code: {stock_resp.status_code}')
+                for item in sub_stocks:
+                    res.append({
+                        'product_id': item['product_id'],
+                        'status': Sync_Status.Failed,
+                        'message': str(stock_resp.status_code)
+                    })
+
+        return res
 
     def toPlatformStatus(self, status):
         if status == Status.Awaiting_Review:

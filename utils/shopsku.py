@@ -22,7 +22,7 @@ class Shopsku(object):
 
         # get product id
         product_id_dict = {}
-        shopsku_list = ShopskuModel.objects.filter(openid=celeryuser['openid'], is_delete=False, shop_id=shop_id,
+        shopsku_list = ShopskuModel.objects.filter(openid=celeryuser['openid'], shop_id=shop_id, is_delete=False,
                                                 goods_code__in=goods_code_list)
         for shopsku_item in shopsku_list:
             product_id_dict[shopsku_item.goods_code] = shopsku_item.platform_id
@@ -54,13 +54,15 @@ class Shopsku(object):
             'warehouse_id': warehosue_id
         }
         seller_resp = seller_api.update_stock(params)
+        if seller_resp is None:
+            return
 
         res_dict = {}
         for stock_item in seller_resp:
             res_dict[stock_item['product_id']] = stock_item
         
         product_id_list = list(res_dict.keys())
-        shopsku_obj_list = ShopskuModel.objects.filter(openid=celeryuser['openid'], is_delete=False, shop_id=shop_id,
+        shopsku_obj_list = ShopskuModel.objects.filter(openid=celeryuser['openid'], shop_id=shop_id, is_delete=False,
                                                             platform_id__in=product_id_list)
         for shopsku_obj in shopsku_obj_list:
             product_id = shopsku_obj.platform_id

@@ -512,6 +512,7 @@ export default {
             shop: +this.shop_id,
             platform_id: item.platform_id,
             platform_sku: item.platform_sku,
+            platform_data: item.platform_data,
             goods_code: res.goods_code
           }
           await postauth(this.pathname, shopskuData)

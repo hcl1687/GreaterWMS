@@ -41,6 +41,8 @@ class YADE_API():
                 response = requests.post(url=url, data=param_json, headers=headers, timeout=60)
             elif method == 'GET':
                 response = requests.get(url=url, params=params, headers=headers, timeout=60)
+            elif method == 'PUT':
+                response = requests.put(url=url, data=param_json, headers=headers, timeout=60)
             processing_time = time.time() - start_time
             logger.info(f'Request url: [{method}]{url} took {processing_time:.6f} seconds.')
 
