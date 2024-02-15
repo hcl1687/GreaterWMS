@@ -7,6 +7,7 @@ def file_headers():
         'shop_data',
         'supplier',
         'sync',
+        'stock_threshold',
         'create_time',
         'update_time'
     ]
@@ -18,6 +19,7 @@ def cn_data_header():
         ('shop_data', u'店铺配置'),
         ('supplier', u'供应商'),
         ('sync', u'库存自动同步'),
+        ('stock_threshold', u'库存阈值'),
         ('create_time', u'创建时间'),
         ('update_time', u'更新时间')
     ])
@@ -29,6 +31,7 @@ def en_data_header():
         ('shop_data', u'Shop Settings'),
         ('supplier', u'Supplier'),
         ('sync', u'Sync store'),
+        ('stock_threshold', u'Stock Threshold'),
         ('create_time', u'Create Time'),
         ('update_time', u'Update Time')
     ])

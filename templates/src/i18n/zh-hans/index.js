@@ -672,7 +672,9 @@ export default {
     error2: '请输入店铺类型',
     sync: '是否同步',
     sync_true: '是',
-    sync_false: '否'
+    sync_false: '否',
+    stock_threshold: '库存阈值',
+    stock_threshold_error: 'stock_threshold必须大于等于0'
   },
   shoptype: {
     shop_type: '店铺类型',

@@ -10,6 +10,7 @@ logger = logging.getLogger(__name__)
 class Shopsku(object):
     def update_stock(shop_id, goods_code_list, celeryuser, **args):
         shop = ShopModel.objects.filter(openid=celeryuser['openid'], id=str(shop_id), is_delete=False, sync=True).first()
+        stock_threshold = shop.stock_threshold
         shopwarehouse_list = shop.shopwarehouse.filter(is_delete=False)
         warehosue_id_list = []
         for warehouse in shopwarehouse_list:
@@ -43,6 +44,11 @@ class Shopsku(object):
             stock = 0
             if product_id in stocks_dict:
                 stock = stocks_dict[product_id]
+
+            # handle stock threshold
+            if stock <= stock_threshold:
+                stock = 0
+
             stocks.append({
                 'product_id': product_id,
                 'stock': stock

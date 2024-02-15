@@ -6,9 +6,10 @@ class ShopGetSerializer(serializers.ModelSerializer):
     shop_name = serializers.CharField(read_only=True, required=False)
     shop_type = serializers.CharField(read_only=True, required=False)
     shop_data = serializers.CharField(read_only=True, required=False)
+    sync = serializers.BooleanField(read_only=True, required=False)
+    stock_threshold = serializers.IntegerField(read_only=True, required=False)
     supplier = serializers.CharField(read_only=True, required=False)
     creater = serializers.CharField(read_only=True, required=False)
-    sync = serializers.BooleanField(read_only=True, required=False)
     create_time = serializers.DateTimeField(read_only=True)
     update_time = serializers.DateTimeField(read_only=True)
 
@@ -22,6 +23,7 @@ class ShopPostSerializer(serializers.ModelSerializer):
     shop_name = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     shop_type = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     shop_data = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
+    stock_threshold = serializers.IntegerField(read_only=False, required=True, validators=[datasolve.qty_data_validate])
     supplier = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     creater = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     class Meta:
@@ -33,6 +35,7 @@ class ShopUpdateSerializer(serializers.ModelSerializer):
     shop_name = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     shop_type = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     shop_data = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
+    stock_threshold = serializers.IntegerField(read_only=False, required=True, validators=[datasolve.qty_data_validate])
     creater = serializers.CharField(read_only=True, required=False, validators=[datasolve.data_validate])
     class Meta:
         model = ListModel
@@ -43,6 +46,7 @@ class ShopPartialUpdateSerializer(serializers.ModelSerializer):
     shop_name = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     shop_type = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     shop_data = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
+    stock_threshold = serializers.IntegerField(read_only=False, required=True, validators=[datasolve.qty_data_validate])
     creater = serializers.CharField(read_only=True, required=False, validators=[datasolve.data_validate])
     class Meta:
         model = ListModel
@@ -53,6 +57,8 @@ class FileRenderSerializer(serializers.ModelSerializer):
     shop_name = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     shop_type = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     shop_data = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
+    sync = serializers.BooleanField(read_only=True, required=False)
+    stock_threshold = serializers.IntegerField(read_only=True, required=False)
     supplier = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     creater = serializers.CharField(read_only=False, required=True, validators=[datasolve.data_validate])
     create_time = serializers.DateTimeField(read_only=True)

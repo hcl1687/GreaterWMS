@@ -671,7 +671,9 @@ export default {
     error2: 'Please Enter The Shop Type',
     sync: 'Sync',
     sync_true: 'True',
-    sync_false: 'Fasle'
+    sync_false: 'Fasle',
+    stock_threshold: 'Stock Threshold',
+    stock_threshold_error: 'The stock_threshold must greater than or equal to 0'
   },
   shoptype: {
     shop_type: 'Shop Type',

@@ -46,6 +46,7 @@
             <q-td key="shop_type" :props="props">{{ props.row.shop_type }}</q-td>
             <q-td key="supplier" :props="props">{{ props.row.supplier }}</q-td>
             <q-td key="sync" :props="props">{{ getSyncLabel(props.row.sync) }}</q-td>
+            <q-td key="stock_threshold" :props="props">{{ props.row.stock_threshold }}</q-td>
             <q-td key="create_time" :props="props">{{ showLocalTime(props.row.create_time) }}</q-td>
             <q-td key="update_time" :props="props">{{ showLocalTime(props.row.update_time) }}</q-td>
             <q-td key="action" :props="props" style="width: 250px">
@@ -174,6 +175,17 @@
             @keyup.enter="dataSubmit()"
             style="margin-top: 5px"
           />
+          <q-input
+            dense
+            outlined
+            square
+            debounce="500"
+            v-model.number="formData.stock_threshold"
+            type="number"
+            :label="$t('shop.stock_threshold')"
+            style="margin-bottom: 5px"
+            @keyup.enter="dataSubmit()"
+          />
           <q-select
             dense
             outlined
@@ -250,6 +262,7 @@ export default {
         { name: 'shop_type', label: this.$t('shoptype.shop_type'), field: 'shop_type', align: 'center' },
         { name: 'supplier', required: true, label: this.$t('shop.supplier'), align: 'center', field: 'supplier' },
         { name: 'sync', label: this.$t('shop.sync'), field: 'sync', align: 'center' },
+        { name: 'stock_threshold', label: this.$t('shop.stock_threshold'), field: 'stock_threshold', align: 'center' },
         { name: 'create_time', label: this.$t('createtime'), field: 'create_time', align: 'center' },
         { name: 'update_time', label: this.$t('updatetime'), field: 'update_time', align: 'center' },
         { name: 'action', label: this.$t('action'), align: 'center' }
@@ -503,6 +516,16 @@ export default {
         return
       }
 
+      const stockThreshold = _this.formData.stock_threshold
+      if (!/^\d+$/.test('' + stockThreshold)) {
+        _this.$q.notify({
+          message: _this.$t('stock_threshold_error'),
+          icon: 'close',
+          color: 'negative'
+        })
+        return
+      }
+
       const shopTypeFields = _this.shopTypeFields
       const shop_data = {}
       for (let i = 0; i < shopTypeFields.length; i++) {
@@ -522,6 +545,7 @@ export default {
         supplier: _this.formData.supplier,
         shop_name: _this.formData.shop_name,
         sync: _this.formData.sync,
+        stock_threshold: +stockThreshold,
         shop_type: _this.formData.shop_type,
         shop_data: JSON.stringify(shop_data)
       }
@@ -587,6 +611,7 @@ export default {
         supplier: e.supplier,
         shop_name: e.shop_name,
         sync: _this.getSyncLabel(e.sync),
+        stock_threshold: e.stock_threshold,
         shop_type: e.shop_type,
         ...JSON.parse(e.shop_data)
       }
