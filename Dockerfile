@@ -25,9 +25,8 @@ RUN chmod +x /GreaterWMS/backend_start.sh
 CMD ["/GreaterWMS/backend_start.sh"]
 
 FROM --platform=linux/amd64 node:14.19.3-buster-slim AS compile
-# COPY ./templates/package.json /GreaterWMS/templates/package.json
-# COPY ./templates/quasar.conf.js /GreaterWMS/templates/quasar.conf.js
-COPY ./templates/ /GreaterWMS/templates/
+COPY ./templates/package.json /GreaterWMS/templates/package.json
+COPY ./templates/quasar.conf.js /GreaterWMS/templates/quasar.conf.js
 #COPY ./templates/node_modules/ /GreaterWMS/templates/node_modules/
 COPY ./web_start.sh /GreaterWMS/templates/web_start.sh
 ENV port = ${port}
@@ -39,6 +38,7 @@ RUN npm install -g yarn --force
 #RUN yarn config set registry https://registry.npm.taobao.org
 RUN npm install -g @quasar/cli --force
 RUN npm install
+COPY ./templates/ /GreaterWMS/templates/
 RUN quasar build
 
 FROM --platform=linux/amd64 nginx:latest as front
