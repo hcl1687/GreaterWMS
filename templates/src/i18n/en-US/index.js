@@ -760,6 +760,8 @@ export default {
     sync_title: 'Sync Stock',
     sync_confirm_tip: 'Are you sure to sync system\'s stock to platform?',
     status_success: 'Success',
-    status_failed: 'Failed'
+    status_failed: 'Failed',
+    progress_title: 'Sync Progress',
+    sync_progress_tip: 'Plese wait until the sync progress is finished'
   }
 }

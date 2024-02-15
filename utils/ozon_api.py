@@ -240,14 +240,13 @@ class OZON_API():
                 })
             return res
 
-        for item in stocks:
-            item['warehouse_id'] = warehouse_id
-
         # only 100 products in one request at most.
         size = 100
         times = math.ceil(len(stocks) / size)
         for i in range(times):
             sub_stocks = stocks[i * size : (i + 1) * size]
+            for item in sub_stocks:
+                item['warehouse_id'] = warehouse_id
             _params = {
                 'stocks': sub_stocks
             }

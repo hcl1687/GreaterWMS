@@ -106,6 +106,19 @@
         </div>
       </q-card>
     </q-dialog>
+    <q-dialog v-model="progressForm">
+      <q-card class="shadow-24">
+        <q-bar class="bg-light-blue-10 text-white rounded-borders" style="height: 50px">
+          <div>{{ $t('shopsync.progress_title') }}</div>
+          <q-space />
+          <q-btn dense flat icon="close" @click="closeProgressForm()">
+            <q-tooltip content-class="bg-amber text-black shadow-4">{{ $t('index.close') }}</q-tooltip>
+          </q-btn>
+        </q-bar>
+        <q-card-section style="max-height: 325px; width: 400px" class="scroll">{{ $t('shopsync.sync_progress_tip') }}</q-card-section>
+        <q-linear-progress indeterminate />
+      </q-card>
+    </q-dialog>
   </div>
 </template>
 <router-view />
@@ -147,6 +160,7 @@ export default {
         rowsPerPage: PAGE_SIZE
       },
       syncForm: false,
+      progressForm: false,
       syncGoodscode: [],
       last_id_list: [''],
       curr_last_id_index: 0,
@@ -154,7 +168,8 @@ export default {
       total: 0,
       shop_id: '',
       shopDetail: {},
-      supplierDetail: {}
+      supplierDetail: {},
+      progressTimer: null
     }
   },
   methods: {
@@ -223,12 +238,8 @@ export default {
       postauth('shopsku/sync/', data)
         .then(res => {
           _this.syncDataCancel()
-          _this.getList()
-          _this.$q.notify({
-            message: 'Success Sync Data',
-            icon: 'check',
-            color: 'green'
-          })
+          const taskId = res && res.task_id || ''
+          this.showProgressForm(taskId)
         })
         .catch(err => {
           _this.$q.notify({
@@ -267,6 +278,36 @@ export default {
           return ''
       }
     },
+    showProgressForm (taskId) {
+      this.progressForm = true
+      const handleTimer = async () => {
+        const res = await this.getTaskStatus(taskId)
+        if (res == 'SUCCESS') {
+          this.closeProgressForm()
+          this.getList()
+          _this.$q.notify({
+            message: 'Success Sync Data',
+            icon: 'check',
+            color: 'green'
+          })
+        } else {
+          this.progressTimer = setTimeout(handleTimer, 1000)
+        }
+      }
+      handleTimer()
+    },
+    closeProgressForm () {
+      if (this.progressTimer) {
+        clearTimeout(this.progressTimer)
+        this.progressTimer = null
+      }
+      this.progressForm = false
+    },
+    async getTaskStatus (taskId) {
+      const res = await getauth(`/shopsku/task/?task_id=${taskId}`, {})
+
+      return res && res.state || ''
+    }
   },
   created () {
     var _this = this
@@ -299,6 +340,9 @@ export default {
     // }
   },
   updated () {
+  },
+  unmounted () {
+    this.closeProgressForm()
   },
   destroyed () {
   }

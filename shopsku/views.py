@@ -559,4 +559,8 @@ class TaskViewSet(viewsets.ModelViewSet):
     def list(self, request, *args, **kwargs):
         task_id = str(request.GET.get('task_id'))
         res = AsyncResult(task_id, app=app)
-        return Response(res.state, status=200)
+        data = {
+            'task_id': task_id,
+            'state': res.state
+        }
+        return Response(data, status=200)

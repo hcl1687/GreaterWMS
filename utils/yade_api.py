@@ -10,6 +10,8 @@ from shop.models import ListModel as ShopModel
 from shopsku.models import ListModel as ShopskuModel
 from pytz import timezone
 import pytz
+import math
+from shopsku.status import Sync_Status
 
 logger = logging.getLogger(__name__)
 moscow = timezone('Europe/Moscow')
@@ -329,6 +331,77 @@ class YADE_API():
             order_dict['items'].append(order_item)
 
         return order_dict
+
+    def update_stock(self, params: dict) -> json:
+        if not params:
+            return None
+
+        # params: {'warehouse_id': 123, stocks: [{'product_id': 456, 'stock': 100}]}
+        stocks = params.get('stocks', [])
+        if len(stocks) == 0:
+            return None
+
+        res = []
+        warehouse_id = params.get('warehouse_id', '')
+        if not warehouse_id:
+            for item in stocks:
+                res.append({
+                    'product_id': item['product_id'],
+                    'status': Sync_Status.Failed,
+                    'message': 'no warehouse_id'
+                })
+            return res
+
+        # only 100 products in one request at most.
+        size = 100
+        times = math.ceil(len(stocks) / size)
+        for i in range(times):
+            sub_stocks = stocks[i * size : (i + 1) * size]
+            skus = []
+
+            default_now = datetime.now()
+            # to moscow time
+            default_now = default_now.astimezone(moscow).replace(microsecond=0).isoformat()
+            for item in sub_stocks:
+                skus.append({
+                    'sku': item['product_id'],
+                    'warehouseId': warehouse_id,
+                    'items': [{
+                        'count': item['stock'],
+                        'type': 'FIT',
+                        'updatedAt': default_now
+                    }]
+                })
+            _params = {
+                'skus': skus
+            }
+            stock_resp = self._request(path=f'/campaigns/{self._platform_shop_id}/offers/stocks', method='PUT', params=_params)
+            if stock_resp is None:
+                for item in sub_stocks:
+                    res.append({
+                        'product_id': item['product_id'],
+                        'status': Sync_Status.Failed,
+                        'message': 'api no response'
+                    })
+            elif stock_resp['status'] == 'ERROR':
+                errors = stock_resp.get('errors', [])
+                code = ''
+                if len(errors) > 0:
+                    code = errors[0].get('code', '')
+                for item in sub_stocks:
+                    res.append({
+                        'product_id': item['product_id'],
+                        'status': Sync_Status.Failed,
+                        'message': code
+                    })
+            else:
+                for item in sub_stocks:
+                    res.append({
+                        'product_id': item['product_id'],
+                        'status': Sync_Status.Success,
+                        'message': ''
+                    })
+        return res
 
     def toPlatformStatus(self, status):
         if status == Status.Awaiting_Review:

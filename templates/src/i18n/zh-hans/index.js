@@ -761,6 +761,8 @@ export default {
     sync_title: '同步库存',
     sync_confirm_tip: '您确定要同步系统库存到平台吗？',
     status_success: '成功',
-    status_failed: '失败'
+    status_failed: '失败',
+    progress_title: '同步进度',
+    sync_progress_tip: '请耐心等待同步任务结束'
   }
 }
