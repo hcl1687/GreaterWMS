@@ -752,7 +752,9 @@ export default {
     today: 'Today',
     tomorrow: 'Tomorrow',
     after_tomorrow: 'The day after tomorrow',
-    can_order_stock: 'Stock'
+    can_order_stock: 'Stock',
+    progress_title: 'Order Progress',
+    progress_tip: 'Plese wait until the order progress is finished'
   },
   shopsync: {
     shop_sync: 'Shop Sync',
@@ -764,6 +766,6 @@ export default {
     status_success: 'Success',
     status_failed: 'Failed',
     progress_title: 'Sync Progress',
-    sync_progress_tip: 'Plese wait until the sync progress is finished'
+    progress_tip: 'Plese wait until the sync progress is finished'
   }
 }

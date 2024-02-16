@@ -753,7 +753,9 @@ export default {
     today: '今天',
     tomorrow: '明天',
     after_tomorrow: '后天',
-    can_order_stock: '库存'
+    can_order_stock: '库存',
+    progress_title: '同步进度',
+    progress_tip: '请耐心等待抓单任务结束'
   },
   shopsync: {
     shop_sync: '库存同步',
@@ -765,6 +767,6 @@ export default {
     status_success: '成功',
     status_failed: '失败',
     progress_title: '同步进度',
-    sync_progress_tip: '请耐心等待同步任务结束'
+    progress_tip: '请耐心等待同步任务结束'
   }
 }

@@ -115,7 +115,7 @@
             <q-tooltip content-class="bg-amber text-black shadow-4">{{ $t('index.close') }}</q-tooltip>
           </q-btn>
         </q-bar>
-        <q-card-section style="max-height: 325px; width: 400px" class="scroll">{{ $t('shopsync.sync_progress_tip') }}</q-card-section>
+        <q-card-section style="max-height: 325px; width: 400px" class="scroll">{{ $t('shopsync.progress_tip') }}</q-card-section>
         <q-linear-progress indeterminate />
       </q-card>
     </q-dialog>

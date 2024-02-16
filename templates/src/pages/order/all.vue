@@ -370,6 +370,19 @@
         </div>
       </q-card>
     </q-dialog>
+    <q-dialog v-model="progressForm">
+      <q-card class="shadow-24">
+        <q-bar class="bg-light-blue-10 text-white rounded-borders" style="height: 50px">
+          <div>{{ $t('order.progress_title') }}</div>
+          <q-space />
+          <q-btn dense flat icon="close" @click="closeProgressForm()">
+            <q-tooltip content-class="bg-amber text-black shadow-4">{{ $t('index.close') }}</q-tooltip>
+          </q-btn>
+        </q-bar>
+        <q-card-section style="max-height: 325px; width: 400px" class="scroll">{{ $t('order.progress_tip') }}</q-card-section>
+        <q-linear-progress indeterminate />
+      </q-card>
+    </q-dialog>
   </div>
 </template>
 <router-view />
@@ -478,6 +491,8 @@ export default {
         id: 'printPL',
         popTitle: this.$t('outbound.pickinglist')
       },
+      progressForm: false,
+      progressTimer: null,
     }
   },
   computed: {
@@ -746,28 +761,14 @@ export default {
       return LocalStorage.getItem('staff_type') === 'Supplier'
     },
     async fetchOrder () {
-      const shopList = await this.drainShopList()
-      for(let i = 0; i < shopList.length; i++) {
-        const shop = shopList[i]
-        await postauth('shoporder/init/', {
-          shop_id: shop.id
-        })
-      }
-      this.current = 1;
-      this.paginationIpt = 1;
-      this.getList()
+      const res = await postauth('shoporder/init/', {})
+      const taskId = res && res.task_id || ''
+      this.showProgressForm(taskId)
     },
     async updateOrder () {
-      const shopList = await this.drainShopList()
-      for(let i = 0; i < shopList.length; i++) {
-        const shop = shopList[i]
-        await postauth('shoporder/update/', {
-          shop_id: shop.id
-        })
-      }
-      this.current = 1;
-      this.paginationIpt = 1;
-      this.getList()
+      const res = await postauth('shoporder/update/', {})
+      const taskId = res && res.task_id || ''
+      this.showProgressForm(taskId)
     },
     getStatusMsg (status) {
       let msg = ''
@@ -1090,6 +1091,38 @@ export default {
 
       return table_list
     },
+    showProgressForm (taskId) {
+      this.progressForm = true
+      const handleTimer = async () => {
+        const res = await this.getTaskStatus(taskId)
+        if (res == 'SUCCESS') {
+          this.closeProgressForm()
+          this.current = 1;
+          this.paginationIpt = 1;
+          this.getList()
+          _this.$q.notify({
+            message: 'Success fetch order',
+            icon: 'check',
+            color: 'green'
+          })
+        } else {
+          this.progressTimer = setTimeout(handleTimer, 1000)
+        }
+      }
+      handleTimer()
+    },
+    closeProgressForm () {
+      if (this.progressTimer) {
+        clearTimeout(this.progressTimer)
+        this.progressTimer = null
+      }
+      this.progressForm = false
+    },
+    async getTaskStatus (taskId) {
+      const res = await getauth(`/shoporder/task/?task_id=${taskId}`, {})
+
+      return res && res.state || ''
+    }
   },
   created () {
     var _this = this
@@ -1125,6 +1158,9 @@ export default {
     // _this.height = '800px'
   },
   updated () {},
+  unmounted () {
+    this.closeProgressForm()
+  },
   destroyed () {}
 }
 </script>

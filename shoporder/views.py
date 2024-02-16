@@ -26,6 +26,9 @@ from .status import Status, Handle_Status
 from dn.models import DnListModel
 import logging
 import time
+from .tasks import order_manual_init, order_manual_update
+from celery.result import AsyncResult
+from greaterwms.celery import app
 
 logger = logging.getLogger(__name__)
 
@@ -637,88 +640,21 @@ class ShoporderInitViewSet(viewsets.ModelViewSet):
             return self.http_method_not_allowed(request=self.request)
 
     def create(self, request, *args, **kwargs):
-        start_time = time.time()
         data = self.request.data
-        since = data.get('since')
-        to = data.get('to')
-        shop_id = data.get('shop_id')
-        # mode: task or ''
-        mode = data.get('mode')
+        user = self.request.user
+        access_token = str(self.request.headers['Authorization']).replace('Bearer ', '')
+        celeryuser = {
+            'user_id': user.id,
+            'name': user.username,
+            'openid': self.request.META.get('HTTP_TOKEN'),
+            'access_token': access_token
+        }
+        task_id = order_manual_init(data, celeryuser)
+        data = {
+            'task_id': task_id
+        }
 
-        if shop_id:
-            shop_list = ShopModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=str(shop_id), is_delete=False)
-        else:
-            shop_list = ShopModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), is_delete=False)
-
-        # init Awaiting_Review order
-        for shop in shop_list:
-            status = Status.Awaiting_Review
-            self.handle_shoporder(shop, since=since, to=to, status=status)
-        # init Awaiting_Deliver order
-        if mode != 'task':
-            for shop in shop_list:
-                status = Status.Awaiting_Deliver
-                self.handle_shoporder(shop, since=since, to=to, status=status)
-
-        processing_time = time.time() - start_time
-        logger.info(f'init order for shop_id: {shop_id}, processing_time: {processing_time:.6f} seconds')
-
-        return Response({"detail": "success"}, status=200)
-
-    def handle_shoporder(self, shop, **args):
-        shop_id = shop.id
-        shopwarehouse_list = shop.shopwarehouse.filter(is_delete=False)
-        warehosue_id = []
-        for warehouse in shopwarehouse_list:
-            warehosue_id.append(warehouse.platform_id)
-
-        if len(warehosue_id) == 0:
-            return
-
-        seller_api = SELLER_API(shop_id)
-        count = 0
-        max_processing_time = 0
-        offset = 0
-        while True:
-            params = {
-                'offset': offset,
-                'status':args['status'],
-                'since': args['since'],
-                'to': args['to'],
-                'warehouse_id': warehosue_id
-            }
-            seller_resp = seller_api.get_orders(params)
-            seller_resp_items = seller_resp.get('items', [])
-            count = count + len(seller_resp_items)
-            for item in seller_resp_items:
-                start_time = time.time()
-                item['shop'] = shop_id
-                url = f'{settings.INNER_URL}/shoporder/'
-                req_data = item
-                headers = {
-                    'Authorization': self.request.headers['Authorization'],
-                    'Token': self.request.META.get('HTTP_TOKEN'),
-                    'Operator': self.request.META.get('HTTP_OPERATOR')
-                }
-
-                response = requests.post(url, json=req_data, headers=headers)
-                str_response = response.content.decode('UTF-8')
-                json_response = json.loads(str_response)
-                json_response_status = json_response.get('status_code')
-                if response.status_code != 200 or (json_response_status and json_response_status != 200):
-                    # response.content: { status_code: 5xx, detial: 'xxx' }
-                    logger.error(f'init Awaiting_Review order failed, response: {str_response}')
-                processing_time = time.time() - start_time
-                if processing_time > max_processing_time:
-                    max_processing_time = processing_time
-
-            if seller_resp is None:
-                break
-            if not seller_resp.get('has_next', False):
-                break
-            offset = seller_resp['next']
-
-        logger.info(f'handle init order for shop_id: {shop_id}, count: {count}, max_processing_time: {max_processing_time:.6f} seconds')
+        return Response(data, status=200)
 
 class ShoporderUpdateViewSet(viewsets.ModelViewSet):
     """
@@ -763,80 +699,20 @@ class ShoporderUpdateViewSet(viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         data = self.request.data
-        since = data.get('since')
-        to = data.get('to')
-        shop_id = data.get('shop_id')
+        user = self.request.user
+        access_token = str(self.request.headers['Authorization']).replace('Bearer ', '')
+        celeryuser = {
+            'user_id': user.id,
+            'name': user.username,
+            'openid': self.request.META.get('HTTP_TOKEN'),
+            'access_token': access_token
+        }
+        task_id = order_manual_update({}, celeryuser)
+        data = {
+            'task_id': task_id
+        }
 
-        if shop_id:
-            shop_list = ShopModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=str(shop_id), is_delete=False)
-        else:
-            shop_list = ShopModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), is_delete=False)
-
-        # update order
-        for shop in shop_list:
-            self.handle_shoporder(shop, since=since, to=to, status='')
-
-        return Response({"detail": "success"}, status=200)
-
-    def handle_shoporder(self, shop, **args):
-        shop_id = shop.id
-        shopwarehouse_list = shop.shopwarehouse.filter(is_delete=False)
-        warehosue_id = []
-        for warehouse in shopwarehouse_list:
-            warehosue_id.append(warehouse.platform_id)
-
-        if len(warehosue_id) == 0:
-            return
-
-        seller_api = SELLER_API(shop_id)
-        count = 0
-        max_processing_time = 0
-        offset = 0
-        while True:
-            params = {
-                'offset': offset,
-                'status':args['status'],
-                'since': args['since'],
-                'to': args['to'],
-                'warehouse_id': warehosue_id
-            }
-            seller_resp = seller_api.get_orders(params)
-            seller_resp_items = seller_resp.get('items', [])
-            count = count + len(seller_resp_items)
-            for item in seller_resp_items:
-                start_time = time.time()
-                item['shop'] = shop_id
-                platform_id = item['platform_id']
-                shop_order = ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), shop_id=shop_id, platform_id=platform_id, is_delete=False).first()
-                if shop_order is None:
-                    # logger.info(f'Can not find shop order for shop_id: {shop_id}, platform_id: {platform_id}')
-                    continue
-                url = f'{settings.INNER_URL}/shoporder/{shop_order.id}/'
-                req_data = item
-                headers = {
-                    'Authorization': self.request.headers['Authorization'],
-                    'Token': self.request.META.get('HTTP_TOKEN'),
-                    'Operator': self.request.META.get('HTTP_OPERATOR')
-                }
-
-                response = requests.put(url, json=req_data, headers=headers)
-                str_response = response.content.decode('UTF-8')
-                json_response = json.loads(str_response)
-                json_response_status = json_response.get('status_code')
-                if response.status_code != 200 or (json_response_status and json_response_status != 200):
-                    # response.content: { status_code: 5xx, detial: 'xxx' }
-                    logger.info(f'update order {platform_id} to {args["status"]} failed, response: {json_response}')
-                processing_time = time.time() - start_time
-                if processing_time > max_processing_time:
-                    max_processing_time = processing_time
-
-            if seller_resp is None:
-                break
-            if not seller_resp.get('has_next', False):
-                break
-            offset = seller_resp['next']
-
-        logger.info(f'update order for shop_id: {shop_id}, count: {count}, max_processing_time: {max_processing_time:.6f} seconds')
+        return Response(data, status=200)
 
 class FileDownloadView(viewsets.ModelViewSet):
     renderer_classes = (FileRenderCN,) + tuple(api_settings.DEFAULT_RENDERER_CLASSES)
@@ -921,3 +797,53 @@ class FileDownloadView(viewsets.ModelViewSet):
         response['Content-Disposition'] = "attachment; filename='shopsku_{}.csv'".format(
             str(dt.strftime('%Y%m%d%H%M%S%f')))
         return response
+
+class TaskViewSet(viewsets.ModelViewSet):
+    """
+        retrieve:
+            Response a data list（get）
+
+        list:
+            Response a data list（all）
+
+        create:
+            Create a data line（post）
+
+        delete:
+            Delete a data line（delete)
+
+        partial_update:Partial_update a data（patch：partial_update）
+
+        update:
+            Update a data（put：update）
+    """
+    pagination_class = MyPageNumberPagination
+    filter_backends = [DjangoFilterBackend, OrderingFilter, ]
+    ordering_fields = ['id', "create_time", "update_time", ]
+    filter_class = Filter
+    permission_classes = (permissions.DjangoModelPermissions,)
+
+    def get_project(self):
+        try:
+            id = self.kwargs.get('pk')
+            return id
+        except:
+            return None
+
+    def get_queryset(self):
+        return ListModel.objects.none()
+
+    def get_serializer_class(self):
+        if self.action in ['list']:
+            return serializers.ShoporderGetSerializer
+        else:
+            return self.http_method_not_allowed(request=self.request)
+
+    def list(self, request, *args, **kwargs):
+        task_id = str(request.GET.get('task_id'))
+        res = AsyncResult(task_id, app=app)
+        data = {
+            'task_id': task_id,
+            'state': res.state
+        }
+        return Response(data, status=200)

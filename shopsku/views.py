@@ -502,10 +502,12 @@ class SyncViewSet(viewsets.ModelViewSet):
 
         goods_code_list = [item.goods_code for item in goods_obj_list]
         user = self.request.user
+        access_token = str(self.request.headers['Authorization']).replace('Bearer ', '')
         celeryuser = {
             'user_id': user.id,
             'name': user.username,
-            'openid': self.request.META.get('HTTP_TOKEN')
+            'openid': self.request.META.get('HTTP_TOKEN'),
+            'access_token': access_token
         }
         task_id = stock_manual_update(goods_code_list, celeryuser)
         data = {

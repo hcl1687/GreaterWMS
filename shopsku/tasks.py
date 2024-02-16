@@ -115,9 +115,9 @@ def stock_manual_update(goods_code_list, celeryuser):
     # 43685fdc-7295-423e-94e6-2116f2a597e5 to 43685fdc-7295-423e-94e6-240127094800
     task_id = re.sub('[^-]+$', time_postfix, task_id)
     parent_id = task_id
-
     staff_obj = StaffModel.objects.filter(staff_name=celeryuser['name']).first()
     staff_id = staff_obj.id
+
     shops = {}
     for goods_code in goods_code_list:
         # find related shops

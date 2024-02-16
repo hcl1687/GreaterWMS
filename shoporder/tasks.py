@@ -1,6 +1,6 @@
 import json
 import requests
-from celery import shared_task, uuid
+from celery import shared_task, uuid, chord
 from django.core.cache import cache
 import logging
 from django.conf import settings
@@ -112,7 +112,7 @@ def task_order_init_by_shopid(shop_id, staff_id, parent_id, celeryuser):
 @shared_task(name='task_order_update_by_shopid')
 def task_order_update_by_shopid(shop_id, staff_id, parent_id, celeryuser):
     start_time = time.time()
-    shop_list = ShopModel.objects.filter(openid=celeryuser['openid'], id=str(shop_id), is_delete=False)
+    shop = ShopModel.objects.filter(openid=celeryuser['openid'], id=str(shop_id), is_delete=False).first()
     shop_order_list = ListModel.objects.filter(Q(openid=celeryuser['openid'], shop_id=shop_id, is_delete=False) &
                                                ~Q(status=Status.Delivered)
                                                ).order_by('order_time')
@@ -135,8 +135,7 @@ def task_order_update_by_shopid(shop_id, staff_id, parent_id, celeryuser):
 
     # the shop_list has only one element at most.
     # update order
-    for shop in shop_list:
-        handle_update_shoporder(shop, celeryuser, staff_id, since=since, to=to, status='')
+    handle_update_shoporder(shop, celeryuser, staff_id, since=since, to=to, status='')
 
     processing_time = time.time() - start_time
     logger.info(f'task_order_update_by_shopid for shop_id: {shop_id}, processing_time: {processing_time:.6f} seconds')
@@ -263,6 +262,147 @@ def handle_update_shoporder(shop, celeryuser, staff_id, **args):
 
     logger.info(f'task handle update order for shop_id: {shop_id}, count: {count}, max_processing_time: {max_processing_time:.6f} seconds')
 
+def order_manual_init(data, celeryuser):
+    default_now = datetime.now()
+    time_postfix = default_now.strftime("%Y%m%d%H%M%S")
+    # remove first 2 chars to make sure the time_postfix' length is 12.
+    # for example: 20240127094800 to 240127094800
+    time_postfix = time_postfix[2:]
+    start_time = time.time()
+    openid = celeryuser['openid']
+    # create parent_id
+    task_id = uuid()
+    # 43685fdc-7295-423e-94e6-2116f2a597e5 to 43685fdc-7295-423e-94e6-240127094800
+    task_id = re.sub('[^-]+$', time_postfix, task_id)
+    parent_id = task_id
+    staff_obj = StaffModel.objects.filter(staff_name=celeryuser['name']).first()
+    staff_id = staff_obj.id
+
+    shop_id = data.get('shop_id')
+    if shop_id:
+        shop_list = ShopModel.objects.filter(openid=celeryuser['openid'], id=str(shop_id), is_delete=False)
+    else:
+        shop_list = ShopModel.objects.filter(openid=celeryuser['openid'], is_delete=False)
+
+    task_sig_list = []
+    for shop_obj in shop_list:
+        shop_id = shop_obj.id
+        task_id = uuid()
+        # 43685fdc-7295-423e-94e6-2116f2a597e5 to 43685fdc-7295-423e-94e6-240127094800
+        task_id = re.sub('[^-]+$', time_postfix, task_id)
+        task_sig = task_order_manual_init_by_shopid.s(shop_id, staff_id, parent_id, data, celeryuser).set(task_id=str(task_id))
+        task_sig_list.append(task_sig)
+
+    task_id = uuid()
+    # 43685fdc-7295-423e-94e6-2116f2a597e5 to 43685fdc-7295-423e-94e6-240127094800
+    task_id = re.sub('[^-]+$', time_postfix, task_id)
+    callback_sig = task_order_manual_init_callback.s(staff_id, parent_id, celeryuser).set(task_id=str(task_id))
+    res = chord(task_sig_list, callback_sig)()
+
+    processing_time = time.time() - start_time
+    logger.info(f'manual init order for shop_id: {shop_id}, processing_time: {processing_time:.6f} seconds')
+
+    return res.id
+
+@shared_task(name='task_order_manual_init_by_shopid')
+def task_order_manual_init_by_shopid(shop_id, staff_id, parent_id, data, celeryuser):
+    start_time = time.time()
+    since = data.get('since')
+    to = data.get('to')
+
+    shop = ShopModel.objects.filter(openid=celeryuser['openid'], id=str(shop_id), is_delete=False).first()
+    # init Awaiting_Review order
+    status = Status.Awaiting_Review
+    handle_init_shoporder(shop, celeryuser, staff_id, since=since, to=to, status=status)
+    # init Awaiting_Deliver order
+    status = Status.Awaiting_Deliver
+    handle_init_shoporder(shop, celeryuser, staff_id, since=since, to=to, status=status)
+
+    processing_time = time.time() - start_time
+    logger.info(f'task_order_manual_init_by_shopid for shop_id: {shop_id}, processing_time: {processing_time:.6f} seconds')
+
+    return {
+        'parent_id': parent_id,
+        'shop_id': shop_id,
+        'status': 'success',
+        'processing_time': f'{processing_time:.6f} seconds'
+    }
+
+@shared_task(name='task_order_manual_init_callback')
+def task_order_manual_init_callback(ret, staff_id, parent_id, celeryuser):
+    return {
+        'parent_id': parent_id,
+        'status': 'success'
+    }
+
+def order_manual_update(data, celeryuser):
+    default_now = datetime.now()
+    time_postfix = default_now.strftime("%Y%m%d%H%M%S")
+    # remove first 2 chars to make sure the time_postfix' length is 12.
+    # for example: 20240127094800 to 240127094800
+    time_postfix = time_postfix[2:]
+    start_time = time.time()
+    openid = celeryuser['openid']
+    # create parent_id
+    task_id = uuid()
+    # 43685fdc-7295-423e-94e6-2116f2a597e5 to 43685fdc-7295-423e-94e6-240127094800
+    task_id = re.sub('[^-]+$', time_postfix, task_id)
+    parent_id = task_id
+    staff_obj = StaffModel.objects.filter(staff_name=celeryuser['name']).first()
+    staff_id = staff_obj.id
+
+    shop_id = data.get('shop_id')
+    if shop_id:
+        shop_list = ShopModel.objects.filter(openid=celeryuser['openid'], id=str(shop_id), is_delete=False)
+    else:
+        shop_list = ShopModel.objects.filter(openid=celeryuser['openid'], is_delete=False)
+
+    task_sig_list = []
+    for shop_obj in shop_list:
+        shop_id = shop_obj.id
+        task_id = uuid()
+        # 43685fdc-7295-423e-94e6-2116f2a597e5 to 43685fdc-7295-423e-94e6-240127094800
+        task_id = re.sub('[^-]+$', time_postfix, task_id)
+        task_sig = task_order_manual_update_by_shopid.s(shop_id, staff_id, parent_id, data, celeryuser).set(task_id=str(task_id))
+        task_sig_list.append(task_sig)
+
+    task_id = uuid()
+    # 43685fdc-7295-423e-94e6-2116f2a597e5 to 43685fdc-7295-423e-94e6-240127094800
+    task_id = re.sub('[^-]+$', time_postfix, task_id)
+    callback_sig = task_order_manual_update_callback.s(staff_id, parent_id, celeryuser).set(task_id=str(task_id))
+    res = chord(task_sig_list, callback_sig)()
+
+    processing_time = time.time() - start_time
+    logger.info(f'manual update order for shop_id: {shop_id}, processing_time: {processing_time:.6f} seconds')
+
+    return res.id
+
+@shared_task(name='task_order_manual_update_by_shopid')
+def task_order_manual_update_by_shopid(shop_id, staff_id, parent_id, data, celeryuser):
+    start_time = time.time()
+    since = data.get('since')
+    to = data.get('to')
+
+    shop = ShopModel.objects.filter(openid=celeryuser['openid'], id=str(shop_id), is_delete=False).first()
+    handle_update_shoporder(shop, celeryuser, staff_id, since=since, to=to, status='')
+
+    processing_time = time.time() - start_time
+    logger.info(f'task_order_manual_update_by_shopid for shop_id: {shop_id}, processing_time: {processing_time:.6f} seconds')
+
+    return {
+        'parent_id': parent_id,
+        'shop_id': shop_id,
+        'status': 'success',
+        'processing_time': f'{processing_time:.6f} seconds'
+    }
+
+@shared_task(name='task_order_manual_update_callback')
+def task_order_manual_update_callback(ret, staff_id, parent_id, celeryuser):
+    return {
+        'parent_id': parent_id,
+        'status': 'success'
+    }
+
 def get_user(name, password):
     item = {
         'name': name,
@@ -288,7 +428,8 @@ def get_user(name, password):
         'access_token': access_token,
         'refresh_token': refresh_token,
         'openid': openid,
-        'user_id': user_id
+        'user_id': user_id,
+        'name': name
     }
     cache.set(f'celeryuser:{name}', celeryuser)
     return celeryuser
