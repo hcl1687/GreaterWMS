@@ -16,6 +16,7 @@ PACK_WEIGHT_KEY = 'Вес товара с упаковкой (г)'
 PACK_WIDTH_KEY = 'Длина упаковки'
 PACK_HEIGHT_KEY = 'Высота упаковки'
 PACK_DEPTH_KEY = 'Ширина упаковки'
+DEFAULT_LIMIT = 1000
 
 class WIBE_API():
     def __init__(self, shop_id: str, shop_data: dict):
@@ -218,7 +219,7 @@ class WIBE_API():
         }
 
     def get_products_count(self) -> int:
-        limit = 1000
+        limit = DEFAULT_LIMIT
         _params = {
             'sort': {
                 'cursor': {
@@ -307,7 +308,7 @@ class WIBE_API():
             warehouse_id = []
             _params = {
                 'next': 0,
-                'limit': 1000,
+                'limit': DEFAULT_LIMIT,
                 'dateFrom': default_since,
                 'dateTo': default_now
             }
@@ -315,7 +316,7 @@ class WIBE_API():
             warehouse_id = params.get('warehouse_id', [])
             _params = {
                 'next': params.get('offset', 0),
-                'limit': params.get('limit', 1000),
+                'limit': params.get('limit', DEFAULT_LIMIT),
                 'dateFrom': default_since,
                 'dateTo': default_now,
             }
@@ -367,7 +368,7 @@ class WIBE_API():
             warehouse_id = []
             _params = {
                 'next': 0,
-                'limit': 1000,
+                'limit': DEFAULT_LIMIT,
                 'dateFrom': default_since,
                 'dateTo': default_now
             }
@@ -376,7 +377,7 @@ class WIBE_API():
             warehouse_id = params.get('warehouse_id', [])
             _params = {
                 'next': params.get('offset', 0),
-                'limit': params.get('limit', 1000),
+                'limit': params.get('limit', DEFAULT_LIMIT),
                 'dateFrom': default_since,
                 'dateTo': default_now,
             }
@@ -587,7 +588,7 @@ class WIBE_API():
     def get_sort_from_params(self, params):
         sort = {
             'cursor': {
-                'limit': 30
+                'limit': 100
             },
             'filter': {
                 'withPhoto': -1

@@ -16,6 +16,9 @@ from shopsku.status import Sync_Status
 logger = logging.getLogger(__name__)
 moscow = timezone('Europe/Moscow')
 
+DEFAULT_LIMIT = 100
+DEFAULT_PAGE_SIZE = 50
+
 class YADE_API():
     def __init__(self, shop_id: str, shop_data: dict):
         self._shop_id = shop_id
@@ -224,7 +227,7 @@ class YADE_API():
         if not params:
             _params = {
                 'page': 1,
-                'pageSize': 50,
+                'pageSize': DEFAULT_PAGE_SIZE,
                 'fake': False,
                 'fromDate': default_since,
                 'toDate': default_now
@@ -232,7 +235,7 @@ class YADE_API():
         else:
             status_obj = self.toPlatformStatus(params['status'])
             offset = params.get('offset', 0)
-            page_size = params.get('limit', 50)
+            page_size = params.get('limit', DEFAULT_PAGE_SIZE)
             page = int(offset / page_size) + 1
             _params = {
                 'page': page,
@@ -267,7 +270,7 @@ class YADE_API():
         else:
             total = order_resp.get('pager', {}).get('total', 0)
             current_page = order_resp.get('pager', {}).get('currentPage', 1)
-            page_size = order_resp.get('pager', {}).get('pageSize', 50)
+            page_size = order_resp.get('pager', {}).get('pageSize', DEFAULT_PAGE_SIZE)
             has_next = total > (current_page * page_size)
             order_list = order_resp.get('orders', [])
             next = 0
@@ -440,13 +443,12 @@ class YADE_API():
             return Status.Other
 
     def get_query_from_params(self, params):
-        default_limit = 100
         if not params:
-            return f"limit={default_limit}"
+            return f"limit={DEFAULT_LIMIT}"
 
         limit = params['limit']
         if not limit:
-            limit = default_limit
+            limit = DEFAULT_LIMIT
         res = f"limit={limit}"
 
         page_token = params['last_id']

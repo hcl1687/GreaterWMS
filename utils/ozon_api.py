@@ -9,6 +9,7 @@ import math
 from shopsku.status import Sync_Status
 
 logger = logging.getLogger(__name__)
+DEFAULT_LIMIT = 100
 
 class OZON_API():
     def __init__(self, shop_id: str, shop_data: dict):
@@ -66,7 +67,7 @@ class OZON_API():
         if not params:
             params = {
                 'last_id': '',
-                'limit': 30
+                'limit': DEFAULT_LIMIT
             }
         product_resp = self._request(path='/v2/product/list', params=params)
         if product_resp is None:
@@ -150,7 +151,7 @@ class OZON_API():
         if not params:
             _params = {
                 'offset': 0,
-                'limit': 50,
+                'limit': DEFAULT_LIMIT,
                 'filter': {
                     'since': default_since,
                     'to': default_now,
@@ -161,7 +162,7 @@ class OZON_API():
             status = self.toPlatformStatus(params['status'])
             _params = {
                 'offset': params.get('offset', 0),
-                'limit': params.get('limit', 50),
+                'limit': params.get('limit', DEFAULT_LIMIT),
                 'filter': {
                     'since': default_since,
                     'to': default_now,
