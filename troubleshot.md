@@ -110,8 +110,6 @@ cd GreaterWMS
 set GREATERWMS_ENV=dev
 # linux
 export GREATERWMS_ENV=dev
-daphne -p 8008 greaterwms.asgi:application
-or
 daphne -b 0.0.0.0 -p 8008 greaterwms.asgi:application # lan
 ```
 
@@ -159,7 +157,43 @@ FLOWER_ADMIN=xxx
 FLOWER_PASSWORD=xxxxx
 ```
 
-## 20240129
+# 20240129
 order-init task period: 1min, expired time: 45s
 order-update task period: 10min, expired time: 480s
+
+# 20240219
+## Android dev
+https://www.56yhz.com/md/android_environment/zh-CN
+### requirement
+node v14
+jdk1.8
+android studio
+gradle
+
+### install
+```bash
+cd app
+nvm use v14.21.3
+npm install -g cordova
+yarn install
+```
+
+### verify
+```bash
+cd app/src-cordova
+cordova requirements
+```
+
+### debug
+* modify server in app/src/store/settings/state.js
+* Use your mobile phone or PDA to connect to your computer via USB.
+* run
+
+    ``` bash
+    cd app
+    quasar d -m cordova -T android
+    ```
+    It will auto install apk to the connected phone.
+
+* go to settings/server page, set openid and baseurl.
 

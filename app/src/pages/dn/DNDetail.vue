@@ -75,6 +75,9 @@ export default defineComponent({
     const openid = computed({
       get: () => $store.state.settings.openid,
     })
+    const access_token = computed({
+      get: () => $store.state.loginauth.access_token,
+    })
     const lang = computed({
       get: () => $store.state.langchange.lang,
     })
