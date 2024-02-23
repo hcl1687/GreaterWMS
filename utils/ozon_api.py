@@ -7,6 +7,8 @@ import logging
 import time
 import math
 from shopsku.status import Sync_Status
+from django.core.files.storage import default_storage
+import io
 
 logger = logging.getLogger(__name__)
 DEFAULT_LIMIT = 100
@@ -18,7 +20,7 @@ class OZON_API():
         self._api_key = shop_data['api_key']
         self._api_url = shop_data['api_url']
     
-    def _request(self, path: str, method: str = 'POST', params: dict = {}) -> json:
+    def _request(self, path: str, method: str = 'POST', params: dict = {}, raw: bool = False) -> json:
         try:
             headers = {}
             headers.update({'Content-Type': 'application/json'})
@@ -42,6 +44,9 @@ class OZON_API():
                 response = requests.put(url=url, data=param_json, headers=headers, timeout=60)
             processing_time = time.time() - start_time
             logger.info(f'Request url: [{method}]{url} took {processing_time:.6f} seconds.')
+
+            if raw:
+                return response
 
             if response.status_code != 200:
                 logger.error(f'Request url: [{method}]{url} with response status code: {response.status_code}')
@@ -289,6 +294,34 @@ class OZON_API():
                     res.append(stock_result_item)
 
         return res
+
+    def get_label(self, params: dict) -> json:
+        if not params:
+            return None
+
+        # params: {'posting_number': '123', shop_type: 'OZON'}
+        posting_number = params.get('posting_number', '')
+        if not posting_number:
+            return None
+
+        shop_type = params.get('shop_type', '')
+        if not shop_type:
+            return None
+        
+        _params = {
+            'posting_number': [posting_number]
+        }
+        label_resp = self._request(path='/v2/posting/fbs/package-label', params=_params, raw=True)
+        if label_resp.status_code != 200:
+            logger.error(f'Request url: [POST]/v2/posting/fbs/package-label with response status code: {label_resp.status_code}')
+            return None
+
+        if label_resp is None:
+            return None
+
+        bytes_io = io.BytesIO(label_resp.content)
+        file_name = default_storage.save(f'labels/{shop_type}_{posting_number}.pdf', bytes_io)
+        return file_name
 
     def toPlatformStatus(self, status):
         if status == Status.Awaiting_Review:

@@ -300,7 +300,39 @@ class APIViewSet(viewsets.ModelViewSet):
             serializer = self.get_serializer(qs, many=False)
             headers = self.get_success_headers(serializer.data)
             return Response(serializer.data, status=200, headers=headers)
-    
+
+    def get_label(self, request, pk):
+        qs = self.get_object()
+        if qs.openid != self.request.META.get('HTTP_TOKEN'):
+            raise APIException({"detail": "Cannot get order label which not yours"})
+
+        data = self.request.data
+        data['openid'] = self.request.META.get('HTTP_TOKEN')
+
+        shop_obj = qs.shop
+        shop_id = shop_obj.id
+        if shop_obj is None:
+            raise APIException({"detail": "The shop does not exist"})
+
+        shop_supplier = qs.supplier
+        supplier_name = Staff.get_supplier_name(self.request.user)
+        if supplier_name and shop_supplier != supplier_name:
+            raise APIException({"detail": "The shop is not belong to your supplier"})
+        
+        params = {
+            'posting_number': qs.posting_number,
+            'shop_type': shop_obj.shop_type
+        }
+        seller_api = SELLER_API(shop_id)
+        seller_resp = seller_api.get_label(params)
+        data = {}
+        if  seller_resp is None:
+            data['file_name'] = ''
+        else:
+            data['file_name'] = seller_resp
+
+        return Response(data, status=200)
+
     def handle_awaiting_packing(self, data, shop_id, shop_supplier):
         # hold stock
         try:

@@ -13,4 +13,7 @@ re_path(r'^(?P<pk>\d+)/$', views.APIViewSet.as_view({
 path(r'init/', views.ShoporderInitViewSet.as_view({"post": "create"}), name="shoporderinit"),
 path(r'update/', views.ShoporderUpdateViewSet.as_view({"post": "create"}), name="shoporderupdate"),
 path(r'task/', views.TaskViewSet.as_view({"get": "list"}), name="shopordertask"),
+re_path(r'^(?P<pk>\d+)/label/$', views.APIViewSet.as_view({
+    'post': 'get_label',
+}), name="shoporderlabel"),
 ]

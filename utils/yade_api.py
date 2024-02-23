@@ -27,7 +27,7 @@ class YADE_API():
         self._platform_shop_id = shop_data['shop_id']
         self._warehouse_id = shop_data['warehouse_id']
     
-    def _request(self, path: str, method: str = 'POST', params: dict = {}) -> json:
+    def _request(self, path: str, method: str = 'POST', params: dict = {}, raw: bool = False) -> json:
         try:
             headers = {}
             headers.update({'Content-Type': 'application/json'})
@@ -50,6 +50,9 @@ class YADE_API():
                 response = requests.put(url=url, data=param_json, headers=headers, timeout=60)
             processing_time = time.time() - start_time
             logger.info(f'Request url: [{method}]{url} took {processing_time:.6f} seconds.')
+
+            if raw:
+                return response
 
             if response.status_code != 200:
                 logger.error(f'Request url: [{method}]{url} with response status code: {response.status_code}')

@@ -46,3 +46,8 @@ class SELLER_API():
         if self._api is None:
             return None
         return self._api.update_stock(params=params)
+    
+    def get_label(self, params: dict) -> json:
+        if self._api is None:
+            return None
+        return self._api.get_label(params=params)
