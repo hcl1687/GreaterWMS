@@ -197,3 +197,90 @@ cordova requirements
 
 * go to settings/server page, set openid and baseurl.
 
+# 20240223
+## dev on ubuntu22.04
+### install pyenv and pyenv-virtualenv
+https://www.hupeiwei.com/post/%E4%BD%BF%E7%94%A8pyenv%E8%BF%9B%E8%A1%8Cpython%E7%89%88%E6%9C%AC%E4%B8%8E%E8%99%9A%E6%8B%9F%E7%8E%AF%E5%A2%83%E7%9A%84%E7%AE%A1%E7%90%86/
+
+### use pyenv
+```bash
+pyenv install 3.8.10
+cd ~/github.com/hcl1687/GreaterWMS
+pyenv local 3.8.10
+pyenv virtualenv 3.8.10 wms_3810
+pyenv activate wms_3810
+
+# install dependency
+pip install -U 'Twisted[tls,http2]'
+pip install -r requirements.txt
+pip install daphne
+
+# create db
+python manage.py makemigrations
+python manage.py migrate
+python manage.py createsuperuser
+```
+
+### use nvm
+https://tecadmin.net/how-to-install-nvm-on-ubuntu-22-04/
+```bash
+nvm install v14.21.3
+cd ~/github.com/hcl1687/GreaterWMS/templates
+
+# install dependency
+nvm use v14.21.3
+npm install -g @quasar/cli --force
+npm install
+```
+
+### install redis
+https://www.digitalocean.com/community/tutorials/how-to-install-and-secure-redis-on-ubuntu-22-04
+
+
+### run
+* run backend
+
+  ```bash
+  # win10 
+  set GREATERWMS_ENV=dev
+  # linux
+  export GREATERWMS_ENV=dev
+  # lan
+  daphne -b 0.0.0.0 -p 8008 greaterwms.asgi:application
+  ```
+
+* run celery worker
+
+  celery do not support win10. Should use docker under win10.
+  ```bash
+  # linux
+  export GREATERWMS_ENV=dev
+  celery -A greaterwms.celery worker -l info
+  ```
+
+* run celery beat (optional)
+  
+  celery do not support win10. Should use docker under win10.
+  ```bash
+  # linux
+  export GREATERWMS_ENV=dev
+  celery -A greaterwms.celery beat -l info
+  ```
+
+* run flower (optional)
+  
+  celery do not support win10. Should use docker under win10.
+  ```bash
+  # linux
+  export GREATERWMS_ENV=dev
+  # visit http://localhost:5555
+  celery -A greaterwms.celery flower -l info
+  ```
+
+* run frontend
+  
+  ```bash
+  cd ~/github.com/hcl1687/GreaterWMS/templates
+  nvm use v14.21.3
+  npm run start
+  ```
