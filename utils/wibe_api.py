@@ -10,6 +10,10 @@ from shop.models import ListModel as ShopModel
 from shopsku.models import ListModel as ShopskuModel
 import math
 from shopsku.status import Sync_Status
+from shoporder.models import ListModel
+import io, base64
+from PIL import Image
+from django.conf import settings
 
 logger = logging.getLogger(__name__)
 PACK_WEIGHT_KEY = 'Вес товара с упаковкой (г)'
@@ -558,6 +562,48 @@ class WIBE_API():
                     })
 
         return res
+
+    def get_label(self, params: dict) -> json:
+        if not params:
+            return None
+
+        # params: {'order_id': '123'}
+        order_id = params.get('order_id', '')
+        if not order_id:
+            return None
+        
+        shoporder_obj = ListModel.objects.filter(shop_id=self._shop_id, is_delete=False, id=order_id).first()
+        if shoporder_obj is None:
+            return None
+
+        shop_type = shoporder_obj.shop.shop_type
+        if not shop_type:
+            return None
+        
+        posting_number = shoporder_obj.posting_number
+        if not posting_number:
+            return None
+        
+        _params = {
+            'orders': [posting_number]
+        }
+        label_resp = self._request(path='/api/v3/orders/stickers?type=png&width=58&height=40', params=_params)
+        if label_resp is None:
+            return None
+
+        stickers = label_resp.get('stickers', [])
+        if len(stickers) == 0:
+            return None
+        
+        base64_str = stickers[0].get('file', '')
+        if not base64_str:
+            return None
+        
+        img = Image.open(io.BytesIO(base64.decodebytes(bytes(base64_str, "utf-8"))))
+        file_name = f'labels/{shop_type}_{posting_number}.pdf'
+        img.save(f'{settings.MEDIA_ROOT}/{file_name}')
+
+        return file_name
 
     def toPlatformStatus(self, status):
         if status == Status.Awaiting_Review:

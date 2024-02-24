@@ -12,6 +12,9 @@ from pytz import timezone
 import pytz
 import math
 from shopsku.status import Sync_Status
+from django.core.files.storage import default_storage
+import io
+from shoporder.models import ListModel
 
 logger = logging.getLogger(__name__)
 moscow = timezone('Europe/Moscow')
@@ -408,6 +411,40 @@ class YADE_API():
                         'message': ''
                     })
         return res
+
+    def get_label(self, params: dict) -> json:
+        if not params:
+            return None
+
+        # params: {'order_id': '123'}
+        order_id = params.get('order_id', '')
+        if not order_id:
+            return None
+        
+        shoporder_obj = ListModel.objects.filter(shop_id=self._shop_id, is_delete=False, id=order_id).first()
+        if shoporder_obj is None:
+            return None
+
+        shop_type = shoporder_obj.shop.shop_type
+        if not shop_type:
+            return None
+        
+        posting_number = shoporder_obj.posting_number
+        if not posting_number:
+            return None
+        
+        _params = {}
+        label_resp = self._request(path=f'/campaigns/{self._platform_shop_id}/orders/{posting_number}/delivery/labels', method='GET', params=_params, raw=True)
+        if label_resp.status_code != 200:
+            logger.error(f'Request url: [GET]/campaigns/{self._platform_shop_id}/orders/{posting_number}/delivery/labels with response status code: {label_resp.status_code}')
+            return None
+
+        if label_resp is None:
+            return None
+
+        bytes_io = io.BytesIO(label_resp.content)
+        file_name = default_storage.save(f'labels/{shop_type}_{posting_number}.pdf', bytes_io)
+        return file_name
 
     def toPlatformStatus(self, status):
         if status == Status.Awaiting_Review:

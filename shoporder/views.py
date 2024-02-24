@@ -639,11 +639,11 @@ class ShoporderInitViewSet(viewsets.ModelViewSet):
             'access_token': access_token
         }
         task_id = order_manual_init(data, celeryuser)
-        data = {
+        res = {
             'task_id': task_id
         }
 
-        return Response(data, status=200)
+        return Response(res, status=200)
 
 class ShoporderUpdateViewSet(viewsets.ModelViewSet):
     """
@@ -696,12 +696,12 @@ class ShoporderUpdateViewSet(viewsets.ModelViewSet):
             'openid': self.request.META.get('HTTP_TOKEN'),
             'access_token': access_token
         }
-        task_id = order_manual_update({}, celeryuser)
-        data = {
+        task_id = order_manual_update(data, celeryuser)
+        res = {
             'task_id': task_id
         }
 
-        return Response(data, status=200)
+        return Response(res, status=200)
 
 class FileDownloadView(viewsets.ModelViewSet):
     renderer_classes = (FileRenderCN,) + tuple(api_settings.DEFAULT_RENDERER_CLASSES)
