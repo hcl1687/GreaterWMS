@@ -754,7 +754,11 @@ export default {
     after_tomorrow: 'The day after tomorrow',
     can_order_stock: 'Stock',
     progress_title: 'Order Progress',
-    progress_tip: 'Plese wait until the order progress is finished'
+    progress_tip: 'Plese wait until the order progress is finished',
+    batch_get_label: 'Batch Fetch Label',
+    batch_get_label_tip: 'Batch fetch package label',
+    order_label: 'Package Label',
+    download_label: 'Download package label'
   },
   shopsync: {
     shop_sync: 'Shop Sync',

@@ -26,7 +26,7 @@ from .status import Status, Handle_Status
 from dn.models import DnListModel
 import logging
 import time
-from .tasks import order_manual_init, order_manual_update
+from .tasks import order_manual_init, order_manual_update, label_manual_update
 from celery.result import AsyncResult
 from greaterwms.celery import app
 
@@ -269,17 +269,6 @@ class APIViewSet(viewsets.ModelViewSet):
         if supplier_name and shop_supplier != supplier_name:
             raise APIException({"detail": "The shop is not belong to your supplier"})
 
-        # status: 1: awaiting_packaging; 2: awaiting_deliver; 3: delivering; 4: cancelled; 5: delivered;
-        status = int(data.get('status', 1))
-        if status == 5:
-            try:
-                self.handle_delivered(data, shop_id, shop_supplier)
-            except APIException as e:
-                data['handle_status'] = Handle_Status.Abnormal
-                data['handle_message'] = e.detail['detail']
-        else:
-            return Response({"detail": "Not delivered data"}, status=200)
-
         data = self.request.data
         serializer = self.get_serializer(qs, data=data, partial=True)
         serializer.is_valid(raise_exception=True)
@@ -300,38 +289,6 @@ class APIViewSet(viewsets.ModelViewSet):
             serializer = self.get_serializer(qs, many=False)
             headers = self.get_success_headers(serializer.data)
             return Response(serializer.data, status=200, headers=headers)
-
-    def get_label(self, request, pk):
-        qs = self.get_object()
-        if qs.openid != self.request.META.get('HTTP_TOKEN'):
-            raise APIException({"detail": "Cannot get order label which not yours"})
-
-        data = self.request.data
-        data['openid'] = self.request.META.get('HTTP_TOKEN')
-
-        shop_obj = qs.shop
-        shop_id = shop_obj.id
-        if shop_obj is None:
-            raise APIException({"detail": "The shop does not exist"})
-
-        shop_supplier = qs.supplier
-        supplier_name = Staff.get_supplier_name(self.request.user)
-        if supplier_name and shop_supplier != supplier_name:
-            raise APIException({"detail": "The shop is not belong to your supplier"})
-        
-        params = {
-            'posting_number': qs.posting_number,
-            'shop_type': shop_obj.shop_type
-        }
-        seller_api = SELLER_API(shop_id)
-        seller_resp = seller_api.get_label(params)
-        data = {}
-        if  seller_resp is None:
-            data['file_name'] = ''
-        else:
-            data['file_name'] = seller_resp
-
-        return Response(data, status=200)
 
     def handle_awaiting_packing(self, data, shop_id, shop_supplier):
         # hold stock
@@ -878,4 +835,64 @@ class TaskViewSet(viewsets.ModelViewSet):
             'task_id': task_id,
             'state': res.state
         }
+        return Response(data, status=200)
+
+class ShoporderLabelViewSet(viewsets.ModelViewSet):
+    """
+        retrieve:
+            Response a data list（get）
+    """
+    pagination_class = MyPageNumberPagination
+    filter_backends = [DjangoFilterBackend, OrderingFilter, ]
+    ordering_fields = ['id', "create_time", "update_time", ]
+    filter_class = Filter
+    permission_classes = (permissions.DjangoModelPermissions,)
+
+    def get_project(self):
+        try:
+            id = self.kwargs.get('pk')
+            return id
+        except:
+            return None
+
+    def get_queryset(self):
+        id = self.get_project()
+        if self.request.user:
+            supplier_name = Staff.get_supplier_name(self.request.user)
+            if supplier_name:
+                if id is None:
+                    return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), supplier=supplier_name, is_delete=False)
+                else:
+                    return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), supplier=supplier_name, id=id, is_delete=False)
+            else:
+                if id is None:
+                    return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), is_delete=False)
+                else:
+                    return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), id=id, is_delete=False)
+        else:
+            return ListModel.objects.none()
+
+    def get_serializer_class(self):
+        if self.action in ['create']:
+            return serializers.ShoporderPartialUpdateSerializer
+        else:
+            return self.http_method_not_allowed(request=self.request)
+
+    def create(self, request, *args, **kwargs):
+        data = self.request.data
+        user = self.request.user
+        access_token = str(self.request.headers['Authorization']).replace('Bearer ', '')
+        celeryuser = {
+            'user_id': user.id,
+            'name': user.username,
+            'openid': self.request.META.get('HTTP_TOKEN'),
+            'access_token': access_token
+        }
+
+        order_id_list = data.get('order_id', [])
+        task_id = label_manual_update(order_id_list, celeryuser)
+        data = {
+            'task_id': task_id
+        }
+
         return Response(data, status=200)

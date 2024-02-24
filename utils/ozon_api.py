@@ -9,6 +9,7 @@ import math
 from shopsku.status import Sync_Status
 from django.core.files.storage import default_storage
 import io
+from shoporder.models import ListModel
 
 logger = logging.getLogger(__name__)
 DEFAULT_LIMIT = 100
@@ -299,13 +300,21 @@ class OZON_API():
         if not params:
             return None
 
-        # params: {'posting_number': '123', shop_type: 'OZON'}
-        posting_number = params.get('posting_number', '')
-        if not posting_number:
+        # params: {'order_id': '123'}
+        order_id = params.get('order_id', '')
+        if not order_id:
+            return None
+        
+        shoporder_obj = ListModel.objects.filter(shop_id=self._shop_id, is_delete=False, id=order_id).first()
+        if shoporder_obj is None:
             return None
 
-        shop_type = params.get('shop_type', '')
+        shop_type = shoporder_obj.shop.shop_type
         if not shop_type:
+            return None
+        
+        posting_number = shoporder_obj.posting_number
+        if not posting_number:
             return None
         
         _params = {

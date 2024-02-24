@@ -403,6 +403,187 @@ def task_order_manual_update_callback(ret, staff_id, parent_id, celeryuser):
         'status': 'success'
     }
 
+@app.task(bind=True, name='task_label_update')
+def task_label_update(self, name, password):
+    default_now = datetime.now()
+    time_postfix = default_now.strftime("%Y%m%d%H%M%S")
+    # remove first 2 chars to make sure the time_postfix' length is 12.
+    # for example: 20240127094800 to 240127094800
+    time_postfix = time_postfix[2:]
+    start_time = time.time()
+    celeryuser = get_user(name, password)
+    openid = celeryuser['openid']
+    parent_id = self.request.id
+    staff_obj = StaffModel.objects.filter(staff_name=str(name)).first()
+    staff_id = staff_obj.id
+    shop_list = ShopModel.objects.filter(openid=openid, is_delete=False)
+    tasks = []
+
+    for shop in shop_list:
+        shop_id = shop.id
+        task_id = uuid()
+        # 43685fdc-7295-423e-94e6-2116f2a597e5 to 43685fdc-7295-423e-94e6-240127094800
+        task_id = re.sub('[^-]+$', time_postfix, task_id)
+        task_label_update_by_shopid.apply_async((shop_id, staff_id, parent_id, celeryuser), task_id=task_id)
+        tasks.append(task_id)
+
+    processing_time = time.time() - start_time
+    logger.info(f'task_label_update, processing_time: {processing_time:.6f} seconds')
+
+    return {
+        'tasks': tasks,
+        'status': 'success',
+        'start_time': default_now.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        'processing_time': f'{processing_time:.6f} seconds'
+    }
+
+
+def label_manual_update(order_id_list, celeryuser):
+    default_now = datetime.now()
+    time_postfix = default_now.strftime("%Y%m%d%H%M%S")
+    # remove first 2 chars to make sure the time_postfix' length is 12.
+    # for example: 20240127094800 to 240127094800
+    time_postfix = time_postfix[2:]
+    start_time = time.time()
+    openid = celeryuser['openid']
+    # create parent_id
+    task_id = uuid()
+    # 43685fdc-7295-423e-94e6-2116f2a597e5 to 43685fdc-7295-423e-94e6-240127094800
+    task_id = re.sub('[^-]+$', time_postfix, task_id)
+    parent_id = task_id
+    staff_obj = StaffModel.objects.filter(staff_name=celeryuser['name']).first()
+    staff_id = staff_obj.id
+
+    shops = {}
+    order_id_list = list(set(order_id_list))
+    for order_id in order_id_list:
+        # find related shops
+        shoporder_obj = ListModel.objects.filter(openid=openid, is_delete=False, id=order_id).first()
+        if shoporder_obj is None:
+            continue
+        if shoporder_obj.order_label:
+            continue
+        shop = shoporder_obj.shop
+        if not shop.is_delete:
+            if shop.id not in shops:
+                shops[shop.id] = []
+            shops[shop.id].append(shoporder_obj.id)
+
+    task_sig_list = []
+    for shop_id in list(shops.keys()):
+        shoporder_id_list = shops.get(shop_id, [])
+        task_id = uuid()
+        # 43685fdc-7295-423e-94e6-2116f2a597e5 to 43685fdc-7295-423e-94e6-240127094800
+        task_id = re.sub('[^-]+$', time_postfix, task_id)
+        task_sig = task_label_manual_update_by_shopid.s(shop_id, staff_id, parent_id, shoporder_id_list, celeryuser).set(task_id=str(task_id))
+        task_sig_list.append(task_sig)
+
+    task_id = uuid()
+    # 43685fdc-7295-423e-94e6-2116f2a597e5 to 43685fdc-7295-423e-94e6-240127094800
+    task_id = re.sub('[^-]+$', time_postfix, task_id)
+    callback_sig = task_label_manual_update_callback.s(staff_id, parent_id, celeryuser).set(task_id=str(task_id))
+    res = chord(task_sig_list, callback_sig)()
+
+    processing_time = time.time() - start_time
+    logger.info(f'label_manual_update, processing_time: {processing_time:.6f} seconds')
+
+    return res.id
+
+@shared_task(name='task_label_update_by_shopid')
+def task_label_update_by_shopid(shop_id, staff_id, parent_id, celeryuser):
+    start_time = time.time()
+
+    # only update awaiting_deliver order's label for performance concern. If need to get other status order, please manual update it.
+    shoporder_list = ListModel.objects.filter(openid=celeryuser['openid'], is_delete=False, shop_id=shop_id, order_label='',
+                                              status=Status.Awaiting_Deliver)
+    shoporder_id_list = [item.id for item in shoporder_list]
+
+    seller_api = SELLER_API(shop_id)
+    for order_id in shoporder_id_list:
+        params = {
+            'order_id': order_id,
+        }
+        file_path = seller_api.get_label(params)
+        if not file_path:
+            continue
+
+        url = f'{settings.INNER_URL}/shoporder/{order_id}/'
+        req_data = {
+            'order_label': file_path
+        }
+        headers = {
+            'Authorization': f"Bearer {celeryuser['access_token']}",
+            'Token': celeryuser['openid'],
+            'Operator': str(staff_id)
+        }
+
+        response = requests.patch(url, json=req_data, headers=headers)
+        str_response = response.content.decode('UTF-8')
+        json_response = json.loads(str_response)
+        json_response_status = json_response.get('status_code')
+        if response.status_code != 200 or (json_response_status and json_response_status != 200):
+            # response.content: { status_code: 5xx, detial: 'xxx' }
+            logger.info(f'task label of orderid: {order_id} update failed, response: {json_response}')
+
+
+    processing_time = time.time() - start_time
+    logger.info(f'task_label_update_by_shopid for shop_id: {shop_id}, processing_time: {processing_time:.6f} seconds')
+
+    return {
+        'parent_id': parent_id,
+        'shop_id': shop_id,
+        'status': 'success',
+        'processing_time': f'{processing_time:.6f} seconds'
+    }
+
+@shared_task(name='task_label_manual_update_by_shopid')
+def task_label_manual_update_by_shopid(shop_id, staff_id, parent_id, shoporder_id_list, celeryuser):
+    start_time = time.time()
+
+    seller_api = SELLER_API(shop_id)
+    for order_id in shoporder_id_list:
+        params = {
+            'order_id': order_id,
+        }
+        file_path = seller_api.get_label(params)
+        if not file_path:
+            continue
+
+        url = f'{settings.INNER_URL}/shoporder/{order_id}/'
+        req_data = {
+            'order_label': file_path
+        }
+        headers = {
+            'Authorization': f"Bearer {celeryuser['access_token']}",
+            'Token': celeryuser['openid'],
+            'Operator': str(staff_id)
+        }
+
+        response = requests.patch(url, json=req_data, headers=headers)
+        str_response = response.content.decode('UTF-8')
+        json_response = json.loads(str_response)
+        json_response_status = json_response.get('status_code')
+        if response.status_code != 200 or (json_response_status and json_response_status != 200):
+            # response.content: { status_code: 5xx, detial: 'xxx' }
+            logger.info(f'task label of orderid: {order_id} manual update failed, response: {json_response}')
+
+    processing_time = time.time() - start_time
+    logger.info(f'task_stock_manual_update_by_shopid for shop_id: {shop_id}, processing_time: {processing_time:.6f} seconds')
+
+    return {
+        'parent_id': parent_id,
+        'shop_id': shop_id,
+        'status': 'success',
+        'processing_time': f'{processing_time:.6f} seconds'
+    }
+
+@shared_task(name='task_label_manual_update_callback')
+def task_label_manual_update_callback(ret, staff_id, parent_id, celeryuser):
+    return {
+        'parent_id': parent_id,
+        'status': 'success'
+    }
+
 def get_user(name, password):
     item = {
         'name': name,

@@ -14,6 +14,7 @@ class Filter(FilterSet):
             "status": ['exact', 'iexact', 'gt', 'gte', 'lt', 'lte', 'isnull', 'in', 'range'],
             "handle_status": ['exact', 'iexact', 'gt', 'gte', 'lt', 'lte', 'isnull', 'in', 'range'],
             "order_time": ['year', 'month', 'day', 'week_day', 'gt', 'gte', 'lt', 'lte', 'range'],
+            "order_label": ['exact', 'iexact', 'contains', 'icontains'],
             "shipment_time": ['year', 'month', 'day', 'week_day', 'gt', 'gte', 'lt', 'lte', 'range'],
             "openid": ['exact', 'iexact', 'contains', 'icontains'],
             "supplier": ['exact', 'iexact', 'contains', 'icontains'],

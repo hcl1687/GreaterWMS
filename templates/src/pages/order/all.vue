@@ -46,6 +46,9 @@
                 <q-btn :label="$t('order.batch_delete')" icon="delete_sweep" :disable="selected.length === 0" @click="batchDelete()">
                   <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ $t('order.batch_delete_tip') }}</q-tooltip>
                 </q-btn>
+                <q-btn :label="$t('order.batch_get_label')" icon="view_kanban" :disable="selected.length === 0" @click="batchGetLabel()">
+                  <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ $t('order.batch_get_label_tip') }}</q-tooltip>
+                </q-btn>
                 <q-btn
                   v-show="$q.localStorage.getItem('staff_type') !== 'Supplier' && $q.localStorage.getItem('staff_type') !== 'Customer'"
                   :label="$t('refresh')"
@@ -206,6 +209,15 @@
             <q-td key="posting_number" :props="props">{{ props.row.posting_number }}</q-td>
             <q-td key="dn_code" :props="props">{{ props.row.dn_code }}</q-td>
             <q-td key="total_weight" :props="props">{{ props.row.total_weight && props.row.total_weight.toFixed(4) }}</q-td>
+            <q-td key="order_label" :props="props">
+              <q-btn
+                v-if="props.row.order_label"
+                color="primary"
+                icon="download"
+                :title="$t('order.download_label')"
+                @click="showOrderLabel(props.row.order_label)"
+              />
+            </q-td>
             <q-td key="order_time" :props="props">{{ showLocalTime(props.row.order_time) }}</q-td>
             <q-td key="shipment_time" :props="props">{{ showLocalTime(props.row.shipment_time) }}</q-td>
             <q-td key="status" :props="props">{{ getStatusMsg(props.row.status) }}</q-td>
@@ -388,8 +400,8 @@
 <router-view />
 
 <script>
-import { getauth, postauth, deleteauth } from 'boot/axios_request'
-import { LocalStorage } from 'quasar'
+import { getauth, postauth, deleteauth, baseurl } from 'boot/axios_request'
+import { LocalStorage, openURL } from 'quasar'
 import dayjs from 'dayjs'
 
 export default {
@@ -427,6 +439,7 @@ export default {
         { name: 'posting_number', label: this.$t('order.posting_number'), field: 'posting_number', align: 'center' },
         { name: 'dn_code', label: this.$t('outbound.view_dn.dn_code'), field: 'dn_code', align: 'center' },
         { name: 'total_weight', label: this.$t('outbound.view_dn.total_weight'), field: 'total_weight', align: 'center' },
+        { name: 'order_label', label: this.$t('order.order_label'), field: 'order_label', align: 'center' },
         { name: 'order_time', label: this.$t('order.order_time'), field: 'order_time', align: 'center' },
         { name: 'shipment_time', label: this.$t('order.shipment_time'), field: 'shipment_time', align: 'center' },
         { name: 'status', label: this.$t('order.status'), field: 'status', align: 'center' },
@@ -770,6 +783,23 @@ export default {
       const taskId = res && res.task_id || ''
       this.showProgressForm(taskId)
     },
+    async batchGetLabel () {
+      const selected = this.selected
+      if (selected.length === 0) {
+        return
+      }
+
+      const order_ids = selected.filter(item => item.order_label === '').map(item => item.id)
+      if (order_ids.length === 0) {
+        return
+      }
+
+      const res = await postauth('shoporder/label/', {
+        order_id: order_ids
+      })
+      const taskId = res && res.task_id || ''
+      this.showProgressForm(taskId)
+    },
     getStatusMsg (status) {
       let msg = ''
       if (status === 1) {
@@ -1097,6 +1127,7 @@ export default {
         const res = await this.getTaskStatus(taskId)
         if (res == 'SUCCESS') {
           this.closeProgressForm()
+          this.selected = []
           this.current = 1;
           this.paginationIpt = 1;
           this.getList()
@@ -1122,6 +1153,13 @@ export default {
       const res = await getauth(`/shoporder/task/?task_id=${taskId}`, {})
 
       return res && res.state || ''
+    },
+    showOrderLabel (order_label) {
+      if (!order_label) {
+        return ''
+      }
+
+      return openURL(`${baseurl}/media/${order_label}`)
     }
   },
   created () {

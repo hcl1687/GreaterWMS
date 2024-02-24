@@ -755,7 +755,11 @@ export default {
     after_tomorrow: '后天',
     can_order_stock: '库存',
     progress_title: '同步进度',
-    progress_tip: '请耐心等待抓单任务结束'
+    progress_tip: '请耐心等待抓单任务结束',
+    batch_get_label: '批量抓取面单',
+    batch_get_label_tip: '批量抓取平台面单',
+    order_label: '平台面单',
+    download_label: '下载平台面单'
   },
   shopsync: {
     shop_sync: '库存同步',
