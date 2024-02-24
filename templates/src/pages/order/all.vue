@@ -20,178 +20,60 @@
         bordered
       >
         <template v-slot:top>
-          <div class="col">
-            <div class="row items-center relative-position">
-              <q-btn-group push>
-                <q-btn
-                  :label="$t('download_center.reset')"
-                  icon="img:statics/downloadcenter/reset.svg"
-                  @click="reset()"
-                >
-                </q-btn>
-                <q-btn
-                  :label="$t('order.fetch_order')"
-                  icon="system_update_alt"
-                  @click="fetchOrder()"
-                >
-                  <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ $t('order.fetch_order_tip') }}</q-tooltip>
-                </q-btn>
-                <q-btn
-                  :label="$t('order.update_order')"
-                  icon="cloud_sync"
-                  @click="updateOrder()"
-                >
-                  <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ $t('order.update_order_tip') }}</q-tooltip>
-                </q-btn>
-                <q-btn :label="$t('order.batch_get_label')" icon="view_kanban" :disable="selected.length === 0" @click="batchGetLabel()">
-                  <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ $t('order.batch_get_label_tip') }}</q-tooltip>
-                </q-btn>
-                <q-btn :label="$t('order.batch_delete')" icon="delete_sweep" :disable="selected.length === 0" @click="batchDelete()">
-                  <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ $t('order.batch_delete_tip') }}</q-tooltip>
-                </q-btn>
-                <q-btn
-                  v-show="$q.localStorage.getItem('staff_type') !== 'Supplier' && $q.localStorage.getItem('staff_type') !== 'Customer'"
-                  :label="$t('refresh')"
-                  icon="refresh"
-                  @click="reFresh()"
-                >
-                  <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ $t('refreshtip') }}</q-tooltip>
-                </q-btn>
-              </q-btn-group>
-              <q-space />
-            </div>
-            <div class="row items-center relative-position q-mt-md">
-              <div class="col-auto q-mb-md">
-                <div class="flex items-center">
-                  <div class="q-mr-md">{{ $t("download_center.createTime") }}</div>
-                  <q-input
-                    readonly
-                    outlined
-                    dense
-                    v-model="createDate2"
-                    :placeholder="interval"
-                  >
-                    <template v-slot:append>
-                      <q-icon name="event" class="cursor-pointer">
-                        <q-popup-proxy
-                          ref="qDateProxy"
-                          transition-show="scale"
-                          transition-hide="scale"
-                          ><q-date v-model="createDate1" range
-                        /></q-popup-proxy>
-                      </q-icon>
-                    </template>
-                  </q-input>
-                </div>
-              </div>
-              <div class="col-auto q-mb-md q-ml-md">
-                <q-input outlined rounded dense debounce="300" color="primary" v-model="filter_shop_name" :placeholder="$t('order.search_shop_name')" @input="getList()" @keyup.enter="getList()">
-                  <template v-slot:append>
-                    <q-icon name="search" @click="getList()" />
-                  </template>
-                </q-input>
-              </div>
-              <div class="col-auto q-mb-md q-ml-md">
-                <q-input outlined rounded dense debounce="300" color="primary" v-model="filter_posting_number" :placeholder="$t('order.search_posting_number')" @input="getList()" @keyup.enter="getList()">
-                  <template v-slot:append>
-                    <q-icon name="search" @click="getList()" />
-                  </template>
-                </q-input>
-              </div>
-              <div class="col-auto q-mb-md q-ml-md">
-                <q-input outlined rounded dense debounce="300" color="primary" v-model="filter_dn_code" :placeholder="$t('order.search_dn_code')" @input="getList()" @keyup.enter="getList()">
-                  <template v-slot:append>
-                    <q-icon name="search" @click="getList()" />
-                  </template>
-                </q-input>
-              </div>
-              <div class="col-auto q-mb-md q-ml-md">
-                <q-select
-                  clearable
-                  use-input
-                  fill-input
-                  hide-selected
-                  input-debounce="0"
-                  dense
-                  outlined
-                  v-model="filter_supplier"
-                  :options="supplier_list"
-                  @filter="filterFnS"
-                  @input-value="setSupplierIpt"
-                  @input="getList()"
-                  :label="$t('baseinfo.view_supplier.supplier_name')"
-                  style="margin-bottom: 5px"
-                >
-                  <template v-slot:Sno-option>
-                    <q-item>
-                      <q-item-section class="text-grey">
-                        No Result
-                      </q-item-section>
-                    </q-item>
-                  </template>
-                </q-select>
-              </div>
-              <div class="col-auto q-mb-md q-ml-md">
-                <q-select
-                  clearable
-                  use-input
-                  fill-input
-                  hide-selected
-                  input-debounce="0"
-                  dense
-                  outlined
-                  v-model="filter_handle_status"
-                  :options="handle_status_list"
-                  @input="getList()"
-                  :label="$t('order.handle_status')"
-                  style="margin-bottom: 5px"
-                >
-                  <template v-slot:Sno-option>
-                    <q-item>
-                      <q-item-section class="text-grey">
-                        No Result
-                      </q-item-section>
-                    </q-item>
-                  </template>
-                </q-select>
-              </div>
-            </div>
-            <div class="row items-center relative-position">
-              <div class="col-auto q-mb-md">
-                <div class="flex items-center">
-                  <div class="q-mr-md">{{ $t("order.shipment_time") }}</div>
-                  <q-input
-                    readonly
-                    outlined
-                    dense
-                    v-model="shipmentDate2"
-                    :placeholder="interval"
-                  >
-                    <template v-slot:append>
-                      <q-icon name="event" class="cursor-pointer">
-                        <q-popup-proxy
-                          ref="qDateProxy"
-                          transition-show="scale"
-                          transition-hide="scale"
-                          ><q-date v-model="shipmentDate1" range
-                        /></q-popup-proxy>
-                      </q-icon>
-                    </template>
-                  </q-input>
-                </div>
-              </div>
-              <div class="col-auto q-mb-md q-ml-md">
-                <q-btn-toggle
-                  v-model="shipmentDate3"
-                  push
-                  glossy
-                  clearable
-                  toggle-color="primary"
-                  :options="shipmentDate3Options"
-                />
-              </div>
-            </div>
-          </div>
+          <q-btn-group push>
+            <q-btn
+              :label="$t('download_center.reset')"
+              icon="img:statics/downloadcenter/reset.svg"
+              @click="reset()"
+            >
+            </q-btn>
+            <q-btn
+              :label="$t('order.fetch_order')"
+              icon="system_update_alt"
+              @click="fetchOrder()"
+            >
+              <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ $t('order.fetch_order_tip') }}</q-tooltip>
+            </q-btn>
+            <q-btn
+              :label="$t('order.update_order')"
+              icon="cloud_sync"
+              @click="updateOrder()"
+            >
+              <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ $t('order.update_order_tip') }}</q-tooltip>
+            </q-btn>
+            <q-btn :label="$t('order.batch_get_label')" icon="view_kanban" :disable="selected.length === 0" @click="batchGetLabel()">
+              <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ $t('order.batch_get_label_tip') }}</q-tooltip>
+            </q-btn>
+            <q-btn :label="$t('order.batch_delete')" icon="delete_sweep" :disable="selected.length === 0" @click="batchDelete()">
+              <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ $t('order.batch_delete_tip') }}</q-tooltip>
+            </q-btn>
+            <q-btn
+              v-show="$q.localStorage.getItem('staff_type') !== 'Supplier' && $q.localStorage.getItem('staff_type') !== 'Customer'"
+              :label="$t('refresh')"
+              icon="refresh"
+              @click="reFresh()"
+            >
+              <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ $t('refreshtip') }}</q-tooltip>
+            </q-btn>
+          </q-btn-group>
+          <q-space />
+          <q-btn-toggle
+            v-model="shipmentDate3"
+            push
+            glossy
+            clearable
+            toggle-color="primary"
+            :options="shipmentDate3Options"
+          />
+          <q-btn
+            class="q-ml-md"
+            round color="primary"
+            v-show="$q.localStorage.getItem('staff_type') !== 'Supplier' && $q.localStorage.getItem('staff_type') !== 'Customer'"
+            icon="filter_alt"
+            @click="showSearchForm()"
+          >
+            <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ $t('order.search_tip') }}</q-tooltip>
+          </q-btn>
         </template>
         <template v-slot:header-selection="scope">
           <q-checkbox v-model="scope.selected" />
@@ -214,9 +96,10 @@
                 v-if="props.row.order_label"
                 color="primary"
                 icon="download"
-                :title="$t('order.download_label')"
                 @click="showOrderLabel(props.row.order_label)"
-              />
+              >
+                <q-tooltip content-class="bg-amber text-black shadow-4" :offset="[10, 10]" content-style="font-size: 12px">{{ $t('order.download_label') }}</q-tooltip>
+              </q-btn>
             </q-td>
             <q-td key="order_time" :props="props">{{ showLocalTime(props.row.order_time) }}</q-td>
             <q-td key="shipment_time" :props="props">{{ showLocalTime(props.row.shipment_time) }}</q-td>
@@ -395,6 +278,170 @@
         <q-linear-progress indeterminate />
       </q-card>
     </q-dialog>
+    <q-dialog v-model="searchForm" seamless position="right" full-height >
+      <q-list bordered class="rounded-borders" style="width: 400px; background-color: white;">
+        <q-btn flat round icon="close" @click="closeSearchForm()" />
+        <q-expansion-item
+          expand-separator
+          :label="$t('order.search_by_time')"
+          default-opened
+        >
+          <q-card>
+            <q-card-section>
+              <div class="row items-center relative-position">
+                <div class="col-auto q-mb-md">
+                  <div class="flex items-center">
+                    <div class="q-mr-md">{{ $t("download_center.createTime") }}</div>
+                    <q-input
+                      readonly
+                      outlined
+                      dense
+                      v-model="createDate2"
+                      :placeholder="interval"
+                    >
+                      <template v-slot:append>
+                        <q-icon name="event" class="cursor-pointer">
+                          <q-popup-proxy
+                            ref="qDateProxy"
+                            transition-show="scale"
+                            transition-hide="scale"
+                            ><q-date v-model="createDate1" range
+                          /></q-popup-proxy>
+                        </q-icon>
+                      </template>
+                    </q-input>
+                  </div>
+                </div>
+              </div>
+              <div class="row items-center relative-position">
+                <div class="col-auto q-mb-md">
+                  <div class="flex items-center">
+                    <div class="q-mr-md">{{ $t("order.shipment_time") }}</div>
+                    <q-input
+                      readonly
+                      outlined
+                      dense
+                      v-model="shipmentDate2"
+                      :placeholder="interval"
+                    >
+                      <template v-slot:append>
+                        <q-icon name="event" class="cursor-pointer">
+                          <q-popup-proxy
+                            ref="qDateProxy"
+                            transition-show="scale"
+                            transition-hide="scale"
+                            ><q-date v-model="shipmentDate1" range
+                          /></q-popup-proxy>
+                        </q-icon>
+                      </template>
+                    </q-input>
+                  </div>
+                </div>
+              </div>
+            </q-card-section>
+          </q-card>
+        </q-expansion-item>
+        <q-expansion-item
+          expand-separator
+          :label="$t('order.search_by_keyword')"
+        >
+          <q-card>
+            <q-card-section>
+              <div class="row items-center relative-position">
+                <div class="col-auto q-mb-md q-ml-md">
+                  <q-input outlined rounded dense debounce="300" color="primary" v-model="filter_shop_name" :placeholder="$t('order.search_shop_name')" @input="getList()" @keyup.enter="getList()">
+                    <template v-slot:append>
+                      <q-icon name="search" @click="getList()" />
+                    </template>
+                  </q-input>
+                </div>
+              </div>
+              <div class="row items-center relative-position q-mt-md">
+                <div class="col-auto q-mb-md q-ml-md">
+                  <q-input outlined rounded dense debounce="300" color="primary" v-model="filter_posting_number" :placeholder="$t('order.search_posting_number')" @input="getList()" @keyup.enter="getList()">
+                    <template v-slot:append>
+                      <q-icon name="search" @click="getList()" />
+                    </template>
+                  </q-input>
+                </div>
+              </div>
+              <div class="row items-center relative-position q-mt-md">
+                <div class="col-auto q-mb-md q-ml-md">
+                  <q-input outlined rounded dense debounce="300" color="primary" v-model="filter_dn_code" :placeholder="$t('order.search_dn_code')" @input="getList()" @keyup.enter="getList()">
+                    <template v-slot:append>
+                      <q-icon name="search" @click="getList()" />
+                    </template>
+                  </q-input>
+                </div>
+              </div>
+            </q-card-section>
+          </q-card>
+        </q-expansion-item>
+        <q-expansion-item
+          expand-separator
+          :label="$t('order.search_by_option')"
+        >
+          <q-card>
+            <q-card-section>
+              <div class="row items-center relative-position">
+                <div class="col-auto q-mb-md q-ml-md">
+                  <q-select
+                    clearable
+                    use-input
+                    fill-input
+                    hide-selected
+                    input-debounce="0"
+                    dense
+                    outlined
+                    v-model="filter_supplier"
+                    :options="supplier_list"
+                    @filter="filterFnS"
+                    @input-value="setSupplierIpt"
+                    @input="getList()"
+                    :label="$t('baseinfo.view_supplier.supplier_name')"
+                    style="margin-bottom: 5px"
+                  >
+                    <template v-slot:Sno-option>
+                      <q-item>
+                        <q-item-section class="text-grey">
+                          No Result
+                        </q-item-section>
+                      </q-item>
+                    </template>
+                  </q-select>
+                </div>
+              </div>
+              <div class="row items-center relative-position">
+                <div class="col-auto q-mb-md q-ml-md">
+                  <q-select
+                    clearable
+                    use-input
+                    fill-input
+                    hide-selected
+                    input-debounce="0"
+                    dense
+                    outlined
+                    v-model="filter_handle_status"
+                    :options="handle_status_list"
+                    @input="getList()"
+                    :label="$t('order.handle_status')"
+                    style="margin-bottom: 5px"
+                  >
+                    <template v-slot:Sno-option>
+                      <q-item>
+                        <q-item-section class="text-grey">
+                          No Result
+                        </q-item-section>
+                      </q-item>
+                    </template>
+                  </q-select>
+                </div>
+              </div>
+            </q-card-section>
+          </q-card>
+        </q-expansion-item>
+      </q-list>
+    </q-dialog>
   </div>
 </template>
 <router-view />
@@ -506,6 +553,7 @@ export default {
       },
       progressForm: false,
       progressTimer: null,
+      searchForm: false,
     }
   },
   computed: {
@@ -1160,6 +1208,12 @@ export default {
       }
 
       return openURL(`${baseurl}/media/${order_label}`)
+    },
+    showSearchForm () {
+      this.searchForm = true
+    },
+    closeSearchForm () {
+      this.searchForm = false
     }
   },
   created () {
@@ -1188,12 +1242,11 @@ export default {
   },
   mounted () {
     var _this = this
-    // if (_this.$q.platform.is.electron) {
-    //   _this.height = String(_this.$q.screen.height - 420) + 'px'
-    // } else {
-    //   _this.height = _this.$q.screen.height - 420 + '' + 'px'
-    // }
-    // _this.height = '800px'
+    if (_this.$q.platform.is.electron) {
+      _this.height = String(_this.$q.screen.height - 290) + 'px'
+    } else {
+      _this.height = _this.$q.screen.height - 290 + '' + 'px'
+    }
   },
   updated () {},
   unmounted () {

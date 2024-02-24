@@ -758,7 +758,11 @@ export default {
     batch_get_label: 'Batch Fetch Label',
     batch_get_label_tip: 'Batch fetch package label',
     order_label: 'Package Label',
-    download_label: 'Download package label'
+    download_label: 'Download package label',
+    search_tip: 'Advanced search',
+    search_by_time: 'Search By Time',
+    search_by_keyword: 'Search By Keyword',
+    search_by_option: 'Search By Options'
   },
   shopsync: {
     shop_sync: 'Shop Sync',

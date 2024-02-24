@@ -759,7 +759,11 @@ export default {
     batch_get_label: '批量抓取面单',
     batch_get_label_tip: '批量抓取平台面单',
     order_label: '平台面单',
-    download_label: '下载平台面单'
+    download_label: '下载平台面单',
+    search_tip: '高级搜索',
+    search_by_time: '按时间搜索',
+    search_by_keyword: '按关键字搜索',
+    search_by_option: '按选项搜索'
   },
   shopsync: {
     shop_sync: '库存同步',
