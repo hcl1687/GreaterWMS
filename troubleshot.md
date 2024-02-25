@@ -168,15 +168,25 @@ https://www.56yhz.com/md/android_environment/zh-CN
 node v14
 jdk1.8
 android studio
-gradle
+gradle v4.10.3
 
 ### install
 ```bash
 cd app
 nvm use v14.21.3
 npm install -g cordova
-yarn install
+npm install
 ```
+
+### .bashrc
+append env variables to .bashrc
+```bash
+export PATH=$PATH:/opt/gradle/gradle-4.10.3/bin
+export ANDROID_HOME="$HOME/Android/Sdk"
+export ANDROID_SDK_ROOT="$HOME/Android/Sdk"
+export PATH=$PATH:$ANDROID_SDK_ROOT/tools; PATH=$PATH:$ANDROID_SDK_ROOT/platform-tools
+```
+source .bashrc in the current shell
 
 ### verify
 ```bash
@@ -196,6 +206,20 @@ cordova requirements
     It will auto install apk to the connected phone.
 
 * go to settings/server page, set openid and baseurl.
+
+### build
+```bash
+cd app
+quasar build -m cordova -T android
+
+# should download bundletool, if it's in ~/Downloads folder:
+cd ~/Downloads
+java -jar bundletool-all-1.15.6.jar build-apks --bundle=/home/hcl/github.com/hcl1687/GreaterWMS/app/dist/cordova/android/bundle/release/app-release.aab --output=GreaterWMS.apks --mode=universal
+mv GreaterWMS.apks GreaterWMS.zip
+unzip -d ./tmp GreaterWMS.zip
+```
+
+
 
 # 20240223
 ## dev on ubuntu22.04

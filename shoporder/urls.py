@@ -14,4 +14,5 @@ path(r'init/', views.ShoporderInitViewSet.as_view({"post": "create"}), name="sho
 path(r'update/', views.ShoporderUpdateViewSet.as_view({"post": "create"}), name="shoporderupdate"),
 path(r'task/', views.TaskViewSet.as_view({"get": "list"}), name="shopordertask"),
 path(r'label/', views.ShoporderLabelViewSet.as_view({"post": "create"}), name="shoporderlabel"),
+path(r'pickinglistfilter/', views.PickingListFilterViewSet.as_view({"get": "list"}), name="shoporderpickinglistfilter"),
 ]

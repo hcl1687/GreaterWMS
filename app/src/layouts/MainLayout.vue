@@ -158,6 +158,15 @@
                         flat
                         icon="img:statics/outbound/pickinglist.png"
                         @click="onClick('pickinglist')"
+          
+          />
+          <q-fab-action padding="10px"
+                        :label="$t('outbound.pickingorderlist')"
+                        :to="{ name: 'pickingorderlist' }"
+                        flat
+                        icon="img:statics/outbound/pickinglist.png"
+                        @click="onClick('pickingorderlist')"
+          
           />
         </q-fab>
       </q-page-sticky>

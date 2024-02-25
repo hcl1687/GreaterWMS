@@ -752,7 +752,7 @@ export default {
       if (LocalStorage.has('auth')) {
         _this.current = 1
         _this.paginationIpt = 1
-        getauth(_this.pathname + '?goods_desc__icontains=' + _this.filter + '&page=' + '' + _this.current, {})
+        getauth(_this.pathname + '?goods_code__icontains=' + _this.filter + '&page=' + '' + _this.current, {})
           .then(res => {
             _this.table_list = res.results
             _this.total = res.count

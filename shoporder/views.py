@@ -896,3 +896,50 @@ class ShoporderLabelViewSet(viewsets.ModelViewSet):
         }
 
         return Response(data, status=200)
+
+class PickingListFilterViewSet(viewsets.ModelViewSet):
+    """
+        list:
+            Picklist for Filter
+    """
+    pagination_class = MyPageNumberPagination
+    filter_backends = [DjangoFilterBackend, OrderingFilter, ]
+    ordering_fields = ['id', "create_time", "update_time", ]
+    filter_class = Filter
+    permission_classes = (permissions.DjangoModelPermissions,)
+
+    def get_queryset(self):
+        if self.request.user:
+            return ListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), is_delete=False, status=Status.Awaiting_Deliver)
+        else:
+            return ListModel.objects.none()
+
+    def get_serializer_class(self):
+        if self.action in ['list']:
+            return serializers.ShoporderGetSerializer
+        else:
+            return self.http_method_not_allowed(request=self.request)
+        
+    def list(self, request, *args, **kwargs):
+        data = super().list(request=request).data
+
+        new_results = []
+        # add extra info to data here
+        for item in data['results']:
+            dn_code = item['dn_code']
+            if dn_code:
+                dn_obj = DnListModel.objects.filter(openid=self.request.META.get('HTTP_TOKEN'), dn_code=dn_code, is_delete=False).first()
+                # if not in await picking status, skip.
+                if dn_obj:
+                    if dn_obj.dn_status != 3:
+                        continue
+                    total_weight = dn_obj.total_weight
+                    item['total_weight'] = total_weight
+                    item['dn_status'] = dn_obj.dn_status
+                    item['bar_code'] = dn_obj.bar_code
+                    item['dn_id'] = dn_obj.id
+                    item['customer'] = dn_obj.customer
+                    new_results.append(item)
+
+        data['results'] = new_results
+        return Response(data, status=200)

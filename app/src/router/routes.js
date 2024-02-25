@@ -19,7 +19,9 @@ const routes = [
           { path: 'dnlist', name: 'dnlist', component: () => import('pages/dn/DNList.vue') },
           { path: 'dndetail', name: 'dndetail', component: () => import('pages/dn/DNDetail.vue') },
           { path: 'pickinglist', name: 'pickinglist', component: () => import('pages/dn/PickingList.vue') },
-          { path: 'equipment', name: 'equipment', component: () => import('pages/settings/EquipmentSupport.vue') }
+          { path: 'equipment', name: 'equipment', component: () => import('pages/settings/EquipmentSupport.vue') },
+          { path: 'pickingorderlist', name: 'pickingorderlist', component: () => import('pages/dn/PickingOrderList.vue') },
+          { path: 'pickingorderdetail', name: 'pickingorderdetail', component: () => import('pages/dn/PickingOrderDetail.vue') },
         ]
       }
     ]
