@@ -635,6 +635,16 @@ export default {
       notice7: 'Successful Confirmed Count Result',
       notice8: 'Here shows the details of the goods that need to be counted'
     },
+    order: {
+      pickingorderlist: 'Picking Order List',
+      pickingorderlist_tip: 'All the details of today\'s picking order list are here, you can click one order item to picking its goods',
+      posting_number: 'Posting Number',
+      pickingorderdetail: 'Picking Order Detail',
+      pickingorderdetail_tip: 'You can scan the QR code of the googs in this order to pick it. After all goods are picked, this order will be waiting for transfer',
+      current_pick: 'current picked qty:',
+      no_order_label: 'This order\'s label has not been fetched yet, please contact the administrator',
+      goods_code_not_exist: 'The order do not have this goods'
+    },
     version: {
        new: 'New Version Update',
        detail: 'Please go to the GreaterWMS official website, https://www.56yhz.com/, to download the latest version of the APP'

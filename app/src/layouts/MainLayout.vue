@@ -152,16 +152,16 @@
                         icon="img:statics/outbound/outbound.png"
                         @click="onClick('dndetail')"
           />
-          <q-fab-action padding="10px"
+          <!-- <q-fab-action padding="10px"
                         :label="$t('outbound.pickinglist')"
                         :to="{ name: 'pickinglist' }"
                         flat
                         icon="img:statics/outbound/pickinglist.png"
                         @click="onClick('pickinglist')"
           
-          />
+          /> -->
           <q-fab-action padding="10px"
-                        :label="$t('outbound.pickingorderlist')"
+                        :label="$t('order.pickingorderlist')"
                         :to="{ name: 'pickingorderlist' }"
                         flat
                         icon="img:statics/outbound/pickinglist.png"

@@ -2,8 +2,8 @@
   <q-list bordered padding>
     <q-item>
       <q-item-section>
-        <q-item-label overline>{{ $t('order.picking_detail') }}</q-item-label>
-        <q-item-label caption>{{ $t('notice.mobile_dn.notice11') }}</q-item-label>
+        <q-item-label overline>{{ $t('order.pickingorderdetail') }}</q-item-label>
+        <q-item-label caption>{{ $t('order.pickingorderdetail_tip') }}</q-item-label>
       </q-item-section>
     </q-item>
     <q-separator spaced/>
@@ -29,10 +29,10 @@
 <script>
 import { computed, defineComponent, onMounted, ref, watch } from 'vue'
 import { useStore } from "vuex";
-import { useQuasar } from "quasar";
+import { useQuasar, openURL } from "quasar";
 import axios from 'axios';
 import { useI18n } from "vue-i18n";
-import { useRouter } from "vue-router";
+import { useRouter, useRoute } from "vue-router";
 
 export default defineComponent({
   name: 'PickingOrderDetail',
@@ -43,6 +43,7 @@ export default defineComponent({
   setup () {
     const $store = useStore()
     const $router = useRouter()
+    const $route = useRoute()
     const $q = useQuasar()
     const requestauth = ref(0)
     const submitdata = ref({})
@@ -364,6 +365,10 @@ export default defineComponent({
           })
         }
 
+        const order_label = $route.query.order_label
+        setTimeout(() => {
+          openURL(`${baseurl.value}/media/${order_label}`)
+        }, 1000)
         $router.push({ name: oldlink.value })
       }).catch(err => {
         $q.notify({
@@ -417,21 +422,6 @@ export default defineComponent({
         }
         InitData(filter)
       }
-
-      // const fileTransfer = new FileTransfer()
-      // const uri = encodeURI(`${baseurl.value}/media/labels/YADE_411145170.pdf`)
-      // fileTransfer.download(
-      //     uri,
-      //     cordova.file.dataDirectory + "file.pdf",
-      //     function(entry) {
-      //         alert('ddddd')
-      //     },
-      //     function(error) {
-      //         alert('sss')
-      //     },
-      //     false,
-      //     {}
-      // );
     })
 
     return {

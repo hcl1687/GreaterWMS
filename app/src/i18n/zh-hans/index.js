@@ -524,6 +524,16 @@ export default {
     handcountrecorder: '单项盘点记录',
     update_time: '盘点时间'
   },
+  order: {
+    pickingorderlist: '待拣货订单',
+    pickingorderlist_tip: '显示今天所有的待拣货订单。您可以点击某个订单进入详情页面进行拣货操作。',
+    posting_number: '发货单号',
+    pickingorderdetail: '拣货详情',
+    pickingorderdetail_tip: '您需要扫描商品上的二维码进行拣货操作。 当该订单中的所有商品都已拣出，该订单会自动出库，并自动下载面单。',
+    current_pick: '已拣出数量：',
+    no_order_label: '面单还未获取，请联系管理员。',
+    goods_code_not_exist: '该订单不包含这个商品。'
+  },
   notice: {
     valerror: '请输入正确的值',
     unknow_error: '未知错误',

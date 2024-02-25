@@ -206,6 +206,7 @@ cordova requirements
     It will auto install apk to the connected phone.
 
 * go to settings/server page, set openid and baseurl.
+* if app can not connect to the pc successfully, remove platform andorid and re-add it.
 
 ### build
 ```bash

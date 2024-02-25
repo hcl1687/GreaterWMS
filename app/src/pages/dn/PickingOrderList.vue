@@ -2,8 +2,8 @@
   <q-list bordered padding>
     <q-item>
       <q-item-section>
-        <q-item-label overline>{{ $t('order.pickinglist') }}</q-item-label>
-        <q-item-label caption>{{ $t('notice.mobile_dn.notice11') }}</q-item-label>
+        <q-item-label overline>{{ $t('order.pickingorderlist') }}</q-item-label>
+        <q-item-label caption>{{ $t('order.pickingorderlist_tip') }}</q-item-label>
       </q-item-section>
     </q-item>
     <q-separator spaced/>
@@ -248,7 +248,7 @@ export default defineComponent({
       newlink.value = 'pickingorderdetail'
       $router.push({
         name: 'pickingorderdetail',
-        params: {
+        query: {
           order_label: e.order_label
         }
       })
